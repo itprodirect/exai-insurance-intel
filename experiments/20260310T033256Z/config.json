@@ -1,0 +1,31 @@
+{
+  "config": {
+    "budget_cap_usd": 7.5,
+    "cache_ttl_hours": 720,
+    "category": "people",
+    "exa_endpoint": "https://api.exa.ai/search",
+    "exclude_domains": [],
+    "highlight_num_sentences": 2,
+    "highlights_per_url": 1,
+    "include_domains": [],
+    "max_supported_results_for_estimate": 100,
+    "moderation": true,
+    "num_results": 5,
+    "redact_emails_phones": true,
+    "search_type": "auto",
+    "sqlite_path": "exa_cache.sqlite",
+    "use_highlights": true,
+    "use_summary": false,
+    "use_text": false,
+    "user_location": "US"
+  },
+  "generated_at_utc": "2026-03-10T03:32:56.665457+00:00",
+  "pricing": {
+    "content_highlights_per_page": 0.001,
+    "content_summary_per_page": 0.001,
+    "content_text_per_page": 0.001,
+    "search_1_25": 0.005,
+    "search_26_100": 0.025
+  },
+  "run_id": "20260310T033256Z"
+}

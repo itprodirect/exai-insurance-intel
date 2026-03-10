@@ -44,6 +44,20 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+
+## Installable Package and CLI
+
+For an editable install with the CLI and dev tools available:
+
+```powershell
+pip install -e ".[dev]"
+```
+
+If your environment blocks build-dependency downloads, use:
+
+```powershell
+pip install -e ".[dev]" --no-build-isolation
+```
 ## Configure Environment
 
 Create `.env` from template:
@@ -79,6 +93,34 @@ Notebook flow is intentionally fixed to 9 cells:
 7. Summary + qualitative notes
 8. Cost projections
 9. Decision rubric + integration recommendations
+
+
+## CLI Commands
+
+```powershell
+python -m exa_demo search "forensic engineer insurance expert witness" --mode smoke --json
+python -m exa_demo eval --mode smoke --limit 5 --json
+python -m exa_demo budget --run-id demo-2026-03 --json
+```
+
+The search and eval commands write the same experiments/<RUN_ID>/ artifact bundle as the notebook flow.
+
+## Benchmark Fixture
+
+The packaged regression-style query fixture lives at `benchmarks/insurance_cat_queries.json`.
+The notebook still owns execution and presentation, but Cell 6 now loads this fixture so the query set is reusable in tests and future CLI flows.
+
+
+## Experiment Artifacts
+
+Each notebook run now writes a versioned artifact bundle under `experiments/<RUN_ID>/`:
+
+- `config.json`
+- `queries.jsonl`
+- `results.jsonl`
+- `summary.json`
+
+Smoke-mode runs keep the same artifact shape, but with mocked results and zero spend.
 
 ## Cache + Budget Behavior
 
@@ -149,6 +191,19 @@ git remote set-url origin https://github.com/itprodirect/exai-search-demo.git
 git push -u origin main
 ```
 
+
+## Deep-Dive Rebuild Review
+
+For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild_review.md`.
+
+
+## Roadmap and Delivery History
+
+- Canonical roadmap: `docs/roadmap.md`
+- GitHub issue tracker mapping: `docs/issue-tracker.md`
+- ADR index: `docs/adr/README.md`
+- Session notes: `docs/sessions/README.md`
+
 ## Guardrails
 
 - Public/professional info only
@@ -156,3 +211,5 @@ git push -u origin main
 - No contact harvesting
 - Redaction stays enabled in notebook output
 - Human review required before operational use
+
+

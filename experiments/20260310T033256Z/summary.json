@@ -1,0 +1,38 @@
+{
+  "artifact_dir": "experiments\\20260310T033256Z",
+  "avg_cost_per_uncached_query": 0.0,
+  "batch_query_count": 15,
+  "budget_cap_usd": 7.5,
+  "cache_hits": 16,
+  "extra": {
+    "summary_all": {
+      "avg_cost_per_uncached_query": 0.010592,
+      "cache_hits": 233,
+      "request_count": 309,
+      "spent_usd": 0.805,
+      "uncached_calls": 76
+    }
+  },
+  "generated_at_utc": "2026-03-10T03:32:57.184849+00:00",
+  "headline_recommendation": "Integrate (with human review and budget guards)",
+  "observed_linkedin_rate": 1.0,
+  "observed_relevance_rate": 1.0,
+  "projected_10000_queries_usd": 100.0,
+  "projected_1000_queries_usd": 10.0,
+  "projected_100_queries_usd": 1.0,
+  "projection_basis": "estimated_from_current_config",
+  "qualitative_notes": [
+    "Relevance-keyword signal rate: 100%.",
+    "LinkedIn profile signal present in: 100% of queries.",
+    "Average results returned per query: 5.0 (num_results=5).",
+    "Text is disabled: cheaper baseline; highlights are usually enough for triage.",
+    "Summary is disabled (recommended baseline for low-cost evaluation).",
+    "Smoke mode active: results are mocked and costs are zero."
+  ],
+  "query_records_written": 15,
+  "request_count": 16,
+  "run_id": "20260310T033256Z",
+  "spent_usd": 0.0,
+  "uncached_calls": 0,
+  "unit_cost_usd": 0.01
+}
