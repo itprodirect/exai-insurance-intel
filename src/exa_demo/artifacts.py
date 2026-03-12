@@ -91,6 +91,10 @@ class ExperimentArtifactWriter:
             headline_recommendation=_optional_str(recommendation_data.get('headline_recommendation')),
             observed_relevance_rate=_optional_float(recommendation_data.get('observed_relevance_rate')),
             observed_linkedin_rate=_optional_float(recommendation_data.get('observed_linkedin_rate')),
+            observed_credibility_rate=_optional_float(recommendation_data.get('observed_credibility_rate')),
+            observed_actionability_rate=_optional_float(recommendation_data.get('observed_actionability_rate')),
+            observed_confidence_score=_optional_float(recommendation_data.get('observed_confidence_score')),
+            observed_failure_rate=_optional_float(recommendation_data.get('observed_failure_rate')),
             budget_cap_usd=_optional_float(recommendation_data.get('budget_cap_usd')),
             qualitative_notes=qualitative_notes_list,
         )

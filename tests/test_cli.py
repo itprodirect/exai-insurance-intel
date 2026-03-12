@@ -30,6 +30,7 @@ def test_search_command_smoke_emits_json_and_artifacts(tmp_path, capsys) -> None
     assert exit_code == 0
     assert output['run_id'] == 'cli-search'
     assert output['record']['result_count'] == 5
+    assert 'taxonomy' in output
     assert (artifact_dir / 'cli-search' / 'summary.json').exists()
 
 
@@ -58,8 +59,88 @@ def test_eval_command_smoke_writes_artifacts(tmp_path, capsys) -> None:
     assert exit_code == 0
     assert output['run_id'] == 'cli-eval'
     assert output['summary']['request_count'] == 2
+    assert 'taxonomy' in output
     assert (artifact_dir / 'cli-eval' / 'queries.jsonl').exists()
     assert (artifact_dir / 'cli-eval' / 'results.jsonl').exists()
+
+
+def test_eval_command_can_emit_before_after_comparison(tmp_path, capsys) -> None:
+    sqlite_path = tmp_path / 'cache.sqlite'
+    artifact_dir = tmp_path / 'artifacts'
+    baseline_dir = artifact_dir / 'baseline-run'
+    baseline_dir.mkdir(parents=True)
+
+    queries_file = tmp_path / 'queries.json'
+    queries_file.write_text(json.dumps(['query one', 'query two']), encoding='utf-8')
+
+    baseline_results = [
+        {
+            'query': 'query one',
+            'result_count': 0,
+            'relevance_keywords_present': False,
+            'linkedin_present': False,
+            'failure_reasons': ['no_results'],
+            'primary_failure_reason': 'no_results',
+            'confidence_score': 0.0,
+        },
+        {
+            'query': 'query two',
+            'result_count': 1,
+            'relevance_keywords_present': False,
+            'linkedin_present': False,
+            'failure_reasons': ['off_domain', 'low_confidence'],
+            'primary_failure_reason': 'off_domain',
+            'confidence_score': 0.2,
+        },
+    ]
+
+    (baseline_dir / 'results.jsonl').write_text(
+        '\n'.join(json.dumps(row, sort_keys=True) for row in baseline_results) + '\n',
+        encoding='utf-8',
+    )
+
+    (baseline_dir / 'summary.json').write_text(
+        json.dumps(
+            {
+                'run_id': 'baseline-run',
+                'spent_usd': 0.12,
+                'avg_cost_per_uncached_query': 0.06,
+                'observed_relevance_rate': 0.0,
+                'observed_confidence_score': 0.1,
+                'observed_failure_rate': 1.0,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+
+    exit_code = main(
+        [
+            'eval',
+            '--mode',
+            'smoke',
+            '--run-id',
+            'cli-eval-compare',
+            '--sqlite-path',
+            str(sqlite_path),
+            '--artifact-dir',
+            str(artifact_dir),
+            '--queries-file',
+            str(queries_file),
+            '--compare-to-run-id',
+            'baseline-run',
+            '--json',
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output['comparison']['baseline_run_id'] == 'baseline-run'
+    assert output['comparison']['candidate_run_id'] == 'cli-eval-compare'
+    assert output['comparison']['shared_query_count'] == 2
+    assert 'deltas' in output['comparison']
 
 
 def test_budget_command_reads_ledger(tmp_path, capsys) -> None:

@@ -100,10 +100,14 @@ Notebook flow is intentionally fixed to 9 cells:
 ```powershell
 python -m exa_demo search "forensic engineer insurance expert witness" --mode smoke --json
 python -m exa_demo eval --mode smoke --limit 5 --json
+python -m exa_demo eval --mode smoke --limit 5 --compare-to-run-id 20260310T033256Z --json
 python -m exa_demo budget --run-id demo-2026-03 --json
 ```
 
 The search and eval commands write the same experiments/<RUN_ID>/ artifact bundle as the notebook flow.
+
+Eval output now includes a taxonomy scorecard (relevance, credibility, actionability, confidence) and per-query failure reasons (`no_results`, `off_domain`, `low_confidence`).
+Use `--compare-to-run-id` for before/after deltas across quality and failure rates when both runs share query text.
 
 ## Benchmark Fixture
 
@@ -211,5 +215,6 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - No contact harvesting
 - Redaction stays enabled in notebook output
 - Human review required before operational use
+
 
 

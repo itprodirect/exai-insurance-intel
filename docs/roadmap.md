@@ -34,7 +34,7 @@ These items establish the engineering substrate needed before deeper API coverag
 | Typed models | Add normalized models in `src/exa_demo/models.py` for Exa results, cost metadata, and experiment artifacts | Stabilizes interfaces between notebook, CLI, evaluation, and reports | `Done` | Phase 0 baseline | Shared typed models are used by package code and tests for normalization and reporting | [#2](https://github.com/itprodirect/exai-search-demo/issues/2) |
 | Installable package + CLI | Add package metadata and planned CLI commands `python -m exa_demo search`, `eval`, and `budget` | Makes the harness runnable without opening Jupyter and supports repeatable operations | `Done` | Typed models | Local install and documented CLI entrypoints work against existing core logic | [#3](https://github.com/itprodirect/exai-search-demo/issues/3) |
 | Experiment artifact logging | Persist immutable run artifacts under `experiments/<run-id>/` with `config.json`, `queries.jsonl`, `results.jsonl`, and `summary.json` | Creates an auditable decision history for evaluation changes | `Done` | Typed models, CLI/package installability | Each run emits a complete artifact bundle that can be compared later | [#4](https://github.com/itprodirect/exai-search-demo/issues/4) |
-| Evaluation taxonomy + before/after reporting | Add richer failure taxonomy and comparison reporting | Separates relevance, credibility, and actionability so future experiments are measurable | `Next` | Experiment artifacts | Reports can compare runs and classify failures such as `no_results`, `off_domain`, and `low_confidence` | [#5](https://github.com/itprodirect/exai-search-demo/issues/5) |
+| Evaluation taxonomy + before/after reporting | Add richer failure taxonomy and comparison reporting | Separates relevance, credibility, and actionability so future experiments are measurable | `Done` | Experiment artifacts | Reports can compare runs and classify failures such as `no_results`, `off_domain`, and `low_confidence` | [#5](https://github.com/itprodirect/exai-search-demo/issues/5) |
 
 ## Phase 2 - Exa API Coverage
 
@@ -122,5 +122,6 @@ These are preserved as future exploration themes, but they are not committed bac
 - [docs/exai-search-demo-improvements.md](./exai-search-demo-improvements.md)
 - [docs/rebuild_review.md](./rebuild_review.md)
 - Current repository code, tests, CI, and README baseline observed on March 10, 2026
+
 
 

@@ -9,7 +9,13 @@ from .evaluation import (
     load_benchmark_queries,
 )
 from .models import CostBreakdown, ExaResult, ExperimentSummaryRecord, QueryEvaluationRecord
-from .reporting import build_cost_projections, build_qualitative_notes, recommendation
+from .reporting import (
+    build_before_after_report,
+    build_cost_projections,
+    build_qualitative_notes,
+    recommendation,
+    summarize_failure_taxonomy,
+)
 from .safety import extract_preview, redact_text
 
 __all__ = [
@@ -22,6 +28,7 @@ __all__ = [
     "QueryEvaluationRecord",
     "RuntimeState",
     "SqliteCacheStore",
+    "build_before_after_report",
     "build_cost_projections",
     "build_exa_payload",
     "build_qualitative_notes",
@@ -36,4 +43,5 @@ __all__ = [
     "recommendation",
     "redact_text",
     "request_hash_for_payload",
+    "summarize_failure_taxonomy",
 ]

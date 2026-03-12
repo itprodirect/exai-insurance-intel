@@ -130,6 +130,12 @@ class QueryEvaluationRecord:
     linkedin_present: bool
     relevance_keywords_present: bool
     result_count: int
+    relevance_score: float = 0.0
+    credibility_score: float = 0.0
+    actionability_score: float = 0.0
+    confidence_score: float = 0.0
+    failure_reasons: List[str] = field(default_factory=list)
+    primary_failure_reason: Optional[str] = None
     results: List[ExaResult] = field(default_factory=list)
     cost_breakdown: CostBreakdown = field(default_factory=CostBreakdown)
 
@@ -147,6 +153,11 @@ class QueryEvaluationRecord:
             if isinstance(results_value, list):
                 raw_results = [item for item in results_value if isinstance(item, Mapping)]
 
+        failure_reasons = _string_list(evaluated.get("failure_reasons"))
+        primary_failure_reason = _optional_str(evaluated.get("primary_failure_reason"))
+        if primary_failure_reason is None and failure_reasons:
+            primary_failure_reason = failure_reasons[0]
+
         return cls(
             query=query,
             cache_hit=bool(getattr(meta, "cache_hit", False)),
@@ -163,6 +174,12 @@ class QueryEvaluationRecord:
             linkedin_present=bool(evaluated.get("linkedin_present", False)),
             relevance_keywords_present=bool(evaluated.get("relevance_keywords_present", False)),
             result_count=int(evaluated.get("result_count") or len(raw_results)),
+            relevance_score=float(evaluated.get("relevance_score") or 0.0),
+            credibility_score=float(evaluated.get("credibility_score") or 0.0),
+            actionability_score=float(evaluated.get("actionability_score") or 0.0),
+            confidence_score=float(evaluated.get("confidence_score") or 0.0),
+            failure_reasons=failure_reasons,
+            primary_failure_reason=primary_failure_reason,
             results=[ExaResult.from_api_result(item) for item in raw_results],
             cost_breakdown=CostBreakdown.from_response(response_json),
         )
@@ -182,6 +199,12 @@ class QueryEvaluationRecord:
             "linkedin_present": self.linkedin_present,
             "relevance_keywords_present": self.relevance_keywords_present,
             "result_count": self.result_count,
+            "relevance_score": self.relevance_score,
+            "credibility_score": self.credibility_score,
+            "actionability_score": self.actionability_score,
+            "confidence_score": self.confidence_score,
+            "failure_reasons": list(self.failure_reasons),
+            "primary_failure_reason": self.primary_failure_reason,
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -206,6 +229,10 @@ class ExperimentSummaryRecord:
     headline_recommendation: Optional[str] = None
     observed_relevance_rate: Optional[float] = None
     observed_linkedin_rate: Optional[float] = None
+    observed_credibility_rate: Optional[float] = None
+    observed_actionability_rate: Optional[float] = None
+    observed_confidence_score: Optional[float] = None
+    observed_failure_rate: Optional[float] = None
     budget_cap_usd: Optional[float] = None
     qualitative_notes: List[str] = field(default_factory=list)
 
@@ -237,6 +264,17 @@ def _float_list(values: Any) -> List[float]:
         parsed = _optional_float(value)
         if parsed is not None:
             result.append(parsed)
+    return result
+
+
+def _string_list(values: Any) -> List[str]:
+    if not isinstance(values, list):
+        return []
+    result: List[str] = []
+    for value in values:
+        text = _optional_str(value)
+        if text is not None:
+            result.append(text)
     return result
 
 

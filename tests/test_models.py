@@ -73,6 +73,12 @@ def test_query_evaluation_record_builds_flat_row() -> None:
             'top_preview': 'insurance litigation',
             'linkedin_present': True,
             'relevance_keywords_present': True,
+            'relevance_score': 1.0,
+            'credibility_score': 1.0,
+            'actionability_score': 1.0,
+            'confidence_score': 1.0,
+            'failure_reasons': [],
+            'primary_failure_reason': None,
             'result_count': 1,
         },
     )
@@ -81,4 +87,6 @@ def test_query_evaluation_record_builds_flat_row() -> None:
     assert flat['query'] == 'forensic engineer'
     assert flat['request_id'] == 'req-abc'
     assert flat['result_count'] == 1
+    assert flat['confidence_score'] == 1.0
+    assert flat['failure_reasons'] == []
     assert record.results[0].title == 'Forensic Engineer'

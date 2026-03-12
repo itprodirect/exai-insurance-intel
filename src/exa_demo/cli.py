@@ -15,7 +15,13 @@ from .client import exa_search_people
 from .config import RuntimeState, default_config, default_pricing, load_runtime_state
 from .evaluation import DEFAULT_RELEVANCE_KEYWORDS, evaluate_batch_queries, evaluate_result_set, load_benchmark_queries
 from .models import QueryEvaluationRecord
-from .reporting import build_cost_projections, build_qualitative_notes, recommendation
+from .reporting import (
+    build_before_after_report,
+    build_cost_projections,
+    build_qualitative_notes,
+    recommendation,
+    summarize_failure_taxonomy,
+)
 from .safety import extract_preview, redact_text
 
 
@@ -36,6 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument("--suite", default="insurance", choices=["insurance"], help="Named benchmark suite to run.")
     eval_parser.add_argument("--queries-file", help="Optional JSON file containing an array of query strings.")
     eval_parser.add_argument("--limit", type=int, help="Optional cap on the number of benchmark queries to execute.")
+    eval_parser.add_argument("--compare-to-run-id", help="Optional baseline run id for before/after comparison reporting.")
+    eval_parser.add_argument(
+        "--compare-base-dir",
+        help="Optional base artifact directory for --compare-to-run-id. Defaults to --artifact-dir.",
+    )
     eval_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit summary JSON instead of a text summary.")
     eval_parser.set_defaults(handler=run_eval_command)
 
@@ -74,6 +85,7 @@ def run_search_command(args: argparse.Namespace) -> int:
     )
     record = QueryEvaluationRecord.from_runtime(args.query, response_json, meta, evaluated)
     batch_df = pd.DataFrame([record.to_flat_dict()])
+    taxonomy = summarize_failure_taxonomy(batch_df)
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
     qualitative_notes = build_qualitative_notes(batch_df, config, smoke_no_network=runtime.smoke_no_network)
     projections = build_cost_projections(summary, config=config, pricing=pricing)
@@ -97,6 +109,7 @@ def run_search_command(args: argparse.Namespace) -> int:
         recommendation_data=rec,
         batch_df=batch_df,
         qualitative_notes=qualitative_notes,
+        extra={"taxonomy": taxonomy},
     )
 
     payload = {
@@ -104,6 +117,7 @@ def run_search_command(args: argparse.Namespace) -> int:
         "artifact_dir": str(writer.artifact_dir),
         "record": record.to_dict(),
         "summary": summary,
+        "taxonomy": taxonomy,
         "recommendation": rec,
     }
     if args.as_json:
@@ -117,6 +131,7 @@ def run_search_command(args: argparse.Namespace) -> int:
     print(f"estimated_cost_usd: {record.estimated_cost_usd:.4f}")
     actual_cost = record.actual_cost_usd if record.actual_cost_usd is not None else 0.0
     print(f"actual_cost_usd: {actual_cost:.4f}")
+    print(f"taxonomy_failure_reasons: {', '.join(record.failure_reasons) if record.failure_reasons else 'none'}")
     _print_results_table(record)
     return 0
 
@@ -145,6 +160,7 @@ def run_eval_command(args: argparse.Namespace) -> int:
         ),
         record_query=writer.record_query,
     )
+    taxonomy = summarize_failure_taxonomy(batch_df)
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
     qualitative_notes = build_qualitative_notes(batch_df, config, smoke_no_network=runtime.smoke_no_network)
     projections = build_cost_projections(summary, config=config, pricing=pricing)
@@ -155,12 +171,30 @@ def run_eval_command(args: argparse.Namespace) -> int:
         budget_cap_usd=float(config["budget_cap_usd"]),
         smoke_no_network=runtime.smoke_no_network,
     )
+
+    comparison_report: Dict[str, Any] | None = None
+    if args.compare_to_run_id:
+        compare_base_dir = Path(args.compare_base_dir) if args.compare_base_dir else Path(args.artifact_dir)
+        compare_run_dir = compare_base_dir / str(args.compare_to_run_id)
+        comparison_report = build_before_after_report(
+            compare_run_dir,
+            after_run_id=runtime.run_id,
+            after_summary_metrics=summary,
+            after_batch_df=batch_df,
+            after_recommendation=rec,
+        )
+
+    summary_extra: Dict[str, Any] = {"taxonomy": taxonomy}
+    if comparison_report is not None:
+        summary_extra["comparison"] = comparison_report
+
     summary_path = writer.write_summary(
         summary,
         projections=projections,
         recommendation_data=rec,
         batch_df=batch_df,
         qualitative_notes=qualitative_notes,
+        extra=summary_extra,
     )
 
     payload = {
@@ -168,9 +202,13 @@ def run_eval_command(args: argparse.Namespace) -> int:
         "artifact_dir": str(writer.artifact_dir),
         "summary_path": str(summary_path),
         "summary": summary,
+        "taxonomy": taxonomy,
         "projections": projections,
         "recommendation": rec,
     }
+    if comparison_report is not None:
+        payload["comparison"] = comparison_report
+
     if args.as_json:
         print(json.dumps(payload, indent=2))
         return 0
@@ -181,8 +219,16 @@ def run_eval_command(args: argparse.Namespace) -> int:
     print(f"spent_usd: {summary['spent_usd']:.4f}")
     print(f"avg_cost_per_uncached_query: {summary['avg_cost_per_uncached_query']:.4f}")
     print(f"headline_recommendation: {rec['headline_recommendation']}")
+    print(f"failure_rate: {taxonomy['failure_rate']:.0%}")
+
+    if comparison_report is not None:
+        print(f"baseline_run_id: {comparison_report['baseline_run_id']}")
+        print(f"shared_query_count: {comparison_report['shared_query_count']}")
+        print(f"delta_observed_confidence_score: {comparison_report['deltas']['observed_confidence_score']:+.3f}")
+        print(f"delta_observed_failure_rate: {comparison_report['deltas']['observed_failure_rate']:+.3f}")
+
     if not batch_df.empty:
-        print(batch_df[["query", "result_count", "cache_hit", "actual_cost_usd"]].to_markdown(index=False))
+        print(batch_df[["query", "result_count", "cache_hit", "actual_cost_usd", "primary_failure_reason"]].to_markdown(index=False))
     return 0
 
 

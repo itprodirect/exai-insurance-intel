@@ -55,6 +55,33 @@ def test_evaluate_batch_queries_builds_expected_flags() -> None:
     assert row["top_url"] == "https://www.linkedin.com/in/test-person"
     assert row["top_preview"] == "forensic insurance litigation profile"
     assert row["request_hash"] == 'hash-123'
+    assert row["relevance_score"] == 1.0
+    assert row["credibility_score"] == 1.0
+    assert row["actionability_score"] >= 0.0
+    assert row["confidence_score"] >= 0.5
+    assert row["failure_reasons"] == []
+
+
+def test_evaluate_batch_queries_marks_no_results_failure() -> None:
+    def fake_search_people(query: str, *, num_results: int):
+        return (
+            {"results": []},
+            FakeMeta(cache_hit=False, estimated_cost_usd=0.01, actual_cost_usd=0.0, request_payload={"query": query}),
+        )
+
+    df = evaluate_batch_queries(
+        ["query one"],
+        search_people=fake_search_people,
+        num_results=5,
+        relevance_keywords=DEFAULT_RELEVANCE_KEYWORDS,
+        redact_text=lambda value: value,
+        extract_preview=lambda row, max_chars: "",
+    )
+
+    row = df.iloc[0].to_dict()
+    assert row["result_count"] == 0
+    assert row["failure_reasons"] == ["no_results"]
+    assert row["primary_failure_reason"] == "no_results"
 
 
 def test_evaluate_batch_queries_can_emit_structured_records() -> None:
@@ -90,3 +117,5 @@ def test_evaluate_batch_queries_can_emit_structured_records() -> None:
     assert emitted[0].cache_hit is True
     assert emitted[0].results[0].url == 'https://www.linkedin.com/in/test-person'
     assert emitted[0].cost_breakdown.total == 0.006
+    assert emitted[0].failure_reasons == []
+    assert emitted[0].primary_failure_reason is None

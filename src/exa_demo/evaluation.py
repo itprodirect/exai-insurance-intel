@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence
+from urllib.parse import urlparse
 
 import pandas as pd
 
@@ -19,6 +20,14 @@ DEFAULT_RELEVANCE_KEYWORDS: List[str] = [
     "litigation",
     "catastrophe",
 ]
+
+FAILURE_NO_RESULTS = "no_results"
+FAILURE_OFF_DOMAIN = "off_domain"
+FAILURE_LOW_CONFIDENCE = "low_confidence"
+
+OFF_DOMAIN_RELEVANCE_THRESHOLD = 0.25
+LOW_CONFIDENCE_THRESHOLD = 0.50
+MIN_ACTIONABLE_PREVIEW_CHARS = 40
 
 DEFAULT_BENCHMARK_PATH = Path(__file__).resolve().parents[2] / "benchmarks" / "insurance_cat_queries.json"
 
@@ -47,21 +56,53 @@ def evaluate_result_set(
     top = top_n[0] if top_n else {}
     linkedin_present = any("linkedin.com" in str(row.get("url") or "").lower() for row in top_n)
 
-    relevance_text: List[str] = []
+    normalized_keywords = [str(keyword).strip().lower() for keyword in relevance_keywords if str(keyword).strip()]
+    relevance_signal_rows = 0
+    credibility_signal_rows = 0
+    actionable_signal_rows = 0
+
     for row in top_n:
-        parts = [str(row.get("title") or "")]
+        row_domain = _url_domain(row.get("url"))
         highlights = row.get("highlights")
+        text = row.get("text")
+
+        parts = [str(row.get("title") or "")]
         if isinstance(highlights, list):
             parts.extend(str(item) for item in highlights)
-        text = row.get("text")
         if isinstance(text, str):
             parts.append(text[:200])
-        relevance_text.append(" ".join(parts).lower())
 
-    relevance_keywords_present = any(
-        any(keyword in blob for keyword in relevance_keywords)
-        for blob in relevance_text
-    )
+        blob = " ".join(parts).lower()
+        has_relevance_signal = any(keyword in blob for keyword in normalized_keywords)
+        if has_relevance_signal:
+            relevance_signal_rows += 1
+
+        has_url = bool(str(row.get("url") or "").strip())
+        has_content = bool(str(row.get("title") or "").strip()) or bool(highlights) or bool(str(text or "").strip())
+        if has_url and has_content and row_domain:
+            credibility_signal_rows += 1
+
+        preview = extract_preview(row, preview_chars) if isinstance(row, Mapping) else ""
+        if has_url and len(str(preview or "").strip()) >= MIN_ACTIONABLE_PREVIEW_CHARS:
+            actionable_signal_rows += 1
+
+    top_n_count = len(top_n)
+    relevance_score = (relevance_signal_rows / top_n_count) if top_n_count else 0.0
+    credibility_score = (credibility_signal_rows / top_n_count) if top_n_count else 0.0
+    actionability_score = (actionable_signal_rows / top_n_count) if top_n_count else 0.0
+    confidence_score = (0.5 * relevance_score) + (0.3 * credibility_score) + (0.2 * actionability_score)
+
+    failure_reasons: List[str] = []
+    if len(results) == 0:
+        failure_reasons.append(FAILURE_NO_RESULTS)
+    else:
+        if relevance_score < OFF_DOMAIN_RELEVANCE_THRESHOLD:
+            failure_reasons.append(FAILURE_OFF_DOMAIN)
+        if confidence_score < LOW_CONFIDENCE_THRESHOLD:
+            failure_reasons.append(FAILURE_LOW_CONFIDENCE)
+
+    primary_failure_reason = failure_reasons[0] if failure_reasons else None
+    relevance_keywords_present = relevance_score > 0.0
 
     return {
         "top_title": redact_text(top.get("title")) if isinstance(top, Mapping) else None,
@@ -69,6 +110,12 @@ def evaluate_result_set(
         "top_preview": extract_preview(top, preview_chars) if isinstance(top, Mapping) else "",
         "linkedin_present": linkedin_present,
         "relevance_keywords_present": relevance_keywords_present,
+        "relevance_score": round(relevance_score, 6),
+        "credibility_score": round(credibility_score, 6),
+        "actionability_score": round(actionability_score, 6),
+        "confidence_score": round(confidence_score, 6),
+        "failure_reasons": failure_reasons,
+        "primary_failure_reason": primary_failure_reason,
         "result_count": len(results),
     }
 
@@ -102,3 +149,14 @@ def evaluate_batch_queries(
         batch_rows.append(record.to_flat_dict())
 
     return pd.DataFrame(batch_rows)
+
+
+def _url_domain(url: Any) -> str:
+    text = str(url or "").strip()
+    if not text:
+        return ""
+    try:
+        parsed = urlparse(text)
+    except ValueError:
+        return ""
+    return str(parsed.netloc or "").lower()
