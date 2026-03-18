@@ -2,21 +2,46 @@
   "default_suite": "all",
   "suites": {
     "all": [
+      "public adjuster licensing requirements Florida DFS",
+      "public adjuster fee limits by state",
+      "public adjuster disciplinary actions Florida",
+      "public adjuster association board members Florida",
+      "policyholder attorney bad faith property insurance Florida site:linkedin.com",
+      "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
+      "insurance coverage expert witness former adjuster property claims site:linkedin.com",
+      "claims consultant catastrophe response litigation support property insurance site:linkedin.com",
+      "Florida property insurance appraisal clause case law",
+      "bad faith insurance claim jury verdict Florida 2024",
+      "assignment of benefits AOB litigation Florida recent rulings",
+      "Citizens Property Insurance depopulation program",
+      "insurance appraisal umpire property claims Florida site:linkedin.com",
+      "certified property damage appraiser Florida",
+      "property damage appraisal panel umpire qualified neutral",
+      "commercial property loss appraiser large loss",
+      "licensed independent adjuster Florida large loss",
+      "independent adjuster CAT team deployment hurricane",
+      "independent adjuster firm staff augmentation carrier",
+      "IA firm catastrophe response contract adjusters",
+      "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com",
+      "Xactimate trainer estimator large loss consultant site:linkedin.com",
+      "water mitigation IICRC expert witness insurance dispute site:linkedin.com",
+      "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com",
       "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
       "building envelope consultant moisture intrusion expert witness Florida site:linkedin.com",
       "forensic accountant business interruption insurance claim expert witness site:linkedin.com",
       "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
       "fire origin and cause investigator expert witness insurance litigation site:linkedin.com",
-      "policyholder attorney bad faith property insurance Florida site:linkedin.com",
-      "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
-      "insurance appraisal umpire property claims Florida site:linkedin.com",
-      "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com",
-      "Xactimate trainer estimator large loss consultant site:linkedin.com",
-      "claims consultant catastrophe response litigation support property insurance site:linkedin.com",
-      "insurance coverage expert witness former adjuster property claims site:linkedin.com",
-      "water mitigation IICRC expert witness insurance dispute site:linkedin.com",
-      "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com",
+      "emergency board-up service hurricane Florida certified",
+      "claims management software property insurance",
+      "AI property damage assessment insurtech",
       "civil engineer structural damage assessment hurricane expert witness site:linkedin.com"
+    ],
+    "public_adjusters": [
+      "public adjuster licensing requirements Florida DFS",
+      "public adjuster fee limits by state",
+      "public adjuster disciplinary actions Florida",
+      "public adjuster association board members Florida",
+      "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com"
     ],
     "forensic_and_damage_engineering": [
       "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
@@ -25,11 +50,30 @@
       "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
       "fire origin and cause investigator expert witness insurance litigation site:linkedin.com"
     ],
+    "cat_law_and_coverage": [
+      "policyholder attorney bad faith property insurance Florida site:linkedin.com",
+      "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
+      "insurance coverage expert witness former adjuster property claims site:linkedin.com",
+      "claims consultant catastrophe response litigation support property insurance site:linkedin.com",
+      "Florida property insurance appraisal clause case law",
+      "bad faith insurance claim jury verdict Florida 2024",
+      "assignment of benefits AOB litigation Florida recent rulings",
+      "Citizens Property Insurance depopulation program"
+    ],
     "coverage_and_litigation": [
       "policyholder attorney bad faith property insurance Florida site:linkedin.com",
       "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
       "insurance coverage expert witness former adjuster property claims site:linkedin.com",
       "claims consultant catastrophe response litigation support property insurance site:linkedin.com"
+    ],
+    "appraisers_umpires_and_restoration": [
+      "insurance appraisal umpire property claims Florida site:linkedin.com",
+      "certified property damage appraiser Florida",
+      "property damage appraisal panel umpire qualified neutral",
+      "commercial property loss appraiser large loss",
+      "Xactimate trainer estimator large loss consultant site:linkedin.com",
+      "water mitigation IICRC expert witness insurance dispute site:linkedin.com",
+      "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com"
     ],
     "adjusters_appraisers_and_restoration": [
       "insurance appraisal umpire property claims Florida site:linkedin.com",
@@ -37,6 +81,23 @@
       "Xactimate trainer estimator large loss consultant site:linkedin.com",
       "water mitigation IICRC expert witness insurance dispute site:linkedin.com",
       "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com",
+      "civil engineer structural damage assessment hurricane expert witness site:linkedin.com"
+    ],
+    "independent_adjusters": [
+      "licensed independent adjuster Florida large loss",
+      "independent adjuster CAT team deployment hurricane",
+      "independent adjuster firm staff augmentation carrier",
+      "IA firm catastrophe response contract adjusters"
+    ],
+    "adjacent_industries": [
+      "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
+      "building envelope consultant moisture intrusion expert witness Florida site:linkedin.com",
+      "forensic accountant business interruption insurance claim expert witness site:linkedin.com",
+      "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
+      "fire origin and cause investigator expert witness insurance litigation site:linkedin.com",
+      "emergency board-up service hurricane Florida certified",
+      "claims management software property insurance",
+      "AI property damage assessment insurtech",
       "civil engineer structural damage assessment hurricane expert witness site:linkedin.com"
     ]
   }

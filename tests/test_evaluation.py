@@ -28,20 +28,40 @@ class FakeMeta:
 def test_load_benchmark_queries_matches_current_fixture() -> None:
     queries = load_benchmark_queries()
 
-    assert len(queries) == 15
-    assert queries[0].startswith("forensic engineer wind damage expert witness")
+    assert len(queries) == 33
+    assert queries[0].startswith("public adjuster licensing requirements Florida")
     assert queries[-1].startswith("civil engineer structural damage assessment")
 
 
 def test_load_benchmark_queries_can_target_named_suite() -> None:
     all_queries = load_benchmark_queries(suite="all")
-    engineering_queries = load_benchmark_queries(suite="forensic_and_damage_engineering")
+    public_adjuster_queries = load_benchmark_queries(suite="public_adjusters")
+    forensic_queries = load_benchmark_queries(suite="forensic_and_damage_engineering")
+    coverage_queries = load_benchmark_queries(suite="cat_law_and_coverage")
+    legacy_coverage_queries = load_benchmark_queries(suite="coverage_and_litigation")
+    appraiser_queries = load_benchmark_queries(suite="appraisers_umpires_and_restoration")
+    legacy_adjuster_queries = load_benchmark_queries(suite="adjusters_appraisers_and_restoration")
+    adjuster_queries = load_benchmark_queries(suite="independent_adjusters")
+    adjacent_queries = load_benchmark_queries(suite="adjacent_industries")
     suites = load_benchmark_suites()
 
-    assert len(all_queries) == 15
-    assert len(engineering_queries) == 5
+    assert len(all_queries) == 33
+    assert len(public_adjuster_queries) == 5
+    assert len(forensic_queries) == 5
+    assert len(coverage_queries) == 8
+    assert len(legacy_coverage_queries) == 4
+    assert len(appraiser_queries) == 7
+    assert len(legacy_adjuster_queries) == 6
+    assert len(adjuster_queries) == 4
+    assert len(adjacent_queries) == 9
+    assert suites["public_adjusters"][0].startswith("public adjuster licensing requirements")
+    assert suites["forensic_and_damage_engineering"][0].startswith("forensic engineer wind damage")
+    assert suites["cat_law_and_coverage"][0].startswith("policyholder attorney")
     assert suites["coverage_and_litigation"][0].startswith("policyholder attorney")
-    assert suites["adjusters_appraisers_and_restoration"][-1].startswith("civil engineer structural")
+    assert suites["appraisers_umpires_and_restoration"][0].startswith("insurance appraisal umpire")
+    assert suites["adjusters_appraisers_and_restoration"][0].startswith("insurance appraisal umpire")
+    assert suites["independent_adjusters"][0].startswith("licensed independent adjuster")
+    assert suites["adjacent_industries"][-1].startswith("civil engineer structural")
 
 
 def test_load_benchmark_queries_supports_legacy_list_fixtures(tmp_path) -> None:
