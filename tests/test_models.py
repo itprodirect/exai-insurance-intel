@@ -1,6 +1,14 @@
 ﻿from __future__ import annotations
 
-from exa_demo.models import AnswerCitation, AnswerRecord, CostBreakdown, ExaResult, QueryEvaluationRecord
+from exa_demo.models import (
+    AnswerCitation,
+    AnswerRecord,
+    CostBreakdown,
+    ExaResult,
+    QueryEvaluationRecord,
+    StructuredOutputField,
+    StructuredOutputRecord,
+)
 
 
 class Meta:
@@ -141,3 +149,57 @@ def test_answer_record_builds_flat_row() -> None:
     assert flat['top_citation_url'] == 'https://example.com/statute'
     assert record.answer.startswith('Mock answer for query:')
     assert record.citations[0].title == 'Florida Appraisal Statute'
+
+
+def test_structured_output_field_normalizes_leaf_values() -> None:
+    field = StructuredOutputField.from_value('structuredOutput.professionals[0].name', 'Jane Doe')
+
+    assert field.path == 'structuredOutput.professionals[0].name'
+    assert field.value == 'Jane Doe'
+    assert field.value_type == 'str'
+
+
+def test_structured_output_record_builds_flat_row() -> None:
+    class StructuredMeta:
+        cache_hit = False
+        request_hash = 'hash-structured'
+        request_payload = {'query': 'insurance expert witness', 'outputSchema': {'type': 'object'}}
+        request_id = 'structured-abc'
+        resolved_search_type = 'deep'
+        created_at_utc = '2026-03-18T00:00:00+00:00'
+        estimated_cost_usd = 0.012
+        actual_cost_usd = 0.0
+
+    record = StructuredOutputRecord.from_runtime(
+        'insurance expert witness',
+        {
+            'structuredOutput': {
+                'summary': 'Mock summary',
+                'professionals': [
+                    {
+                        'name': 'Jane Doe',
+                        'role': 'Public Adjuster',
+                    }
+                ],
+            },
+            'results': [
+                {
+                    'title': 'Jane Doe',
+                    'url': 'https://example.com/profile',
+                }
+            ],
+            'costDollars': {'search': 0.005, 'total': 0.005},
+        },
+        StructuredMeta(),
+    )
+
+    flat = record.to_flat_dict()
+    assert flat['query'] == 'insurance expert witness'
+    assert flat['request_id'] == 'structured-abc'
+    assert flat['result_count'] == 1
+    assert flat['field_count'] == 3
+    assert flat['top_field_path'] == 'structuredOutput.summary'
+    assert flat['top_field_value'] == 'Mock summary'
+    assert record.fields[1].path == 'structuredOutput.professionals[0].name'
+    assert record.top_title == 'Jane Doe'
+    assert record.results[0].url == 'https://example.com/profile'

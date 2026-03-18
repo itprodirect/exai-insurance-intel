@@ -79,6 +79,18 @@ def build_answer_payload(query: str) -> Dict[str, Any]:
     return {"query": query, "text": True}
 
 
+def build_structured_search_payload(
+    query: str,
+    config: Mapping[str, Any],
+    output_schema: Mapping[str, Any],
+    *,
+    num_results: Optional[int] = None,
+) -> Dict[str, Any]:
+    payload = build_exa_payload(query, config, num_results=num_results)
+    payload["outputSchema"] = dict(output_schema)
+    return payload
+
+
 def mock_exa_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
     query = str(payload.get("query") or "")
     num_results = int(payload.get("numResults") or 5)
@@ -110,6 +122,31 @@ def mock_exa_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
         "requestId": f"smoke-{slug}",
         "resolvedSearchType": str(payload.get("type") or "auto"),
         "results": results,
+        "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
+        "_smokeMode": True,
+    }
+
+
+def mock_exa_structured_search_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    query = str(payload.get("query") or "")
+    slug = sha256_hex(query)[:8]
+    num_results = int(payload.get("numResults") or 5)
+    structured_output = _mock_structured_output(payload.get("outputSchema"), query)
+
+    results = []
+    for index in range(num_results):
+        item: Dict[str, Any] = {
+            "id": f"mock-{slug}-{index + 1}",
+            "title": f"Mock Structured Result {index + 1} - CAT loss / insurance expert",
+            "url": f"https://www.linkedin.com/in/mock-structured-{slug}-{index + 1}",
+        }
+        results.append(item)
+
+    return {
+        "requestId": f"smoke-{slug}",
+        "resolvedSearchType": str(payload.get("type") or "auto"),
+        "results": results,
+        "structuredOutput": structured_output,
         "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
         "_smokeMode": True,
     }
@@ -150,6 +187,8 @@ def exa_http_call(
     timeout: int = 60,
 ) -> Dict[str, Any]:
     if smoke_no_network:
+        if isinstance(payload.get("outputSchema"), Mapping):
+            return mock_exa_structured_search_response(payload)
         if endpoint_name == "answer":
             return mock_exa_answer_response(payload)
         return mock_exa_response(payload)
@@ -180,6 +219,53 @@ def exa_search_people(
     num_results: Optional[int] = None,
 ) -> Tuple[Dict[str, Any], ExaCallMeta]:
     payload = build_exa_payload(query, config, num_results=num_results)
+    estimated_cost = estimate_cost_from_pricing(
+        payload,
+        int(payload["numResults"]),
+        pricing,
+        int(config["max_supported_results_for_estimate"]),
+    )
+
+    response_json, cache_hit = cache_store.get_or_set(
+        payload,
+        estimated_cost,
+        run_id=run_id,
+        budget_cap_usd=float(config["budget_cap_usd"]),
+        fetcher=lambda request_payload: exa_http_call(
+            request_payload,
+            config=config,
+            exa_api_key=exa_api_key,
+            smoke_no_network=smoke_no_network,
+            endpoint_name="search",
+        ),
+    )
+
+    meta = ExaCallMeta(
+        cache_hit=cache_hit,
+        request_hash=request_hash_for_payload(payload),
+        request_payload=payload,
+        estimated_cost_usd=estimated_cost,
+        actual_cost_usd=parse_actual_cost(response_json),
+        request_id=response_json.get("requestId") if isinstance(response_json, dict) else None,
+        resolved_search_type=response_json.get("resolvedSearchType") if isinstance(response_json, dict) else None,
+        created_at_utc=datetime.now(timezone.utc).isoformat(),
+    )
+    return response_json, meta
+
+
+def exa_structured_search(
+    query: str,
+    *,
+    config: Mapping[str, Any],
+    pricing: Mapping[str, float],
+    exa_api_key: str,
+    smoke_no_network: bool,
+    run_id: str,
+    cache_store: SqliteCacheStore,
+    output_schema: Mapping[str, Any],
+    num_results: Optional[int] = None,
+) -> Tuple[Dict[str, Any], ExaCallMeta]:
+    payload = build_structured_search_payload(query, config, output_schema, num_results=num_results)
     estimated_cost = estimate_cost_from_pricing(
         payload,
         int(payload["numResults"]),
@@ -266,3 +352,31 @@ def _resolve_exa_endpoint(base_url: str, *, endpoint_name: str) -> str:
     if trimmed.endswith("/search"):
         return trimmed[: -len("/search")] + f"/{endpoint_name}"
     return f"{trimmed}/{endpoint_name}"
+
+
+def _mock_structured_output(schema: Any, query: str, *, path: str = "output") -> Any:
+    if isinstance(schema, Mapping):
+        schema_type = schema.get("type")
+        if schema_type == "object":
+            properties = schema.get("properties")
+            if isinstance(properties, Mapping):
+                return {
+                    str(key): _mock_structured_output(value, query, path=f"{path}.{key}")
+                    for key, value in properties.items()
+                }
+            return {"value": f"Mock {path} for query: {query}"}
+        if schema_type == "array":
+            items = schema.get("items")
+            return [_mock_structured_output(items, query, path=f"{path}[0]")]
+        if schema_type == "string":
+            return f"Mock {path.rsplit('.', 1)[-1]} for query: {query}"
+        if schema_type == "integer":
+            return 1
+        if schema_type == "number":
+            return 1.0
+        if schema_type == "boolean":
+            return True
+        enum_values = schema.get("enum")
+        if isinstance(enum_values, list) and enum_values:
+            return enum_values[0]
+    return f"Mock {path} for query: {query}"

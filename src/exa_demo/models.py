@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Mapping, Optional
 
@@ -217,6 +218,106 @@ class AnswerRecord:
 
 
 @dataclass(frozen=True)
+class StructuredOutputField:
+    path: str
+    value: Any
+    value_type: Optional[str] = None
+
+    @classmethod
+    def from_value(cls, path: str, value: Any) -> "StructuredOutputField":
+        return cls(path=path, value=value, value_type=type(value).__name__)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class StructuredOutputRecord:
+    query: str
+    cache_hit: bool
+    request_hash: Optional[str]
+    request_payload: Dict[str, Any]
+    request_id: Optional[str]
+    resolved_search_type: Optional[str]
+    created_at_utc: Optional[str]
+    estimated_cost_usd: float
+    actual_cost_usd: Optional[float]
+    top_title: Optional[str]
+    top_url: Optional[str]
+    result_count: int
+    structured_output: Dict[str, Any]
+    structured_preview: str
+    field_count: int
+    top_field_path: Optional[str]
+    top_field_value: Optional[str]
+    fields: List[StructuredOutputField] = field(default_factory=list)
+    results: List[ExaResult] = field(default_factory=list)
+    cost_breakdown: CostBreakdown = field(default_factory=CostBreakdown)
+
+    @classmethod
+    def from_runtime(
+        cls,
+        query: str,
+        response_json: Mapping[str, Any] | None,
+        meta: Any,
+    ) -> "StructuredOutputRecord":
+        raw_results = []
+        if isinstance(response_json, Mapping):
+            results_value = response_json.get("results")
+            if isinstance(results_value, list):
+                raw_results = [item for item in results_value if isinstance(item, Mapping)]
+
+        structured_output = _structured_output_from_response(response_json)
+        fields = _flatten_structured_output(structured_output)
+        top_field = fields[0] if fields else None
+        top_result = raw_results[0] if raw_results else None
+
+        return cls(
+            query=query,
+            cache_hit=bool(getattr(meta, "cache_hit", False)),
+            request_hash=_optional_str(getattr(meta, "request_hash", None)),
+            request_payload=_mapping_to_dict(getattr(meta, "request_payload", None)),
+            request_id=_optional_str(getattr(meta, "request_id", None)),
+            resolved_search_type=_optional_str(getattr(meta, "resolved_search_type", None)),
+            created_at_utc=_optional_str(getattr(meta, "created_at_utc", None)),
+            estimated_cost_usd=float(getattr(meta, "estimated_cost_usd", 0.0) or 0.0),
+            actual_cost_usd=_optional_float(getattr(meta, "actual_cost_usd", None)),
+            top_title=_optional_str(top_result.get("title")) if top_result else None,
+            top_url=_optional_str(top_result.get("url")) if top_result else None,
+            result_count=len(raw_results),
+            structured_output=structured_output,
+            structured_preview=_preview_json(structured_output),
+            field_count=len(fields),
+            top_field_path=top_field.path if top_field else None,
+            top_field_value=_optional_str(top_field.value) if top_field else None,
+            fields=fields,
+            results=[ExaResult.from_api_result(item) for item in raw_results],
+            cost_breakdown=CostBreakdown.from_response(response_json),
+        )
+
+    def to_flat_dict(self) -> Dict[str, Any]:
+        return {
+            "query": self.query,
+            "cache_hit": self.cache_hit,
+            "request_hash": self.request_hash,
+            "request_id": self.request_id,
+            "resolved_search_type": self.resolved_search_type,
+            "est_cost_usd": self.estimated_cost_usd,
+            "actual_cost_usd": self.actual_cost_usd,
+            "top_title": self.top_title,
+            "top_url": self.top_url,
+            "result_count": self.result_count,
+            "structured_preview": self.structured_preview,
+            "field_count": self.field_count,
+            "top_field_path": self.top_field_path,
+            "top_field_value": self.top_field_value,
+        }
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class QueryEvaluationRecord:
     query: str
     cache_hit: bool
@@ -393,3 +494,54 @@ def _mapping_to_dict(value: Any) -> Dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
     return {str(key): value[key] for key in value}
+
+
+def _structured_output_from_response(response_json: Mapping[str, Any] | None) -> Dict[str, Any]:
+    if not isinstance(response_json, Mapping):
+        return {}
+
+    for key in ("structuredOutput", "structured_output", "output", "structured", "data"):
+        value = response_json.get(key)
+        if isinstance(value, Mapping):
+            return _json_value_to_python(value)
+        if isinstance(value, list):
+            return _json_value_to_python(value)
+
+    return {}
+
+
+def _flatten_structured_output(value: Any, *, path: str = "structuredOutput") -> List[StructuredOutputField]:
+    fields: List[StructuredOutputField] = []
+    if isinstance(value, Mapping):
+        if not value:
+            return fields
+        for key, item in value.items():
+            next_path = f"{path}.{key}" if path else str(key)
+            fields.extend(_flatten_structured_output(item, path=next_path))
+        return fields
+    if isinstance(value, list):
+        if not value:
+            return fields
+        for index, item in enumerate(value):
+            next_path = f"{path}[{index}]"
+            fields.extend(_flatten_structured_output(item, path=next_path))
+        return fields
+
+    fields.append(StructuredOutputField.from_value(path, value))
+    return fields
+
+
+def _json_value_to_python(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _json_value_to_python(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_value_to_python(item) for item in value]
+    return value
+
+
+def _preview_json(value: Any, *, max_chars: int = 220) -> str:
+    try:
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    except (TypeError, ValueError):
+        text = str(value)
+    return text[:max_chars]

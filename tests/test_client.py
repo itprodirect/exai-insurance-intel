@@ -1,8 +1,16 @@
 from __future__ import annotations
 
-from exa_demo.client import build_exa_payload, mock_exa_response
+from exa_demo.client import (
+    build_answer_payload,
+    build_exa_payload,
+    build_structured_search_payload,
+    exa_answer,
+    exa_structured_search,
+    mock_exa_answer_response,
+    mock_exa_response,
+    mock_exa_structured_search_response,
+)
 from exa_demo.config import default_config
-from exa_demo.client import build_answer_payload, exa_answer, mock_exa_answer_response
 from exa_demo.config import default_pricing
 
 
@@ -82,6 +90,75 @@ def test_mock_exa_response_preserves_search_result_shape_with_additive_controls(
     assert response["results"][0]["title"].startswith("Mock Professional Result")
 
 
+def test_build_structured_search_payload_adds_output_schema() -> None:
+    config = default_config()
+    config.update(
+        {
+            "additional_queries": ["licensed public adjuster Florida"],
+            "livecrawl": True,
+        }
+    )
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "professionals": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "role": {"type": "string"},
+                    },
+                },
+            },
+        },
+    }
+
+    payload = build_structured_search_payload(
+        "insurance expert witness",
+        config,
+        output_schema,
+        num_results=2,
+    )
+
+    assert payload["query"] == "insurance expert witness"
+    assert payload["numResults"] == 2
+    assert payload["additionalQueries"] == ["licensed public adjuster Florida"]
+    assert payload["livecrawl"] is True
+    assert payload["outputSchema"] == output_schema
+
+
+def test_mock_exa_structured_search_response_returns_structured_output() -> None:
+    payload = build_structured_search_payload(
+        "insurance expert witness",
+        default_config(),
+        {
+            "type": "object",
+            "properties": {
+                "summary": {"type": "string"},
+                "professionals": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "role": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        },
+    )
+
+    response = mock_exa_structured_search_response(payload)
+
+    assert response["resolvedSearchType"] == "auto"
+    assert response["structuredOutput"]["summary"].startswith("Mock summary for query:")
+    assert response["structuredOutput"]["professionals"][0]["name"].startswith("Mock name for query:")
+    assert len(response["results"]) == payload["numResults"]
+
+
 def test_build_answer_payload_is_query_only() -> None:
     payload = build_answer_payload("What is the Florida appraisal clause dispute process?")
 
@@ -120,3 +197,44 @@ def test_exa_answer_uses_smoke_cited_answer_shape() -> None:
     assert meta.request_payload == {"query": "What is the Florida appraisal clause dispute process?", "text": True}
     assert meta.estimated_cost_usd == pricing["search_1_25"]
     assert cache_store.calls[0]["run_id"] == "answer-run"
+
+
+def test_exa_structured_search_uses_smoke_structured_output_shape() -> None:
+    cache_store = FakeCacheStore()
+    config = default_config()
+    pricing = default_pricing()
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "professionals": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "role": {"type": "string"},
+                    },
+                },
+            },
+        },
+    }
+
+    response_json, meta = exa_structured_search(
+        "What is the Florida appraisal clause dispute process?",
+        config=config,
+        pricing=pricing,
+        exa_api_key="",
+        smoke_no_network=True,
+        run_id="structured-run",
+        cache_store=cache_store,
+        output_schema=output_schema,
+        num_results=2,
+    )
+
+    assert response_json["structuredOutput"]["summary"].startswith("Mock summary for query:")
+    assert response_json["structuredOutput"]["professionals"][0]["name"].startswith("Mock name for query:")
+    assert meta.cache_hit is False
+    assert meta.request_payload["outputSchema"] == output_schema
+    assert meta.estimated_cost_usd == cache_store.calls[0]["estimated_cost"]
+    assert cache_store.calls[0]["run_id"] == "structured-run"
