@@ -101,6 +101,7 @@ def run_search_command(args: argparse.Namespace) -> int:
         run_id=runtime.run_id,
         config=config,
         pricing=pricing,
+        run_context={},
         base_dir=args.artifact_dir,
     )
     writer.record_query(record)
@@ -144,6 +145,7 @@ def run_eval_command(args: argparse.Namespace) -> int:
         run_id=runtime.run_id,
         config=config,
         pricing=pricing,
+        run_context={"query_suite": args.suite},
         base_dir=args.artifact_dir,
     )
     queries = _load_queries(args)
@@ -184,6 +186,7 @@ def run_eval_command(args: argparse.Namespace) -> int:
             after_summary_metrics=summary,
             after_batch_df=batch_df,
             after_recommendation=rec,
+            after_context={"query_suite": args.suite},
         )
         comparison_markdown_path = write_comparison_markdown(writer.artifact_dir, comparison_report)
 

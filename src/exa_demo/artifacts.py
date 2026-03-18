@@ -17,10 +17,12 @@ class ExperimentArtifactWriter:
         run_id: str,
         config: Mapping[str, Any],
         pricing: Mapping[str, Any],
+        run_context: Optional[Mapping[str, Any]] = None,
         base_dir: str | Path = 'experiments',
     ) -> None:
         self.run_id = str(run_id)
         self.base_dir = Path(base_dir)
+        self.run_context = _to_jsonable_mapping(run_context or {})
         self.artifact_dir = self.base_dir / self.run_id
         self.config_path = self.artifact_dir / 'config.json'
         self.queries_path = self.artifact_dir / 'queries.jsonl'
@@ -51,12 +53,16 @@ class ExperimentArtifactWriter:
                 'request_hash': record.request_hash,
                 'request_id': record.request_id,
                 'resolved_search_type': record.resolved_search_type,
+                **self.run_context,
                 'cache_hit': record.cache_hit,
                 'created_at_utc': record.created_at_utc,
                 'request_payload': record.request_payload,
             },
         )
-        self._append_jsonl(self.results_path, record.to_dict())
+        result_payload = record.to_dict()
+        if self.run_context:
+            result_payload = {**self.run_context, **result_payload}
+        self._append_jsonl(self.results_path, result_payload)
         self._record_count += 1
 
     def write_summary(
@@ -73,6 +79,11 @@ class ExperimentArtifactWriter:
         recommendation_data = recommendation_data or {}
         qualitative_notes_list = [str(note) for note in (qualitative_notes or [])]
         batch_query_count = int(len(batch_df.index)) if batch_df is not None else self._record_count
+        extra_payload: Dict[str, Any] = {}
+        if self.run_context:
+            extra_payload["run_context"] = self.run_context
+        if extra:
+            extra_payload.update(_to_jsonable_mapping(extra))
 
         record = ExperimentSummaryRecord(
             run_id=self.run_id,
@@ -102,8 +113,8 @@ class ExperimentArtifactWriter:
         payload: Dict[str, Any] = record.to_dict()
         payload['artifact_dir'] = str(self.artifact_dir)
         payload['query_records_written'] = self._record_count
-        if extra:
-            payload['extra'] = _to_jsonable_mapping(extra)
+        if extra_payload:
+            payload['extra'] = extra_payload
 
         self._write_json(self.summary_path, payload)
         return self.summary_path

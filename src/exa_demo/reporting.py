@@ -235,14 +235,25 @@ def build_before_after_report(
     after_summary_metrics: Mapping[str, Any],
     after_batch_df: pd.DataFrame,
     after_recommendation: Mapping[str, Any] | None = None,
+    after_context: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
     before_dir = Path(before_run_dir)
     before_summary = _load_run_summary_payload(before_dir)
     before_df = _load_run_results_df(before_dir)
 
+    before_context = _extract_run_context(before_summary)
+    after_context = _clean_context(after_context)
+
+    before_df = _apply_context_columns(before_df, before_context)
+    after_df = _apply_context_columns(after_batch_df, after_context)
+    group_columns = _comparison_group_columns(before_df, after_df)
+    before_search_type = _dominant_string_value(before_df, "resolved_search_type")
+    after_search_type = _dominant_string_value(after_df, "resolved_search_type")
+
     before_taxonomy = summarize_failure_taxonomy(before_df)
-    after_taxonomy = summarize_failure_taxonomy(after_batch_df)
-    query_outcomes = _compare_query_outcomes(before_df, after_batch_df)
+    after_taxonomy = summarize_failure_taxonomy(after_df)
+    query_outcomes = _compare_query_outcomes(before_df, after_df)
+    grouped_query_outcomes = _compare_grouped_query_outcomes(before_df, after_df, group_columns=group_columns)
 
     after_recommendation = after_recommendation or {}
 
@@ -266,6 +277,13 @@ def build_before_after_report(
         "candidate_query_count": int(len(after_batch_df.index)),
         "baseline_query_count": int(len(before_df.index)),
         "shared_query_count": int(query_outcomes["shared_query_count"]),
+        "comparison_context": {
+            "baseline": before_context,
+            "candidate": after_context,
+            "baseline_resolved_search_type": before_search_type,
+            "candidate_resolved_search_type": after_search_type,
+            "group_columns": group_columns,
+        },
         "deltas": {
             "spent_usd": round(after_spent - before_spent, 6),
             "avg_cost_per_uncached_query": round(after_avg_cost - before_avg_cost, 6),
@@ -276,6 +294,7 @@ def build_before_after_report(
         "baseline_taxonomy": before_taxonomy,
         "candidate_taxonomy": after_taxonomy,
         "query_outcomes": query_outcomes,
+        "grouped_query_outcomes": grouped_query_outcomes,
     }
 
 
@@ -285,6 +304,8 @@ def render_comparison_markdown(comparison_report: Mapping[str, Any]) -> str:
     candidate_run_id = str(comparison_report.get("candidate_run_id") or "candidate")
     deltas = comparison_report.get("deltas") if isinstance(comparison_report.get("deltas"), Mapping) else {}
     query_outcomes = comparison_report.get("query_outcomes") if isinstance(comparison_report.get("query_outcomes"), Mapping) else {}
+    comparison_context = comparison_report.get("comparison_context") if isinstance(comparison_report.get("comparison_context"), Mapping) else {}
+    grouped_query_outcomes = comparison_report.get("grouped_query_outcomes") if isinstance(comparison_report.get("grouped_query_outcomes"), list) else []
 
     lines: List[str] = []
     lines.append("# Before/After Comparison Report")
@@ -292,6 +313,21 @@ def render_comparison_markdown(comparison_report: Mapping[str, Any]) -> str:
     lines.append(f"- Baseline run: `{baseline_run_id}`")
     lines.append(f"- Candidate run: `{candidate_run_id}`")
     lines.append(f"- Shared queries: {int(comparison_report.get('shared_query_count') or 0)}")
+    group_columns = list(comparison_context.get("group_columns") or [])
+    if group_columns:
+        lines.append(f"- Grouped by: `{', '.join(str(item) for item in group_columns)}`")
+    baseline_context = comparison_context.get("baseline") if isinstance(comparison_context.get("baseline"), Mapping) else {}
+    candidate_context = comparison_context.get("candidate") if isinstance(comparison_context.get("candidate"), Mapping) else {}
+    baseline_suite = baseline_context.get("query_suite")
+    candidate_suite = candidate_context.get("query_suite")
+    if baseline_suite or candidate_suite:
+        lines.append(f"- Baseline query suite: `{baseline_suite or 'none'}`")
+        lines.append(f"- Candidate query suite: `{candidate_suite or 'none'}`")
+    baseline_search_type = comparison_context.get("baseline_resolved_search_type")
+    candidate_search_type = comparison_context.get("candidate_resolved_search_type")
+    if baseline_search_type or candidate_search_type:
+        lines.append(f"- Baseline search type: `{baseline_search_type or 'none'}`")
+        lines.append(f"- Candidate search type: `{candidate_search_type or 'none'}`")
     lines.append("")
     lines.append("## Delta Summary")
     lines.append("")
@@ -319,6 +355,32 @@ def render_comparison_markdown(comparison_report: Mapping[str, Any]) -> str:
     lines.append("")
     lines.append(f"- Resolved failure counts: {_format_counter(resolved_failures)}")
     lines.append(f"- Introduced failure counts: {_format_counter(introduced_failures)}")
+
+    if grouped_query_outcomes:
+        lines.append("")
+        lines.append("## Grouped Query Outcomes")
+        lines.append("")
+        lines.append("| Group | Baseline Search Type | Candidate Search Type | Shared Queries | Resolved | Regressed | Avg Confidence Delta | Resolved Failures | Introduced Failures |")
+        lines.append("| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |")
+        for entry in grouped_query_outcomes:
+            group_label = _format_group_label(entry.get("group"))
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        group_label,
+                        str(entry.get("baseline_resolved_search_type") or "none"),
+                        str(entry.get("candidate_resolved_search_type") or "none"),
+                        str(int(entry.get("shared_query_count") or 0)),
+                        str(int(entry.get("resolved_query_count") or 0)),
+                        str(int(entry.get("regressed_query_count") or 0)),
+                        _format_delta(entry.get("avg_confidence_delta"), kind="percent"),
+                        _format_counter(entry.get("resolved_failure_counts")),
+                        _format_counter(entry.get("introduced_failure_counts")),
+                    ]
+                )
+                + " |"
+            )
 
     return "\n".join(lines).strip() + "\n"
 
@@ -368,6 +430,154 @@ def _load_run_results_df(run_dir: Path) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame()
     return pd.DataFrame(rows)
+
+
+def _extract_run_context(summary_payload: Mapping[str, Any]) -> Dict[str, Any]:
+    extra = summary_payload.get("extra")
+    if not isinstance(extra, Mapping):
+        return {}
+
+    context = extra.get("run_context")
+    if not isinstance(context, Mapping):
+        return _clean_context(extra.get("query_suite") and {"query_suite": extra.get("query_suite")} or {})
+
+    return _clean_context(context)
+
+
+def _clean_context(context: Mapping[str, Any] | None) -> Dict[str, Any]:
+    if not isinstance(context, Mapping):
+        return {}
+    cleaned: Dict[str, Any] = {}
+    for key, value in context.items():
+        text = str(key).strip()
+        if not text:
+            continue
+        if value is None:
+            continue
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                continue
+            cleaned[text] = stripped
+        else:
+            cleaned[text] = value
+    return cleaned
+
+
+def _apply_context_columns(df: pd.DataFrame, context: Mapping[str, Any]) -> pd.DataFrame:
+    if df.empty or not context:
+        return df
+    result = df.copy()
+    for key, value in context.items():
+        if key not in result.columns:
+            result[key] = value
+    return result
+
+
+def _comparison_group_columns(before_df: pd.DataFrame, after_df: pd.DataFrame) -> List[str]:
+    if _context_column_available(before_df, after_df, "query_suite"):
+        return ["query_suite"]
+    return []
+
+
+def _context_column_available(before_df: pd.DataFrame, after_df: pd.DataFrame, column: str) -> bool:
+    return _column_has_values(before_df, column) and _column_has_values(after_df, column)
+
+
+def _column_has_values(df: pd.DataFrame, column: str) -> bool:
+    if column not in df.columns:
+        return False
+    series = df[column].dropna()
+    if series.empty:
+        return False
+    return any(str(value).strip() for value in series.tolist())
+
+
+def _compare_grouped_query_outcomes(
+    before_df: pd.DataFrame,
+    after_df: pd.DataFrame,
+    *,
+    group_columns: List[str],
+) -> List[Dict[str, Any]]:
+    if not group_columns:
+        return [
+            {
+                "group": {"group": "all"},
+                "baseline_resolved_search_type": _dominant_string_value(before_df, "resolved_search_type"),
+                "candidate_resolved_search_type": _dominant_string_value(after_df, "resolved_search_type"),
+                **_compare_query_outcomes(before_df, after_df),
+            }
+        ]
+
+    before_groups = _group_rows(before_df, group_columns)
+    after_groups = _group_rows(after_df, group_columns)
+    grouped_rows: List[Dict[str, Any]] = []
+
+    for group_key in sorted(set(before_groups.keys()) | set(after_groups.keys()), key=_group_sort_key):
+        group_before = before_groups.get(group_key, pd.DataFrame())
+        group_after = after_groups.get(group_key, pd.DataFrame())
+        if group_before.empty and group_after.empty:
+            continue
+        group_outcome = _compare_query_outcomes(group_before, group_after)
+        grouped_rows.append(
+            {
+                "group": _group_key_to_mapping(group_columns, group_key),
+                "baseline_resolved_search_type": _dominant_string_value(group_before, "resolved_search_type"),
+                "candidate_resolved_search_type": _dominant_string_value(group_after, "resolved_search_type"),
+                **group_outcome,
+            }
+        )
+
+    return grouped_rows
+
+
+def _group_rows(df: pd.DataFrame, group_columns: List[str]) -> Dict[tuple[Any, ...], pd.DataFrame]:
+    if df.empty:
+        return {}
+
+    usable_columns = [column for column in group_columns if column in df.columns]
+    if not usable_columns:
+        return {("all",): df}
+
+    grouped: Dict[tuple[Any, ...], pd.DataFrame] = {}
+    for group_values, group_df in df.groupby(usable_columns, dropna=False):
+        normalized = group_values if isinstance(group_values, tuple) else (group_values,)
+        grouped[tuple(_normalize_group_value(value) for value in normalized)] = group_df
+    return grouped
+
+
+def _normalize_group_value(value: Any) -> str:
+    if value is None:
+        return "none"
+    text = str(value).strip()
+    return text or "none"
+
+
+def _group_key_to_mapping(group_columns: List[str], group_key: tuple[Any, ...]) -> Dict[str, Any]:
+    if not group_columns:
+        return {}
+    return {column: group_key[index] if index < len(group_key) else "none" for index, column in enumerate(group_columns)}
+
+
+def _group_sort_key(group_key: tuple[Any, ...]) -> tuple[str, ...]:
+    return tuple(str(value) for value in group_key)
+
+
+def _format_group_label(group: Any) -> str:
+    if not isinstance(group, Mapping):
+        return "all"
+    parts = [f"{key}={value}" for key, value in group.items()]
+    return " | ".join(parts) if parts else "all"
+
+
+def _dominant_string_value(df: pd.DataFrame, column: str) -> str:
+    if column not in df.columns or df.empty:
+        return "none"
+    values = [str(value).strip() for value in df[column].tolist() if str(value).strip()]
+    if not values:
+        return "none"
+    counts = Counter(values)
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
 
 
 def _compare_query_outcomes(before_df: pd.DataFrame, after_df: pd.DataFrame) -> Dict[str, Any]:

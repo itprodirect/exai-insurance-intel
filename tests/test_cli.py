@@ -62,6 +62,8 @@ def test_eval_command_smoke_writes_artifacts(tmp_path, capsys) -> None:
     assert output['run_id'] == 'cli-eval'
     assert output['summary']['request_count'] == 2
     assert 'taxonomy' in output
+    summary_payload = json.loads((artifact_dir / 'cli-eval' / 'summary.json').read_text(encoding='utf-8'))
+    assert summary_payload['extra']['run_context']['query_suite'] == 'insurance'
     assert (artifact_dir / 'cli-eval' / 'queries.jsonl').exists()
     assert (artifact_dir / 'cli-eval' / 'results.jsonl').exists()
 
@@ -81,6 +83,7 @@ def test_eval_command_can_emit_before_after_comparison(tmp_path, capsys) -> None
             'result_count': 0,
             'relevance_keywords_present': False,
             'linkedin_present': False,
+            'resolved_search_type': 'auto',
             'failure_reasons': ['no_results'],
             'primary_failure_reason': 'no_results',
             'confidence_score': 0.0,
@@ -90,6 +93,7 @@ def test_eval_command_can_emit_before_after_comparison(tmp_path, capsys) -> None
             'result_count': 1,
             'relevance_keywords_present': False,
             'linkedin_present': False,
+            'resolved_search_type': 'auto',
             'failure_reasons': ['off_domain', 'low_confidence'],
             'primary_failure_reason': 'off_domain',
             'confidence_score': 0.2,
@@ -110,6 +114,7 @@ def test_eval_command_can_emit_before_after_comparison(tmp_path, capsys) -> None
                 'observed_relevance_rate': 0.0,
                 'observed_confidence_score': 0.1,
                 'observed_failure_rate': 1.0,
+                'extra': {'run_context': {'query_suite': 'insurance'}},
             },
             indent=2,
             sort_keys=True,
@@ -143,6 +148,10 @@ def test_eval_command_can_emit_before_after_comparison(tmp_path, capsys) -> None
     assert output['comparison']['candidate_run_id'] == 'cli-eval-compare'
     assert output['comparison']['shared_query_count'] == 2
     assert 'deltas' in output['comparison']
+    assert output['comparison']['comparison_context']['group_columns'] == ['query_suite']
+    assert output['comparison']['grouped_query_outcomes'][0]['group']['query_suite'] == 'insurance'
+    assert output['comparison']['grouped_query_outcomes'][0]['baseline_resolved_search_type'] == 'auto'
+    assert output['comparison']['grouped_query_outcomes'][0]['candidate_resolved_search_type'] == 'auto'
     assert (artifact_dir / 'cli-eval-compare' / 'comparison.md').exists()
     assert output['comparison_markdown_path'].endswith('comparison.md')
 

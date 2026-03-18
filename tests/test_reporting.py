@@ -57,6 +57,7 @@ def test_build_before_after_report_compares_baseline_with_current_batch(tmp_path
                 'observed_relevance_rate': 0.25,
                 'observed_confidence_score': 0.25,
                 'observed_failure_rate': 1.0,
+                'extra': {'run_context': {'query_suite': 'insurance'}},
             },
             indent=2,
             sort_keys=True,
@@ -73,6 +74,8 @@ def test_build_before_after_report_compares_baseline_with_current_batch(tmp_path
             'linkedin_present': False,
             'failure_reasons': ['no_results'],
             'confidence_score': 0.0,
+            'query_suite': 'insurance',
+            'resolved_search_type': 'auto',
         },
         {
             'query': 'q2',
@@ -81,6 +84,8 @@ def test_build_before_after_report_compares_baseline_with_current_batch(tmp_path
             'linkedin_present': False,
             'failure_reasons': ['off_domain', 'low_confidence'],
             'confidence_score': 0.2,
+            'query_suite': 'insurance',
+            'resolved_search_type': 'auto',
         },
     ]
     (baseline_dir / 'results.jsonl').write_text(
@@ -97,6 +102,7 @@ def test_build_before_after_report_compares_baseline_with_current_batch(tmp_path
                 'linkedin_present': True,
                 'failure_reasons': [],
                 'confidence_score': 0.95,
+                'resolved_search_type': 'deep',
             },
             {
                 'query': 'q2',
@@ -105,6 +111,7 @@ def test_build_before_after_report_compares_baseline_with_current_batch(tmp_path
                 'linkedin_present': True,
                 'failure_reasons': [],
                 'confidence_score': 0.90,
+                'resolved_search_type': 'deep',
             },
         ]
     )
@@ -114,6 +121,7 @@ def test_build_before_after_report_compares_baseline_with_current_batch(tmp_path
         after_run_id='candidate',
         after_summary_metrics={'spent_usd': 0.02, 'avg_cost_per_uncached_query': 0.01},
         after_batch_df=after_df,
+        after_context={'query_suite': 'insurance'},
         after_recommendation={
             'observed_relevance_rate': 1.0,
             'observed_confidence_score': 0.925,
@@ -126,6 +134,10 @@ def test_build_before_after_report_compares_baseline_with_current_batch(tmp_path
     assert report['shared_query_count'] == 2
     assert report['query_outcomes']['resolved_query_count'] == 2
     assert report['deltas']['observed_failure_rate'] < 0
+    assert report['comparison_context']['group_columns'] == ['query_suite']
+    assert report['grouped_query_outcomes'][0]['group']['query_suite'] == 'insurance'
+    assert report['grouped_query_outcomes'][0]['baseline_resolved_search_type'] == 'auto'
+    assert report['grouped_query_outcomes'][0]['candidate_resolved_search_type'] == 'deep'
 
 
 def test_render_and_write_comparison_markdown(tmp_path) -> None:
@@ -133,6 +145,13 @@ def test_render_and_write_comparison_markdown(tmp_path) -> None:
         'baseline_run_id': 'baseline',
         'candidate_run_id': 'candidate',
         'shared_query_count': 2,
+        'comparison_context': {
+            'group_columns': ['query_suite'],
+            'baseline_resolved_search_type': 'auto',
+            'candidate_resolved_search_type': 'deep',
+            'baseline': {'query_suite': 'insurance'},
+            'candidate': {'query_suite': 'insurance'},
+        },
         'deltas': {
             'spent_usd': -0.02,
             'avg_cost_per_uncached_query': -0.01,
@@ -149,12 +168,27 @@ def test_render_and_write_comparison_markdown(tmp_path) -> None:
             'resolved_failure_counts': {'no_results': 1},
             'introduced_failure_counts': {},
         },
+        'grouped_query_outcomes': [
+            {
+                'group': {'query_suite': 'insurance'},
+                'baseline_resolved_search_type': 'auto',
+                'candidate_resolved_search_type': 'deep',
+                'shared_query_count': 2,
+                'resolved_query_count': 2,
+                'regressed_query_count': 0,
+                'avg_confidence_delta': 0.20,
+                'resolved_failure_counts': {'no_results': 1},
+                'introduced_failure_counts': {},
+            }
+        ],
     }
 
     markdown = render_comparison_markdown(report)
     assert '# Before/After Comparison Report' in markdown
     assert 'Baseline run: `baseline`' in markdown
     assert '| Observed Failure Rate | -30.0% |' in markdown
+    assert '## Grouped Query Outcomes' in markdown
+    assert '| Group | Baseline Search Type | Candidate Search Type |' in markdown
 
     written = write_comparison_markdown(tmp_path, report)
     assert written.name == 'comparison.md'

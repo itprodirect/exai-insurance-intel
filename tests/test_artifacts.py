@@ -11,6 +11,7 @@ def test_experiment_artifact_writer_persists_run_files(tmp_path) -> None:
         run_id='demo-run',
         config={'num_results': 5, 'search_type': 'auto'},
         pricing={'search_1_25': 0.005},
+        run_context={'query_suite': 'insurance'},
         base_dir=tmp_path,
     )
 
@@ -66,7 +67,10 @@ def test_experiment_artifact_writer_persists_run_files(tmp_path) -> None:
     assert config_payload['run_id'] == 'demo-run'
     assert len(query_lines) == 1
     assert len(result_lines) == 1
+    assert json.loads(query_lines[0])['query_suite'] == 'insurance'
+    assert json.loads(result_lines[0])['query_suite'] == 'insurance'
     assert summary_payload['query_records_written'] == 1
     assert summary_payload['headline_recommendation'] == 'Integrate'
     assert summary_payload['observed_confidence_score'] == 1.0
+    assert summary_payload['extra']['run_context']['query_suite'] == 'insurance'
     assert summary_payload['extra']['taxonomy']['failure_rate'] == 0.0
