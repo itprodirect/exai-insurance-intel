@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from exa_demo.cost_model import enforce_budget, estimate_cost_from_pricing
+from exa_demo.config import default_config
+from exa_demo.cost_model import enforce_budget, estimate_cost_from_pricing, estimate_unit_cost_for_config
 
 
 def test_estimate_cost_accounts_for_search_and_contents() -> None:
@@ -46,6 +47,25 @@ def test_estimate_cost_uses_search_type_specific_tiers() -> None:
     assert estimate_cost_from_pricing(deep_payload, 26, pricing, 100) == 0.03
     assert estimate_cost_from_pricing(deep_reasoning_payload, 5, pricing, 100) == 0.015
     assert estimate_cost_from_pricing(fallback_payload, 5, pricing, 100) == 0.005
+
+
+def test_estimate_unit_cost_for_config_respects_search_type() -> None:
+    pricing = {
+        "search_1_25": 0.005,
+        "search_26_100": 0.025,
+        "deep_search_1_25": 0.012,
+        "deep_search_26_100": 0.03,
+        "deep_reasoning_search_1_25": 0.015,
+        "deep_reasoning_search_26_100": 0.04,
+        "content_text_per_page": 0.001,
+        "content_highlights_per_page": 0.001,
+        "content_summary_per_page": 0.001,
+    }
+    config = default_config()
+    config["search_type"] = "deep-reasoning"
+    config["use_highlights"] = False
+
+    assert estimate_unit_cost_for_config(config, pricing) == 0.015
 
 
 def test_enforce_budget_blocks_projected_overspend() -> None:

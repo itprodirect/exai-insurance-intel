@@ -25,11 +25,13 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
 ## Issues Opened or Updated
 
 - `#16 Extend CI/security hardening and document integration follow-ons`: moved to `In progress` for pytest-in-CI and script/negative-path coverage work.
+- `#8 Add deep vs deep-reasoning comparison workflow`: moved to `In progress` after landing additive deep-search request shaping and type-aware cost controls.
 
 ## Docs Touched
 
 - `docs/issue-tracker.md`
 - `docs/sessions/2026-03-18-phase2-parallel-slices.md`
+- `README.md`
 
 ## Tests and Checks Run
 
@@ -37,6 +39,9 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
 - `pytest -q tests\test_cli.py tests\test_scripts.py` -> passed after adding negative-path and script coverage.
 - `pytest -q` -> passed after slice-1 changes with `27 passed`.
 - `python scripts/run_notebook_smoke.py --mode smoke` -> passed.
+- `pytest -q tests\test_client.py tests\test_models.py` -> passed for deep-search payload controls.
+- `pytest -q tests\test_cost_model.py tests\test_cli.py` -> passed for deep-search CLI and cost controls.
+- `pytest -q` -> passed after slice-2 integration with `33 passed`.
 
 ## Outcome
 
@@ -44,8 +49,12 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
   - `92e840f` added CLI negative-path coverage and new script tests.
   - A follow-up commit is expected to land CI pytest execution, pytest warning cleanup, and the docs/session updates from this log.
 - CI now runs both `pytest` and notebook smoke so later feature slices land on safer rails.
+- Completed slice 2 deep-search rail building in two commits:
+  - `28428e9` added additive payload controls for `additionalQueries`, published-date filters, and `livecrawl`.
+  - `3f39c3d` added CLI flags and type-aware cost override support for `deep` and `deep-reasoning` experiments.
+- The repo can now run deeper `/search` experiments without changing the existing `results[]` artifact and evaluation contract.
 
 ## Next-Session Handoff
 
-- Start slice 2 on deep-search payload and cost-model expansion using the hardened CI/test rails.
-- Continue with deep-search payload/cost work and grouped comparison reporting once the test rails are merged.
+- Start slice 3 on grouped comparison reporting and richer query-suite segmentation.
+- Fold the deep-search controls into before/after reporting so cost and quality deltas are visible by search type and query family.

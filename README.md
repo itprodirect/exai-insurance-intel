@@ -103,12 +103,15 @@ Notebook flow is intentionally fixed to 9 cells:
 
 ```powershell
 python -m exa_demo search "forensic engineer insurance expert witness" --mode smoke --json
+python -m exa_demo search "Florida property insurance appraisal clause" --type deep --additional-query "Florida appraisal dispute statute" --start-published-date 2025-01-01 --livecrawl --json
 python -m exa_demo eval --mode smoke --limit 5 --json
 python -m exa_demo eval --mode smoke --limit 5 --compare-to-run-id 20260310T033256Z --json
 python -m exa_demo budget --run-id demo-2026-03 --json
 ```
 
 The search and eval commands write the same experiments/<RUN_ID>/ artifact bundle as the notebook flow.
+Deep-search-oriented request shaping is now exposed directly in the CLI with additive flags such as `--additional-query`, `--start-published-date`, `--end-published-date`, and `--livecrawl`.
+Search cost estimation can also be overridden from the CLI for search-type experiments with flags such as `--deep-search-cost-1-25` and `--deep-reasoning-search-cost-1-25`.
 
 Eval output now includes a taxonomy scorecard (relevance, credibility, actionability, confidence) and per-query failure reasons (`no_results`, `off_domain`, `low_confidence`).
 Use `--compare-to-run-id` for before/after deltas across quality and failure rates when both runs share query text.

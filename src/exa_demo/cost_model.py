@@ -50,7 +50,9 @@ def estimate_unit_cost_for_config(
             "query": "Summarize the person's professional background and insurance/CAT relevance."
         }
 
-    payload: Dict[str, Any] = {}
+    payload: Dict[str, Any] = {
+        "type": str(config.get("search_type") or "auto"),
+    }
     if contents:
         payload["contents"] = contents
 
