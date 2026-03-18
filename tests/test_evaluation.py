@@ -2,7 +2,14 @@
 
 from dataclasses import dataclass
 
-from exa_demo.evaluation import DEFAULT_RELEVANCE_KEYWORDS, evaluate_batch_queries, load_benchmark_queries
+import json
+
+from exa_demo.evaluation import (
+    DEFAULT_RELEVANCE_KEYWORDS,
+    evaluate_batch_queries,
+    load_benchmark_queries,
+    load_benchmark_suites,
+)
 from exa_demo.models import QueryEvaluationRecord
 
 
@@ -23,6 +30,27 @@ def test_load_benchmark_queries_matches_current_fixture() -> None:
 
     assert len(queries) == 15
     assert queries[0].startswith("forensic engineer wind damage expert witness")
+    assert queries[-1].startswith("civil engineer structural damage assessment")
+
+
+def test_load_benchmark_queries_can_target_named_suite() -> None:
+    all_queries = load_benchmark_queries(suite="all")
+    engineering_queries = load_benchmark_queries(suite="forensic_and_damage_engineering")
+    suites = load_benchmark_suites()
+
+    assert len(all_queries) == 15
+    assert len(engineering_queries) == 5
+    assert suites["coverage_and_litigation"][0].startswith("policyholder attorney")
+    assert suites["adjusters_appraisers_and_restoration"][-1].startswith("civil engineer structural")
+
+
+def test_load_benchmark_queries_supports_legacy_list_fixtures(tmp_path) -> None:
+    legacy_path = tmp_path / "legacy_queries.json"
+    legacy_queries = ["one query", "two query"]
+    legacy_path.write_text(json.dumps(legacy_queries), encoding="utf-8")
+
+    assert load_benchmark_suites(legacy_path) == {"default": legacy_queries}
+    assert load_benchmark_queries(legacy_path) == legacy_queries
 
 
 def test_evaluate_batch_queries_builds_expected_flags() -> None:

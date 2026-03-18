@@ -104,7 +104,7 @@ Notebook flow is intentionally fixed to 9 cells:
 ```powershell
 python -m exa_demo search "forensic engineer insurance expert witness" --mode smoke --json
 python -m exa_demo search "Florida property insurance appraisal clause" --type deep --additional-query "Florida appraisal dispute statute" --start-published-date 2025-01-01 --livecrawl --json
-python -m exa_demo eval --mode smoke --limit 5 --json
+python -m exa_demo eval --mode smoke --suite forensic_and_damage_engineering --limit 5 --json
 python -m exa_demo eval --mode smoke --limit 5 --compare-to-run-id 20260310T033256Z --json
 python -m exa_demo budget --run-id demo-2026-03 --json
 ```
@@ -115,11 +115,13 @@ Search cost estimation can also be overridden from the CLI for search-type exper
 
 Eval output now includes a taxonomy scorecard (relevance, credibility, actionability, confidence) and per-query failure reasons (`no_results`, `off_domain`, `low_confidence`).
 Use `--compare-to-run-id` for before/after deltas across quality and failure rates when both runs share query text.
-When comparison is enabled, the run also writes a human-readable `experiments/<RUN_ID>/comparison.md` report.
+When comparison is enabled, the run also writes a human-readable `experiments/<RUN_ID>/comparison.md` report with grouped query outcomes when suite context is available.
 
 ## Benchmark Fixture
 
 The packaged regression-style query fixture lives at `benchmarks/insurance_cat_queries.json`.
+The fixture now supports named suites while preserving the aggregate default set.
+Use `--suite all` for the full benchmark or pick a named segment such as `forensic_and_damage_engineering`, `coverage_and_litigation`, or `adjusters_appraisers_and_restoration`.
 The notebook still owns execution and presentation, but Cell 6 now loads this fixture so the query set is reusable in tests and future CLI flows.
 
 

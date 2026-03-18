@@ -32,15 +32,53 @@ MIN_ACTIONABLE_PREVIEW_CHARS = 40
 DEFAULT_BENCHMARK_PATH = Path(__file__).resolve().parents[2] / "benchmarks" / "insurance_cat_queries.json"
 
 
-def load_benchmark_queries(path: str | Path | None = None) -> List[str]:
+def load_benchmark_suites(path: str | Path | None = None) -> Dict[str, List[str]]:
     benchmark_path = Path(path) if path is not None else DEFAULT_BENCHMARK_PATH
     with benchmark_path.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
 
-    if not isinstance(data, list) or not all(isinstance(item, str) and item.strip() for item in data):
-        raise ValueError(f"Benchmark query file must be a JSON array of non-empty strings: {benchmark_path}")
+    if isinstance(data, list):
+        return {"default": _normalize_query_list(data, benchmark_path)}
 
-    return [item.strip() for item in data]
+    if not isinstance(data, Mapping):
+        raise ValueError(
+            "Benchmark query file must be either a JSON array of non-empty strings or a JSON object "
+            f"with a 'suites' mapping: {benchmark_path}"
+        )
+
+    suites_value = data.get("suites", data)
+    if not isinstance(suites_value, Mapping):
+        raise ValueError(
+            f"Benchmark query file must define a JSON object mapping suite names to query arrays: {benchmark_path}"
+        )
+
+    suites: Dict[str, List[str]] = {}
+    for suite_name, suite_queries in suites_value.items():
+        if str(suite_name).strip() in {"default_suite", "description"}:
+            continue
+        suites[str(suite_name).strip()] = _normalize_query_list(suite_queries, benchmark_path, suite_name=str(suite_name))
+
+    if not suites:
+        raise ValueError(f"Benchmark query file did not contain any suites: {benchmark_path}")
+
+    return suites
+
+
+def load_benchmark_queries(path: str | Path | None = None, suite: str | None = None) -> List[str]:
+    benchmark_path = Path(path) if path is not None else DEFAULT_BENCHMARK_PATH
+    with benchmark_path.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    suites = _parse_benchmark_suites(data, benchmark_path)
+    if suite is None:
+        default_suite_name = _resolve_default_suite_name(data, suites, benchmark_path)
+        return list(suites[default_suite_name])
+
+    resolved_suite = str(suite).strip()
+    if resolved_suite not in suites:
+        available = ", ".join(sorted(suites))
+        raise KeyError(f"Unknown benchmark suite '{resolved_suite}'. Available suites: {available}")
+    return list(suites[resolved_suite])
 
 
 def evaluate_result_set(
@@ -160,3 +198,63 @@ def _url_domain(url: Any) -> str:
     except ValueError:
         return ""
     return str(parsed.netloc or "").lower()
+
+
+def _parse_benchmark_suites(data: Any, benchmark_path: Path) -> Dict[str, List[str]]:
+    if isinstance(data, list):
+        return {"default": _normalize_query_list(data, benchmark_path)}
+
+    if not isinstance(data, Mapping):
+        raise ValueError(
+            "Benchmark query file must be either a JSON array of non-empty strings or a JSON object "
+            f"with a 'suites' mapping: {benchmark_path}"
+        )
+
+    suites_value = data.get("suites", data)
+    if not isinstance(suites_value, Mapping):
+        raise ValueError(
+            f"Benchmark query file must define a JSON object mapping suite names to query arrays: {benchmark_path}"
+        )
+
+    suites: Dict[str, List[str]] = {}
+    for suite_name, suite_queries in suites_value.items():
+        if str(suite_name).strip() in {"default_suite", "description"}:
+            continue
+        suites[str(suite_name).strip()] = _normalize_query_list(suite_queries, benchmark_path, suite_name=str(suite_name))
+
+    if not suites:
+        raise ValueError(f"Benchmark query file did not contain any suites: {benchmark_path}")
+
+    return suites
+
+
+def _normalize_query_list(
+    values: Any,
+    benchmark_path: Path,
+    *,
+    suite_name: str | None = None,
+) -> List[str]:
+    if not isinstance(values, list) or not all(isinstance(item, str) and item.strip() for item in values):
+        if suite_name is None:
+            raise ValueError(f"Benchmark query file must be a JSON array of non-empty strings: {benchmark_path}")
+        raise ValueError(
+            f"Benchmark suite '{suite_name}' must be a JSON array of non-empty strings: {benchmark_path}"
+        )
+    return [item.strip() for item in values]
+
+
+def _resolve_default_suite_name(data: Any, suites: Mapping[str, Sequence[str]], benchmark_path: Path) -> str:
+    if not suites:
+        raise ValueError(f"Benchmark query file did not contain any suites: {benchmark_path}")
+
+    if isinstance(data, Mapping):
+        default_suite_candidate = data.get("default_suite")
+        if isinstance(default_suite_candidate, str):
+            resolved = default_suite_candidate.strip()
+            if resolved in suites:
+                return resolved
+
+    if "all" in suites:
+        return "all"
+
+    return next(iter(suites))

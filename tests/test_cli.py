@@ -63,7 +63,7 @@ def test_eval_command_smoke_writes_artifacts(tmp_path, capsys) -> None:
     assert output['summary']['request_count'] == 2
     assert 'taxonomy' in output
     summary_payload = json.loads((artifact_dir / 'cli-eval' / 'summary.json').read_text(encoding='utf-8'))
-    assert summary_payload['extra']['run_context']['query_suite'] == 'insurance'
+    assert summary_payload['extra']['run_context']['query_suite'] == 'all'
     assert (artifact_dir / 'cli-eval' / 'queries.jsonl').exists()
     assert (artifact_dir / 'cli-eval' / 'results.jsonl').exists()
 
@@ -114,7 +114,7 @@ def test_eval_command_can_emit_before_after_comparison(tmp_path, capsys) -> None
                 'observed_relevance_rate': 0.0,
                 'observed_confidence_score': 0.1,
                 'observed_failure_rate': 1.0,
-                'extra': {'run_context': {'query_suite': 'insurance'}},
+                'extra': {'run_context': {'query_suite': 'all'}},
             },
             indent=2,
             sort_keys=True,
@@ -149,7 +149,7 @@ def test_eval_command_can_emit_before_after_comparison(tmp_path, capsys) -> None
     assert output['comparison']['shared_query_count'] == 2
     assert 'deltas' in output['comparison']
     assert output['comparison']['comparison_context']['group_columns'] == ['query_suite']
-    assert output['comparison']['grouped_query_outcomes'][0]['group']['query_suite'] == 'insurance'
+    assert output['comparison']['grouped_query_outcomes'][0]['group']['query_suite'] == 'all'
     assert output['comparison']['grouped_query_outcomes'][0]['baseline_resolved_search_type'] == 'auto'
     assert output['comparison']['grouped_query_outcomes'][0]['candidate_resolved_search_type'] == 'auto'
     assert (artifact_dir / 'cli-eval-compare' / 'comparison.md').exists()
@@ -304,3 +304,10 @@ def test_apply_search_overrides_maps_additive_controls_and_pricing() -> None:
     assert pricing['deep_search_26_100'] == 0.03
     assert pricing['deep_reasoning_search_1_25'] == 0.015
     assert pricing['deep_reasoning_search_26_100'] == 0.04
+
+
+def test_eval_parser_accepts_named_benchmark_suite() -> None:
+    parser = build_parser()
+    args = parser.parse_args(['eval', '--suite', 'forensic_and_damage_engineering'])
+
+    assert args.suite == 'forensic_and_damage_engineering'

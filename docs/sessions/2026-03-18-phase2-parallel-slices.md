@@ -26,6 +26,7 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
 
 - `#16 Extend CI/security hardening and document integration follow-ons`: moved to `In progress` for pytest-in-CI and script/negative-path coverage work.
 - `#8 Add deep vs deep-reasoning comparison workflow`: moved to `In progress` after landing additive deep-search request shaping and type-aware cost controls.
+- `#13 Expand domain query suites for PA, CAT law, appraisers, IA, and adjacent industries`: moved to `In progress` after landing named benchmark suites and suite-aware reporting context.
 
 ## Docs Touched
 
@@ -42,19 +43,25 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
 - `pytest -q tests\test_client.py tests\test_models.py` -> passed for deep-search payload controls.
 - `pytest -q tests\test_cost_model.py tests\test_cli.py` -> passed for deep-search CLI and cost controls.
 - `pytest -q` -> passed after slice-2 integration with `33 passed`.
+- `pytest -q tests\test_evaluation.py` -> passed for named benchmark suites and legacy fixture compatibility.
+- `pytest -q` -> passed after grouped reporting plus suite-selection integration with `37 passed`.
 
 ## Outcome
 
 - Completed slice 1 CI/test hardening in two commits:
   - `92e840f` added CLI negative-path coverage and new script tests.
-  - A follow-up commit is expected to land CI pytest execution, pytest warning cleanup, and the docs/session updates from this log.
+  - `3ee8f35` landed CI pytest execution, pytest warning cleanup, and the first session-doc updates.
 - CI now runs both `pytest` and notebook smoke so later feature slices land on safer rails.
 - Completed slice 2 deep-search rail building in two commits:
   - `28428e9` added additive payload controls for `additionalQueries`, published-date filters, and `livecrawl`.
   - `3f39c3d` added CLI flags and type-aware cost override support for `deep` and `deep-reasoning` experiments.
 - The repo can now run deeper `/search` experiments without changing the existing `results[]` artifact and evaluation contract.
+- Completed slice 3 experiment segmentation and grouped reporting in two commits plus one integration fix:
+  - `b592dfe` added suite-aware grouped comparison reporting and threaded run context through artifacts.
+  - A follow-up local commit from this session lands named benchmark suite loading and CLI suite selection integration.
+- The repo can now compare runs by query suite while preserving the original flat before/after report.
 
 ## Next-Session Handoff
 
-- Start slice 3 on grouped comparison reporting and richer query-suite segmentation.
-- Fold the deep-search controls into before/after reporting so cost and quality deltas are visible by search type and query family.
+- Add a true deep-vs-deep-reasoning execution workflow that exercises the new grouped comparison layer end to end.
+- Decide whether to add category/date-filter guardrails for unsupported `people`/`company` combinations before expanding into `/answer` or structured-output work.

@@ -13,7 +13,7 @@ from .artifacts import ExperimentArtifactWriter
 from .cache import SqliteCacheStore
 from .client import exa_search_people
 from .config import RuntimeState, default_config, default_pricing, load_runtime_state
-from .evaluation import DEFAULT_RELEVANCE_KEYWORDS, evaluate_batch_queries, evaluate_result_set, load_benchmark_queries
+from .evaluation import DEFAULT_RELEVANCE_KEYWORDS, evaluate_batch_queries, evaluate_result_set, load_benchmark_queries, load_benchmark_suites
 from .models import QueryEvaluationRecord
 from .reporting import (
     build_before_after_report,
@@ -24,6 +24,10 @@ from .reporting import (
     write_comparison_markdown,
 )
 from .safety import extract_preview, redact_text
+
+
+LEGACY_DEFAULT_SUITE_ALIAS = "insurance"
+DEFAULT_BENCHMARK_SUITE = "all"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,7 +44,12 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser = subparsers.add_parser("eval", help="Run the benchmark evaluation suite.")
     _add_common_runtime_args(eval_parser)
     _add_common_search_args(eval_parser)
-    eval_parser.add_argument("--suite", default="insurance", choices=["insurance"], help="Named benchmark suite to run.")
+    eval_parser.add_argument(
+        "--suite",
+        default=LEGACY_DEFAULT_SUITE_ALIAS,
+        choices=_benchmark_suite_choices(),
+        help="Named benchmark suite to run.",
+    )
     eval_parser.add_argument("--queries-file", help="Optional JSON file containing an array of query strings.")
     eval_parser.add_argument("--limit", type=int, help="Optional cap on the number of benchmark queries to execute.")
     eval_parser.add_argument("--compare-to-run-id", help="Optional baseline run id for before/after comparison reporting.")
@@ -145,7 +154,7 @@ def run_eval_command(args: argparse.Namespace) -> int:
         run_id=runtime.run_id,
         config=config,
         pricing=pricing,
-        run_context={"query_suite": args.suite},
+        run_context={"query_suite": _normalized_query_suite(args.suite)},
         base_dir=args.artifact_dir,
     )
     queries = _load_queries(args)
@@ -186,7 +195,7 @@ def run_eval_command(args: argparse.Namespace) -> int:
             after_summary_metrics=summary,
             after_batch_df=batch_df,
             after_recommendation=rec,
-            after_context={"query_suite": args.suite},
+            after_context={"query_suite": _normalized_query_suite(args.suite)},
         )
         comparison_markdown_path = write_comparison_markdown(writer.artifact_dir, comparison_report)
 
@@ -342,10 +351,13 @@ def _apply_search_overrides(config: Dict[str, Any], pricing: Dict[str, float], a
 
 
 def _load_queries(args: argparse.Namespace) -> list[str]:
+    normalized_suite = _normalized_query_suite(getattr(args, "suite", None))
     if args.queries_file:
-        return load_benchmark_queries(Path(args.queries_file))[: args.limit] if args.limit else load_benchmark_queries(Path(args.queries_file))
+        requested_suite = None if getattr(args, "suite", None) == LEGACY_DEFAULT_SUITE_ALIAS else normalized_suite
+        queries = load_benchmark_queries(Path(args.queries_file), suite=requested_suite)
+        return queries[: args.limit] if args.limit else queries
 
-    queries = load_benchmark_queries()
+    queries = load_benchmark_queries(suite=normalized_suite)
     if args.limit:
         queries = queries[: args.limit]
     return queries
@@ -421,3 +433,17 @@ def _clean_string_list(values: Sequence[Any]) -> list[str]:
         if text:
             cleaned.append(text)
     return cleaned
+
+
+def _benchmark_suite_choices() -> list[str]:
+    suites = sorted(load_benchmark_suites().keys())
+    if LEGACY_DEFAULT_SUITE_ALIAS not in suites:
+        suites.insert(0, LEGACY_DEFAULT_SUITE_ALIAS)
+    return suites
+
+
+def _normalized_query_suite(value: str | None) -> str:
+    text = str(value or "").strip()
+    if not text or text == LEGACY_DEFAULT_SUITE_ALIAS:
+        return DEFAULT_BENCHMARK_SUITE
+    return text
