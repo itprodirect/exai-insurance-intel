@@ -42,6 +42,19 @@ def build_exa_payload(
         payload["includeDomains"] = config["include_domains"]
     if config["exclude_domains"]:
         payload["excludeDomains"] = config["exclude_domains"]
+    additional_queries = [
+        str(item).strip()
+        for item in (config.get("additional_queries") or [])
+        if str(item).strip()
+    ]
+    if additional_queries:
+        payload["additionalQueries"] = additional_queries
+    if config.get("start_published_date"):
+        payload["startPublishedDate"] = str(config["start_published_date"])
+    if config.get("end_published_date"):
+        payload["endPublishedDate"] = str(config["end_published_date"])
+    if config.get("livecrawl"):
+        payload["livecrawl"] = True
 
     contents: Dict[str, Any] = {}
     if config["use_text"]:
