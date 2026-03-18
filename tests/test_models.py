@@ -5,6 +5,7 @@ from exa_demo.models import (
     AnswerRecord,
     CostBreakdown,
     ExaResult,
+    FindSimilarRecord,
     QueryEvaluationRecord,
     StructuredOutputField,
     StructuredOutputRecord,
@@ -149,6 +150,42 @@ def test_answer_record_builds_flat_row() -> None:
     assert flat['top_citation_url'] == 'https://example.com/statute'
     assert record.answer.startswith('Mock answer for query:')
     assert record.citations[0].title == 'Florida Appraisal Statute'
+
+
+def test_find_similar_record_builds_flat_row() -> None:
+    class SimilarMeta:
+        cache_hit = True
+        request_hash = 'hash-similar'
+        request_payload = {'url': 'https://example.com/article', 'text': True}
+        request_id = 'similar-abc'
+        resolved_search_type = None
+        created_at_utc = '2026-03-18T00:00:00+00:00'
+        estimated_cost_usd = 0.012
+        actual_cost_usd = 0.0
+
+    record = FindSimilarRecord.from_runtime(
+        'https://example.com/article',
+        {
+            'context': 'Mock context for seed URL https://example.com/article. Similar results are generated from example.com.',
+            'results': [
+                {
+                    'title': 'Jane Doe',
+                    'url': 'https://example.com/profile',
+                    'text': 'Relevant background',
+                }
+            ],
+            'costDollars': {'search': 0.005, 'total': 0.005},
+        },
+        SimilarMeta(),
+    )
+
+    flat = record.to_flat_dict()
+    assert flat['source_url'] == 'https://example.com/article'
+    assert flat['request_id'] == 'similar-abc'
+    assert flat['result_count'] == 1
+    assert flat['context_preview'].startswith('Mock context for seed URL')
+    assert record.top_title == 'Jane Doe'
+    assert record.results[0].text == 'Relevant background'
 
 
 def test_structured_output_field_normalizes_leaf_values() -> None:

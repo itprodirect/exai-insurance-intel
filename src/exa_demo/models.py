@@ -318,6 +318,79 @@ class StructuredOutputRecord:
 
 
 @dataclass(frozen=True)
+class FindSimilarRecord:
+    source_url: str
+    cache_hit: bool
+    request_hash: Optional[str]
+    request_payload: Dict[str, Any]
+    request_id: Optional[str]
+    resolved_search_type: Optional[str]
+    created_at_utc: Optional[str]
+    estimated_cost_usd: float
+    actual_cost_usd: Optional[float]
+    top_title: Optional[str]
+    top_url: Optional[str]
+    result_count: int
+    context: Optional[str]
+    context_preview: str
+    results: List[ExaResult] = field(default_factory=list)
+    cost_breakdown: CostBreakdown = field(default_factory=CostBreakdown)
+
+    @classmethod
+    def from_runtime(
+        cls,
+        source_url: str,
+        response_json: Mapping[str, Any] | None,
+        meta: Any,
+    ) -> "FindSimilarRecord":
+        raw_results = []
+        if isinstance(response_json, Mapping):
+            results_value = response_json.get("results")
+            if isinstance(results_value, list):
+                raw_results = [item for item in results_value if isinstance(item, Mapping)]
+
+        context = _optional_str(response_json.get("context")) if isinstance(response_json, Mapping) else None
+        top_result = raw_results[0] if raw_results else None
+
+        return cls(
+            source_url=source_url,
+            cache_hit=bool(getattr(meta, "cache_hit", False)),
+            request_hash=_optional_str(getattr(meta, "request_hash", None)),
+            request_payload=_mapping_to_dict(getattr(meta, "request_payload", None)),
+            request_id=_optional_str(getattr(meta, "request_id", None)),
+            resolved_search_type=_optional_str(getattr(meta, "resolved_search_type", None)),
+            created_at_utc=_optional_str(getattr(meta, "created_at_utc", None)),
+            estimated_cost_usd=float(getattr(meta, "estimated_cost_usd", 0.0) or 0.0),
+            actual_cost_usd=_optional_float(getattr(meta, "actual_cost_usd", None)),
+            top_title=_optional_str(top_result.get("title")) if top_result else None,
+            top_url=_optional_str(top_result.get("url")) if top_result else None,
+            result_count=len(raw_results),
+            context=context,
+            context_preview=_preview_text(context),
+            results=[ExaResult.from_api_result(item) for item in raw_results],
+            cost_breakdown=CostBreakdown.from_response(response_json),
+        )
+
+    def to_flat_dict(self) -> Dict[str, Any]:
+        return {
+            "source_url": self.source_url,
+            "cache_hit": self.cache_hit,
+            "request_hash": self.request_hash,
+            "request_id": self.request_id,
+            "resolved_search_type": self.resolved_search_type,
+            "est_cost_usd": self.estimated_cost_usd,
+            "actual_cost_usd": self.actual_cost_usd,
+            "top_title": self.top_title,
+            "top_url": self.top_url,
+            "result_count": self.result_count,
+            "context_preview": self.context_preview,
+        }
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class QueryEvaluationRecord:
     query: str
     cache_hit: bool
@@ -544,4 +617,9 @@ def _preview_json(value: Any, *, max_chars: int = 220) -> str:
         text = json.dumps(value, ensure_ascii=False, sort_keys=True)
     except (TypeError, ValueError):
         text = str(value)
+    return text[:max_chars]
+
+
+def _preview_text(value: Any, *, max_chars: int = 220) -> str:
+    text = _optional_str(value) or ""
     return text[:max_chars]

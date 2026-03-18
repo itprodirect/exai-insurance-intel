@@ -3,10 +3,13 @@ from __future__ import annotations
 from exa_demo.client import (
     build_answer_payload,
     build_exa_payload,
+    build_find_similar_payload,
     build_structured_search_payload,
     exa_answer,
+    exa_find_similar,
     exa_structured_search,
     mock_exa_answer_response,
+    mock_exa_find_similar_response,
     mock_exa_response,
     mock_exa_structured_search_response,
 )
@@ -88,6 +91,65 @@ def test_mock_exa_response_preserves_search_result_shape_with_additive_controls(
     assert isinstance(response["results"], list)
     assert len(response["results"]) == payload["numResults"]
     assert response["results"][0]["title"].startswith("Mock Professional Result")
+
+
+def test_build_find_similar_payload_includes_similarity_controls() -> None:
+    config = default_config()
+    config.update(
+        {
+            "include_domains": ["example.com"],
+            "exclude_domains": ["badexample.com"],
+            "moderation": False,
+        }
+    )
+
+    payload = build_find_similar_payload(
+        "https://example.com/article",
+        config,
+        num_results=3,
+        start_crawl_date="2026-01-01",
+        end_crawl_date="2026-03-01",
+        start_published_date="2026-01-15",
+        end_published_date="2026-03-15",
+        exclude_source_domain=True,
+        text=True,
+        highlights={"highlightsPerUrl": 2, "numSentences": 1},
+        context=True,
+    )
+
+    assert payload["url"] == "https://example.com/article"
+    assert payload["numResults"] == 3
+    assert payload["includeDomains"] == ["example.com"]
+    assert payload["excludeDomains"] == ["badexample.com"]
+    assert payload["startCrawlDate"] == "2026-01-01"
+    assert payload["endCrawlDate"] == "2026-03-01"
+    assert payload["startPublishedDate"] == "2026-01-15"
+    assert payload["endPublishedDate"] == "2026-03-15"
+    assert payload["excludeSourceDomain"] is True
+    assert payload["moderation"] is False
+    assert payload["text"] is True
+    assert payload["highlights"] == {"highlightsPerUrl": 2, "numSentences": 1}
+    assert payload["context"] is True
+
+
+def test_mock_exa_find_similar_response_returns_context_and_text() -> None:
+    payload = build_find_similar_payload(
+        "https://example.com/article",
+        default_config(),
+        exclude_source_domain=True,
+        text=True,
+        highlights=True,
+        context=True,
+    )
+
+    response = mock_exa_find_similar_response(payload)
+
+    assert isinstance(response["results"], list)
+    assert len(response["results"]) == payload["numResults"]
+    assert response["context"].startswith("Mock context for seed URL https://example.com/article")
+    assert response["results"][0]["text"].startswith("Mock similar text for seed URL:")
+    assert response["results"][0]["highlights"][0].startswith("Mock highlight for seed URL:")
+    assert response["results"][0]["url"].split("/")[2].startswith("related-")
 
 
 def test_build_structured_search_payload_adds_output_schema() -> None:
@@ -238,3 +300,33 @@ def test_exa_structured_search_uses_smoke_structured_output_shape() -> None:
     assert meta.request_payload["outputSchema"] == output_schema
     assert meta.estimated_cost_usd == cache_store.calls[0]["estimated_cost"]
     assert cache_store.calls[0]["run_id"] == "structured-run"
+
+
+def test_exa_find_similar_uses_smoke_similar_shape() -> None:
+    cache_store = FakeCacheStore()
+    config = default_config()
+    pricing = default_pricing()
+
+    response_json, meta = exa_find_similar(
+        "https://example.com/article",
+        config=config,
+        pricing=pricing,
+        exa_api_key="",
+        smoke_no_network=True,
+        run_id="similar-run",
+        cache_store=cache_store,
+        exclude_source_domain=True,
+        text=True,
+        highlights=True,
+        context=True,
+        num_results=2,
+    )
+
+    assert response_json["context"].startswith("Mock context for seed URL https://example.com/article")
+    assert response_json["results"][0]["text"].startswith("Mock similar text for seed URL:")
+    assert meta.cache_hit is False
+    assert meta.request_payload["url"] == "https://example.com/article"
+    assert meta.request_payload["excludeSourceDomain"] is True
+    assert meta.request_payload["text"] is True
+    assert meta.estimated_cost_usd == cache_store.calls[0]["estimated_cost"]
+    assert cache_store.calls[0]["run_id"] == "similar-run"
