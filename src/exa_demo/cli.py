@@ -60,6 +60,33 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit summary JSON instead of a text summary.")
     eval_parser.set_defaults(handler=run_eval_command)
 
+    compare_parser = subparsers.add_parser(
+        "compare-search-types",
+        help="Run the same evaluation suite for two search types and emit a before/after comparison.",
+    )
+    _add_common_runtime_args(compare_parser)
+    _add_common_search_args(compare_parser, include_search_type=False)
+    compare_parser.add_argument(
+        "--suite",
+        default=LEGACY_DEFAULT_SUITE_ALIAS,
+        choices=_benchmark_suite_choices(),
+        help="Named benchmark suite to run for both search types.",
+    )
+    compare_parser.add_argument("--queries-file", help="Optional JSON file containing an array of query strings.")
+    compare_parser.add_argument("--limit", type=int, help="Optional cap on the number of benchmark queries to execute.")
+    compare_parser.add_argument(
+        "--baseline-type",
+        default="deep",
+        help="Baseline search type to execute first. Defaults to deep.",
+    )
+    compare_parser.add_argument(
+        "--candidate-type",
+        default="deep-reasoning",
+        help="Candidate search type to execute second. Defaults to deep-reasoning.",
+    )
+    compare_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit summary JSON instead of a text summary.")
+    compare_parser.set_defaults(handler=run_compare_search_types_command)
+
     budget_parser = subparsers.add_parser("budget", help="Inspect cached spend metrics.")
     budget_parser.add_argument("--run-id", help="Optional run id to scope the budget summary.")
     budget_parser.add_argument("--sqlite-path", default="exa_cache.sqlite", help="Path to the sqlite cache/ledger database.")
@@ -148,7 +175,84 @@ def run_search_command(args: argparse.Namespace) -> int:
 
 
 def run_eval_command(args: argparse.Namespace) -> int:
-    config, pricing, runtime = _prepare_runtime(args)
+    payload = _run_eval_workflow(args)
+    _emit_eval_payload(payload, as_json=bool(args.as_json))
+    return 0
+
+
+def run_compare_search_types_command(args: argparse.Namespace) -> int:
+    baseline_type = str(args.baseline_type or "").strip()
+    candidate_type = str(args.candidate_type or "").strip()
+    if not baseline_type or not candidate_type:
+        raise ValueError("Both --baseline-type and --candidate-type must be non-empty.")
+    if baseline_type == candidate_type:
+        raise ValueError("Baseline and candidate search types must differ.")
+
+    load_dotenv()
+    base_runtime = _resolve_runtime(args.mode, getattr(args, "run_id", None))
+    base_run_id = base_runtime.run_id
+    baseline_run_id = f"{base_run_id}-{_run_id_suffix_for_search_type(baseline_type)}"
+    candidate_run_id = f"{base_run_id}-{_run_id_suffix_for_search_type(candidate_type)}"
+
+    baseline_payload = _run_eval_workflow(
+        args,
+        run_id_override=baseline_run_id,
+        search_type_override=baseline_type,
+    )
+    candidate_payload = _run_eval_workflow(
+        args,
+        run_id_override=candidate_run_id,
+        search_type_override=candidate_type,
+        compare_to_run_id=baseline_run_id,
+        compare_base_dir=args.artifact_dir,
+    )
+
+    payload = {
+        "workflow": "compare-search-types",
+        "base_run_id": base_run_id,
+        "query_suite": _normalized_query_suite(getattr(args, "suite", None)),
+        "baseline_search_type": baseline_type,
+        "candidate_search_type": candidate_type,
+        "baseline_run": baseline_payload,
+        "candidate_run": candidate_payload,
+        "comparison": candidate_payload.get("comparison"),
+        "comparison_markdown_path": candidate_payload.get("comparison_markdown_path"),
+    }
+
+    if args.as_json:
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    comparison = payload.get("comparison") if isinstance(payload.get("comparison"), dict) else {}
+    deltas = comparison.get("deltas") if isinstance(comparison.get("deltas"), dict) else {}
+    print(f"workflow: compare-search-types")
+    print(f"query_suite: {payload['query_suite']}")
+    print(f"baseline_run_id: {baseline_run_id}")
+    print(f"candidate_run_id: {candidate_run_id}")
+    print(f"baseline_search_type: {baseline_type}")
+    print(f"candidate_search_type: {candidate_type}")
+    print(f"baseline_artifact_dir: {baseline_payload['artifact_dir']}")
+    print(f"candidate_artifact_dir: {candidate_payload['artifact_dir']}")
+    print(f"delta_observed_confidence_score: {float(deltas.get('observed_confidence_score') or 0.0):+.3f}")
+    print(f"delta_observed_failure_rate: {float(deltas.get('observed_failure_rate') or 0.0):+.3f}")
+    print(f"comparison_markdown: {payload.get('comparison_markdown_path')}")
+    return 0
+
+
+def _run_eval_workflow(
+    args: argparse.Namespace,
+    *,
+    run_id_override: str | None = None,
+    search_type_override: str | None = None,
+    compare_to_run_id: str | None = None,
+    compare_base_dir: str | None = None,
+) -> Dict[str, Any]:
+    workflow_args = _namespace_with_overrides(
+        args,
+        run_id=run_id_override if run_id_override is not None else getattr(args, "run_id", None),
+        search_type=search_type_override if search_type_override is not None else getattr(args, "search_type", default_config()["search_type"]),
+    )
+    config, pricing, runtime = _prepare_runtime(workflow_args)
     cache_store = _cache_store(config)
     writer = ExperimentArtifactWriter(
         run_id=runtime.run_id,
@@ -186,9 +290,11 @@ def run_eval_command(args: argparse.Namespace) -> int:
 
     comparison_report: Dict[str, Any] | None = None
     comparison_markdown_path: Path | None = None
-    if args.compare_to_run_id:
-        compare_base_dir = Path(args.compare_base_dir) if args.compare_base_dir else Path(args.artifact_dir)
-        compare_run_dir = compare_base_dir / str(args.compare_to_run_id)
+    resolved_compare_to_run_id = compare_to_run_id if compare_to_run_id is not None else getattr(args, "compare_to_run_id", None)
+    resolved_compare_base_dir = compare_base_dir if compare_base_dir is not None else getattr(args, "compare_base_dir", None)
+    if resolved_compare_to_run_id:
+        compare_base_dir_path = Path(resolved_compare_base_dir) if resolved_compare_base_dir else Path(args.artifact_dir)
+        compare_run_dir = compare_base_dir_path / str(resolved_compare_to_run_id)
         comparison_report = build_before_after_report(
             compare_run_dir,
             after_run_id=runtime.run_id,
@@ -214,6 +320,7 @@ def run_eval_command(args: argparse.Namespace) -> int:
 
     payload = {
         "run_id": runtime.run_id,
+        "queries_executed": int(len(batch_df.index)),
         "artifact_dir": str(writer.artifact_dir),
         "summary_path": str(summary_path),
         "summary": summary,
@@ -225,28 +332,7 @@ def run_eval_command(args: argparse.Namespace) -> int:
         payload["comparison"] = comparison_report
         payload["comparison_markdown_path"] = str(comparison_markdown_path)
 
-    if args.as_json:
-        print(json.dumps(payload, indent=2))
-        return 0
-
-    print(f"run_id: {runtime.run_id}")
-    print(f"queries_executed: {len(batch_df)}")
-    print(f"artifact_dir: {writer.artifact_dir}")
-    print(f"spent_usd: {summary['spent_usd']:.4f}")
-    print(f"avg_cost_per_uncached_query: {summary['avg_cost_per_uncached_query']:.4f}")
-    print(f"headline_recommendation: {rec['headline_recommendation']}")
-    print(f"failure_rate: {taxonomy['failure_rate']:.0%}")
-
-    if comparison_report is not None:
-        print(f"baseline_run_id: {comparison_report['baseline_run_id']}")
-        print(f"shared_query_count: {comparison_report['shared_query_count']}")
-        print(f"delta_observed_confidence_score: {comparison_report['deltas']['observed_confidence_score']:+.3f}")
-        print(f"delta_observed_failure_rate: {comparison_report['deltas']['observed_failure_rate']:+.3f}")
-        print(f"comparison_markdown: {comparison_markdown_path}")
-
-    if not batch_df.empty:
-        print(batch_df[["query", "result_count", "cache_hit", "actual_cost_usd", "primary_failure_reason"]].to_markdown(index=False))
-    return 0
+    return payload
 
 
 def run_budget_command(args: argparse.Namespace) -> int:
@@ -391,9 +477,10 @@ def _add_common_runtime_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--budget-cap-usd", type=float, help="Optional override for the run budget cap.")
 
 
-def _add_common_search_args(parser: argparse.ArgumentParser) -> None:
+def _add_common_search_args(parser: argparse.ArgumentParser, *, include_search_type: bool = True) -> None:
     parser.add_argument("--num-results", type=int, default=int(default_config()["num_results"]), help="Number of results to request.")
-    parser.add_argument("--type", dest="search_type", default=default_config()["search_type"], help="Exa search type to request.")
+    if include_search_type:
+        parser.add_argument("--type", dest="search_type", default=default_config()["search_type"], help="Exa search type to request.")
     parser.add_argument("--category", default=default_config()["category"], help="Exa category to request.")
     parser.add_argument("--use-text", action="store_true", help="Include full text in contents.")
     parser.add_argument("--use-summary", action="store_true", help="Include summary in contents.")
@@ -447,3 +534,39 @@ def _normalized_query_suite(value: str | None) -> str:
     if not text or text == LEGACY_DEFAULT_SUITE_ALIAS:
         return DEFAULT_BENCHMARK_SUITE
     return text
+
+
+def _emit_eval_payload(payload: Mapping[str, Any], *, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(payload, indent=2))
+        return
+
+    print(f"run_id: {payload['run_id']}")
+    print(f"queries_executed: {int(payload.get('queries_executed') or 0)}")
+    print(f"artifact_dir: {payload['artifact_dir']}")
+    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    recommendation_payload = payload.get("recommendation") if isinstance(payload.get("recommendation"), Mapping) else {}
+    taxonomy = payload.get("taxonomy") if isinstance(payload.get("taxonomy"), Mapping) else {}
+    print(f"spent_usd: {float(summary.get('spent_usd') or 0.0):.4f}")
+    print(f"avg_cost_per_uncached_query: {float(summary.get('avg_cost_per_uncached_query') or 0.0):.4f}")
+    print(f"headline_recommendation: {recommendation_payload.get('headline_recommendation')}")
+    print(f"failure_rate: {float(taxonomy.get('failure_rate') or 0.0):.0%}")
+
+    comparison_report = payload.get("comparison") if isinstance(payload.get("comparison"), Mapping) else None
+    if comparison_report is not None:
+        print(f"baseline_run_id: {comparison_report['baseline_run_id']}")
+        print(f"shared_query_count: {comparison_report['shared_query_count']}")
+        print(f"delta_observed_confidence_score: {comparison_report['deltas']['observed_confidence_score']:+.3f}")
+        print(f"delta_observed_failure_rate: {comparison_report['deltas']['observed_failure_rate']:+.3f}")
+        print(f"comparison_markdown: {payload.get('comparison_markdown_path')}")
+
+
+def _namespace_with_overrides(args: argparse.Namespace, **overrides: Any) -> argparse.Namespace:
+    payload = vars(args).copy()
+    payload.update(overrides)
+    return argparse.Namespace(**payload)
+
+
+def _run_id_suffix_for_search_type(search_type: str) -> str:
+    text = str(search_type or "").strip().lower()
+    return text.replace("_", "-")

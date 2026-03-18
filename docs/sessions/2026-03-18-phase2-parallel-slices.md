@@ -25,12 +25,13 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
 ## Issues Opened or Updated
 
 - `#16 Extend CI/security hardening and document integration follow-ons`: moved to `In progress` for pytest-in-CI and script/negative-path coverage work.
-- `#8 Add deep vs deep-reasoning comparison workflow`: moved to `In progress` after landing additive deep-search request shaping and type-aware cost controls.
+- `#8 Add deep vs deep-reasoning comparison workflow`: moved from `In progress` to `Implemented and pushed` after landing the end-to-end compare command on top of grouped reporting.
 - `#13 Expand domain query suites for PA, CAT law, appraisers, IA, and adjacent industries`: moved to `In progress` after landing named benchmark suites and suite-aware reporting context.
 
 ## Docs Touched
 
 - `docs/issue-tracker.md`
+- `docs/roadmap.md`
 - `docs/sessions/2026-03-18-phase2-parallel-slices.md`
 - `README.md`
 
@@ -45,6 +46,8 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
 - `pytest -q` -> passed after slice-2 integration with `33 passed`.
 - `pytest -q tests\test_evaluation.py` -> passed for named benchmark suites and legacy fixture compatibility.
 - `pytest -q` -> passed after grouped reporting plus suite-selection integration with `37 passed`.
+- `pytest -q tests\test_cli.py` -> passed for the end-to-end `compare-search-types` workflow.
+- `pytest -q` -> passed after the workflow slice with `39 passed`.
 
 ## Outcome
 
@@ -60,8 +63,11 @@ Kick off a slice-based implementation session that keeps code, tests, docs, comm
   - `b592dfe` added suite-aware grouped comparison reporting and threaded run context through artifacts.
   - A follow-up local commit from this session lands named benchmark suite loading and CLI suite selection integration.
 - The repo can now compare runs by query suite while preserving the original flat before/after report.
+- Completed the next product slice for `#8`:
+  - A follow-up local commit from this session lands `compare-search-types`, which executes deep-vs-deep-reasoning evaluations end to end and emits the grouped comparison bundle in one command.
+- The repo now has a real workflow command for search-type experiments rather than only low-level controls.
 
 ## Next-Session Handoff
 
-- Add a true deep-vs-deep-reasoning execution workflow that exercises the new grouped comparison layer end to end.
 - Decide whether to add category/date-filter guardrails for unsupported `people`/`company` combinations before expanding into `/answer` or structured-output work.
+- Choose between `/answer` endpoint coverage and structured-output deep search as the next product-facing slice.

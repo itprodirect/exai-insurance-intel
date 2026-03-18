@@ -105,6 +105,7 @@ Notebook flow is intentionally fixed to 9 cells:
 python -m exa_demo search "forensic engineer insurance expert witness" --mode smoke --json
 python -m exa_demo search "Florida property insurance appraisal clause" --type deep --additional-query "Florida appraisal dispute statute" --start-published-date 2025-01-01 --livecrawl --json
 python -m exa_demo eval --mode smoke --suite forensic_and_damage_engineering --limit 5 --json
+python -m exa_demo compare-search-types --mode smoke --suite forensic_and_damage_engineering --baseline-type deep --candidate-type deep-reasoning --limit 5 --json
 python -m exa_demo eval --mode smoke --limit 5 --compare-to-run-id 20260310T033256Z --json
 python -m exa_demo budget --run-id demo-2026-03 --json
 ```
@@ -116,6 +117,7 @@ Search cost estimation can also be overridden from the CLI for search-type exper
 Eval output now includes a taxonomy scorecard (relevance, credibility, actionability, confidence) and per-query failure reasons (`no_results`, `off_domain`, `low_confidence`).
 Use `--compare-to-run-id` for before/after deltas across quality and failure rates when both runs share query text.
 When comparison is enabled, the run also writes a human-readable `experiments/<RUN_ID>/comparison.md` report with grouped query outcomes when suite context is available.
+`compare-search-types` is the end-to-end workflow for running the same suite against two search types and emitting the grouped comparison bundle in one command.
 
 ## Benchmark Fixture
 

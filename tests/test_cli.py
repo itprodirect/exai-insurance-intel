@@ -311,3 +311,68 @@ def test_eval_parser_accepts_named_benchmark_suite() -> None:
     args = parser.parse_args(['eval', '--suite', 'forensic_and_damage_engineering'])
 
     assert args.suite == 'forensic_and_damage_engineering'
+
+
+def test_compare_search_types_command_smoke_emits_comparison_bundle(tmp_path, capsys) -> None:
+    sqlite_path = tmp_path / 'cache.sqlite'
+    artifact_dir = tmp_path / 'artifacts'
+
+    exit_code = main(
+        [
+            'compare-search-types',
+            '--mode',
+            'smoke',
+            '--run-id',
+            'compare-types',
+            '--sqlite-path',
+            str(sqlite_path),
+            '--artifact-dir',
+            str(artifact_dir),
+            '--suite',
+            'forensic_and_damage_engineering',
+            '--limit',
+            '2',
+            '--baseline-type',
+            'deep',
+            '--candidate-type',
+            'deep-reasoning',
+            '--json',
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output['workflow'] == 'compare-search-types'
+    assert output['baseline_search_type'] == 'deep'
+    assert output['candidate_search_type'] == 'deep-reasoning'
+    assert output['query_suite'] == 'forensic_and_damage_engineering'
+    assert output['baseline_run']['run_id'] == 'compare-types-deep'
+    assert output['candidate_run']['run_id'] == 'compare-types-deep-reasoning'
+    assert output['comparison']['comparison_context']['baseline']['query_suite'] == 'forensic_and_damage_engineering'
+    assert output['comparison']['comparison_context']['candidate']['query_suite'] == 'forensic_and_damage_engineering'
+    assert output['comparison']['comparison_context']['baseline_resolved_search_type'] == 'deep'
+    assert output['comparison']['comparison_context']['candidate_resolved_search_type'] == 'deep-reasoning'
+    assert (artifact_dir / 'compare-types-deep' / 'summary.json').exists()
+    assert (artifact_dir / 'compare-types-deep-reasoning' / 'comparison.md').exists()
+
+
+def test_compare_search_types_command_rejects_duplicate_types(tmp_path) -> None:
+    with pytest.raises(ValueError, match='must differ'):
+        main(
+            [
+                'compare-search-types',
+                '--mode',
+                'smoke',
+                '--run-id',
+                'compare-types',
+                '--sqlite-path',
+                str(tmp_path / 'cache.sqlite'),
+                '--artifact-dir',
+                str(tmp_path / 'artifacts'),
+                '--baseline-type',
+                'deep',
+                '--candidate-type',
+                'deep',
+            ]
+        )
