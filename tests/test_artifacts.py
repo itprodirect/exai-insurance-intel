@@ -104,3 +104,29 @@ def test_experiment_artifact_writer_writes_json_artifact(tmp_path) -> None:
     assert path.name == 'answer.json'
     assert payload['query'] == 'What is the Florida appraisal clause dispute process?'
     assert payload['citations'][0]['title'] == 'Florida appraisal clause overview'
+
+
+def test_experiment_artifact_writer_writes_structured_output_artifact(tmp_path) -> None:
+    writer = ExperimentArtifactWriter(
+        run_id='structured-run',
+        config={'mode': 'smoke'},
+        pricing={'search_1_25': 0.005},
+        run_context={'workflow': 'structured-search'},
+        base_dir=tmp_path,
+    )
+
+    path = writer.write_json_artifact(
+        'structured_output.json',
+        {
+            'query': 'independent adjuster florida catastrophe claims',
+            'structured_output': {
+                'schema_title': 'Structured Professionals',
+                'field_names': ['name', 'role'],
+            },
+        },
+    )
+
+    payload = json.loads(path.read_text(encoding='utf-8'))
+    assert path.name == 'structured_output.json'
+    assert payload['query'] == 'independent adjuster florida catastrophe claims'
+    assert payload['structured_output']['schema_title'] == 'Structured Professionals'

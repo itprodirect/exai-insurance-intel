@@ -259,6 +259,22 @@ def test_search_parser_accepts_additive_deep_controls() -> None:
     assert args.deep_reasoning_search_cost_1_25 == 0.015
 
 
+def test_structured_search_parser_accepts_schema_file() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            'structured-search',
+            'independent adjuster florida catastrophe claims',
+            '--schema-file',
+            'schema.json',
+        ]
+    )
+
+    assert args.command == 'structured-search'
+    assert args.schema_file == 'schema.json'
+    assert args.search_type == 'deep'
+
+
 def test_apply_search_overrides_maps_additive_controls_and_pricing() -> None:
     from exa_demo.config import default_config, default_pricing
 
@@ -410,3 +426,82 @@ def test_answer_command_smoke_emits_json_and_artifact(tmp_path, capsys) -> None:
     answer_payload = json.loads((artifact_dir / 'answer-run' / 'answer.json').read_text(encoding='utf-8'))
     assert answer_payload['citation_count'] == 2
     assert answer_payload['citations'][0]['title'] == 'Florida appraisal clause overview'
+
+
+def test_structured_search_command_smoke_emits_json_and_artifact(tmp_path, capsys) -> None:
+    sqlite_path = tmp_path / 'cache.sqlite'
+    artifact_dir = tmp_path / 'artifacts'
+    schema_file = tmp_path / 'structured-schema.json'
+    schema_file.write_text(
+        json.dumps(
+            {
+                'title': 'Structured Professionals',
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string'},
+                    'role': {'type': 'string'},
+                },
+            }
+        ),
+        encoding='utf-8',
+    )
+
+    exit_code = main(
+        [
+            'structured-search',
+            'independent adjuster florida catastrophe claims',
+            '--schema-file',
+            str(schema_file),
+            '--mode',
+            'smoke',
+            '--run-id',
+            'structured-run',
+            '--sqlite-path',
+            str(sqlite_path),
+            '--artifact-dir',
+            str(artifact_dir),
+            '--json',
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output['workflow'] == 'structured-search'
+    assert output['run_id'] == 'structured-run'
+    assert output['schema_file'] == str(schema_file)
+    assert output['structured_output']['schema_title'] == 'Structured Professionals'
+    assert output['structured_output']['field_names'] == ['name', 'role']
+    assert (artifact_dir / 'structured-run' / 'structured_output.json').exists()
+    assert (artifact_dir / 'structured-run' / 'summary.json').exists()
+    structured_payload = json.loads((artifact_dir / 'structured-run' / 'structured_output.json').read_text(encoding='utf-8'))
+    assert structured_payload['structured_output']['record_count'] == 1
+    assert structured_payload['structured_output_keys'] == ['field_names', 'query', 'record_count', 'records', 'schema_title']
+
+
+def test_structured_search_command_live_requires_api_key(tmp_path, monkeypatch) -> None:
+    sqlite_path = tmp_path / 'cache.sqlite'
+    artifact_dir = tmp_path / 'artifacts'
+    schema_file = tmp_path / 'structured-schema.json'
+    schema_file.write_text(json.dumps({'type': 'object', 'properties': {'name': {'type': 'string'}}}), encoding='utf-8')
+
+    from exa_demo import cli as cli_module
+
+    monkeypatch.setattr(cli_module, 'load_dotenv', lambda: None)
+    monkeypatch.delenv('EXA_API_KEY', raising=False)
+
+    with pytest.raises(RuntimeError, match='Missing EXA_API_KEY'):
+        main(
+            [
+                'structured-search',
+                'independent adjuster florida catastrophe claims',
+                '--schema-file',
+                str(schema_file),
+                '--mode',
+                'live',
+                '--sqlite-path',
+                str(sqlite_path),
+                '--artifact-dir',
+                str(artifact_dir),
+            ]
+        )

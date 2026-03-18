@@ -12,7 +12,7 @@ import requests
 
 from .artifacts import ExperimentArtifactWriter
 from .cache import SqliteCacheStore
-from .client import exa_search_people
+from .client import build_exa_payload, exa_search_people
 from .config import RuntimeState, default_config, default_pricing, load_runtime_state
 from .cost_model import estimate_cost_from_pricing
 from .evaluation import DEFAULT_RELEVANCE_KEYWORDS, evaluate_batch_queries, evaluate_result_set, load_benchmark_queries, load_benchmark_suites
@@ -68,6 +68,18 @@ def build_parser() -> argparse.ArgumentParser:
     answer_parser.add_argument("query", help="Question to send to Exa.")
     answer_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit structured JSON instead of a text summary.")
     answer_parser.set_defaults(handler=run_answer_command)
+
+    structured_parser = subparsers.add_parser(
+        "structured-search",
+        help="Run a structured-output search query against a JSON schema.",
+    )
+    _add_common_runtime_args(structured_parser)
+    _add_common_search_args(structured_parser)
+    structured_parser.set_defaults(search_type="deep")
+    structured_parser.add_argument("query", help="Query string to send to Exa.")
+    structured_parser.add_argument("--schema-file", required=True, help="Path to a JSON schema file.")
+    structured_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit structured JSON instead of a text summary.")
+    structured_parser.set_defaults(handler=run_structured_search_command)
 
     compare_parser = subparsers.add_parser(
         "compare-search-types",
@@ -280,6 +292,101 @@ def run_answer_command(args: argparse.Namespace) -> int:
     if answer_payload["citations"]:
         print("")
         print(pd.DataFrame(answer_payload["citations"]).to_markdown(index=False))
+    return 0
+
+
+def run_structured_search_command(args: argparse.Namespace) -> int:
+    config, pricing, runtime = _prepare_runtime(args)
+    cache_store = _cache_store(config)
+    schema_path = Path(args.schema_file)
+    output_schema = _load_json_schema(schema_path)
+    request_payload = _build_structured_search_request_payload(args.query, config, output_schema)
+    estimated_cost = estimate_cost_from_pricing(
+        request_payload,
+        int(request_payload.get("numResults") or config["num_results"]),
+        pricing,
+        int(config["max_supported_results_for_estimate"]),
+    )
+
+    response_json, cache_hit = cache_store.get_or_set(
+        request_payload,
+        estimated_cost,
+        run_id=runtime.run_id,
+        budget_cap_usd=float(config["budget_cap_usd"]),
+        fetcher=lambda payload: _structured_search_http_call(
+            payload,
+            exa_api_key=runtime.exa_api_key,
+            smoke_no_network=runtime.smoke_no_network,
+            config=config,
+        ),
+    )
+
+    structured_payload = _build_structured_search_artifact(
+        args.query,
+        schema_path=schema_path,
+        request_payload=request_payload,
+        response_json=response_json,
+        cache_hit=cache_hit,
+        estimated_cost_usd=estimated_cost,
+    )
+
+    summary = cache_store.spend_so_far(run_id=runtime.run_id)
+    writer = ExperimentArtifactWriter(
+        run_id=runtime.run_id,
+        config=config,
+        pricing=pricing,
+        run_context={"workflow": "structured-search"},
+        base_dir=args.artifact_dir,
+    )
+    writer.write_json_artifact("structured_output.json", structured_payload)
+    writer.write_summary(
+        summary,
+        projections={
+            "projection_basis": "observed_avg_uncached",
+            "unit_cost_usd": float(summary.get("avg_cost_per_uncached_query", 0.0) or 0.0),
+            "projected_100_queries_usd": float(summary.get("avg_cost_per_uncached_query", 0.0) or 0.0) * 100,
+            "projected_1000_queries_usd": float(summary.get("avg_cost_per_uncached_query", 0.0) or 0.0) * 1000,
+            "projected_10000_queries_usd": float(summary.get("avg_cost_per_uncached_query", 0.0) or 0.0) * 10000,
+        },
+        recommendation_data={"headline_recommendation": "Use for schema-driven extraction workflows"},
+        qualitative_notes=[
+            "Structured output active: the response payload is stored in structured_output.json.",
+            "Smoke mode active: structured output is mocked and costs are zero.",
+        ] if runtime.smoke_no_network else [
+            "Structured output active: the response payload is stored in structured_output.json.",
+        ],
+        extra={
+            "workflow": "structured-search",
+            "structured_search": {
+                "query": args.query,
+                "schema_file": str(schema_path),
+                "cache_hit": cache_hit,
+                "structured_keys": structured_payload["structured_output_keys"],
+            },
+        },
+    )
+
+    payload = {
+        "workflow": "structured-search",
+        "run_id": runtime.run_id,
+        "artifact_dir": str(writer.artifact_dir),
+        "schema_file": str(schema_path),
+        "cache_hit": cache_hit,
+        "request_id": structured_payload.get("request_id"),
+        "structured_output": structured_payload.get("structured_output"),
+        "summary": summary,
+    }
+    if args.as_json:
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    print(f"run_id: {runtime.run_id}")
+    print(f"artifact_dir: {writer.artifact_dir}")
+    print(f"schema_file: {schema_path}")
+    print(f"cache_hit: {cache_hit}")
+    print(f"request_id: {structured_payload.get('request_id')}")
+    print("structured_output:")
+    print(json.dumps(structured_payload.get("structured_output"), indent=2, sort_keys=True))
     return 0
 
 
@@ -681,6 +788,16 @@ def _build_answer_request_payload(query: str) -> Dict[str, Any]:
     }
 
 
+def _build_structured_search_request_payload(
+    query: str,
+    config: Mapping[str, Any],
+    output_schema: Mapping[str, Any],
+) -> Dict[str, Any]:
+    payload = build_exa_payload(query, config, num_results=int(config["num_results"]))
+    payload["outputSchema"] = json.loads(json.dumps(dict(output_schema), ensure_ascii=False, default=str))
+    return payload
+
+
 def _answer_http_call(
     payload: Dict[str, Any],
     *,
@@ -697,6 +814,31 @@ def _answer_http_call(
     headers = {"x-api-key": exa_api_key, "Content-Type": "application/json"}
     response = requests.post(
         EXA_ANSWER_ENDPOINT,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def _structured_search_http_call(
+    payload: Dict[str, Any],
+    *,
+    exa_api_key: str,
+    smoke_no_network: bool,
+    config: Mapping[str, Any],
+    timeout: int = 60,
+) -> Dict[str, Any]:
+    if smoke_no_network:
+        return _mock_structured_search_response(payload)
+
+    if not exa_api_key:
+        raise RuntimeError("Missing EXA_API_KEY for live Exa structured-search request.")
+
+    headers = {"x-api-key": exa_api_key, "Content-Type": "application/json"}
+    response = requests.post(
+        _resolve_exa_endpoint(str(config["exa_endpoint"]), endpoint_name="search"),
         headers=headers,
         json=payload,
         timeout=timeout,
@@ -731,6 +873,38 @@ def _mock_answer_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _mock_structured_search_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    query = str(payload.get("query") or "")
+    schema = payload.get("outputSchema") if isinstance(payload.get("outputSchema"), Mapping) else {}
+    slug = query[:24].strip().lower().replace(" ", "-") or "structured-search"
+    properties = schema.get("properties") if isinstance(schema.get("properties"), Mapping) else {}
+    property_names = sorted(str(key) for key in properties.keys())
+    structured_output = {
+        "query": query,
+        "schema_title": str(schema.get("title") or "structured-output"),
+        "field_names": property_names,
+        "record_count": 1,
+        "records": [
+            {
+                "name": "Mock Structured Record",
+                "role": "Insurance expert witness",
+                "firm": "Mock Advisory Group",
+                "state_licenses": ["FL"],
+                "specializations": ["catastrophe claims", "appraisal"],
+                "notable_cases_or_experience": "Mock structured output for smoke testing.",
+            }
+        ],
+    }
+    return {
+        "requestId": f"smoke-{slug}",
+        "resolvedSearchType": str(payload.get("type") or "deep"),
+        "structuredData": structured_output,
+        "results": [],
+        "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
+        "_smokeMode": True,
+    }
+
+
 def _build_answer_artifact(
     query: str,
     *,
@@ -752,6 +926,30 @@ def _build_answer_artifact(
         "answer_text": answer_text,
         "citation_count": len(citations),
         "citations": citations,
+    }
+
+
+def _build_structured_search_artifact(
+    query: str,
+    *,
+    schema_path: Path,
+    request_payload: Mapping[str, Any],
+    response_json: Mapping[str, Any],
+    cache_hit: bool,
+    estimated_cost_usd: float,
+) -> Dict[str, Any]:
+    structured_output = _extract_structured_output(response_json)
+    return {
+        "query": query,
+        "schema_file": str(schema_path),
+        "request_payload": json.loads(json.dumps(dict(request_payload), ensure_ascii=False, default=str)),
+        "response": json.loads(json.dumps(dict(response_json), ensure_ascii=False, default=str)),
+        "request_id": response_json.get("requestId") if isinstance(response_json, Mapping) else None,
+        "cache_hit": cache_hit,
+        "estimated_cost_usd": float(estimated_cost_usd),
+        "actual_cost_usd": _structured_search_actual_cost(response_json),
+        "structured_output": structured_output,
+        "structured_output_keys": sorted(structured_output.keys()) if isinstance(structured_output, Mapping) else [],
     }
 
 
@@ -782,3 +980,43 @@ def _answer_actual_cost(response_json: Mapping[str, Any]) -> float:
         except (TypeError, ValueError):
             return 0.0
     return 0.0
+
+
+def _structured_search_actual_cost(response_json: Mapping[str, Any]) -> float:
+    return _answer_actual_cost(response_json)
+
+
+def _extract_structured_output(response_json: Mapping[str, Any]) -> Any:
+    if not isinstance(response_json, Mapping):
+        return None
+
+    for key in ("structuredData", "structuredOutput", "output", "data"):
+        value = response_json.get(key)
+        if value is not None:
+            return value
+
+    results = response_json.get("results")
+    if isinstance(results, list):
+        for item in results:
+            if not isinstance(item, Mapping):
+                continue
+            for key in ("structuredData", "structuredOutput", "output", "data"):
+                value = item.get(key)
+                if value is not None:
+                    return value
+    return None
+
+
+def _load_json_schema(schema_path: Path) -> Dict[str, Any]:
+    schema_text = schema_path.read_text(encoding="utf-8")
+    schema = json.loads(schema_text)
+    if not isinstance(schema, Mapping):
+        raise ValueError(f"Schema file must contain a JSON object: {schema_path}")
+    return dict(schema)
+
+
+def _resolve_exa_endpoint(base_url: str, *, endpoint_name: str = "search") -> str:
+    trimmed = base_url.rstrip("/")
+    if trimmed.endswith("/search"):
+        return trimmed[: -len("/search")] + f"/{endpoint_name}"
+    return f"{trimmed}/{endpoint_name}"
