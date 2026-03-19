@@ -15,6 +15,7 @@ This repo is intentionally in **minimal mode**:
 - [Windows 11 setup](#windows-11-setup-python-310)
 - [CLI commands](#cli-commands)
 - [Experiment artifacts](#experiment-artifacts)
+- [Demo gallery](#demo-gallery)
 - [Roadmap and delivery history](#roadmap-and-delivery-history)
 - [Guardrails](#guardrails)
 
@@ -214,6 +215,19 @@ Workflow-specific commands may also add:
 - `structured_output.json`
 
 Smoke-mode runs keep the same artifact shape, but with mocked results and zero spend.
+
+## Demo Gallery
+
+Use [docs/demo-gallery.md](docs/demo-gallery.md) as the top-level walkthrough for the shipped workflows:
+
+- `search` for ranked discovery and evaluation
+- `answer` for cited lookup questions
+- `research` for report-style market or regulatory summaries
+- `structured-search` for schema-driven extraction
+- `find-similar` for seed-URL expansion
+- `compare-search-types` for quality/cost tradeoff analysis
+
+The gallery is deliberately command-first. It points at the exact entrypoint and artifact for each workflow without changing the project core.
 
 ## Cache + Budget Behavior
 
