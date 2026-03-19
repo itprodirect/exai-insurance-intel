@@ -56,7 +56,7 @@ These items extend the technical baseline into a more useful vertical demo for i
 | --- | --- | --- | --- | --- | --- | --- |
 | Insurance/CAT query suites | Expand benchmark and demo suites for public adjusters, CAT law, appraisers, independent adjusters, and adjacent industries | Demonstrates domain depth instead of a narrow people-search slice | `Done` | Experiment artifacts, evaluation taxonomy | Query suites are versioned, documented, and runnable through the shared harness | [#13](https://github.com/itprodirect/exai-search-demo/issues/13) |
 | Export/report outputs + demo gallery | Add CSV/JSON/report exports and a focused demo-gallery structure | Improves stakeholder review and repeatable presentation | `Done` | Experiment artifacts, API coverage demos | Repo can emit reusable outputs and has documented demo entrypoints by use case | [#14](https://github.com/itprodirect/exai-search-demo/issues/14) |
-| CI/security/integration follow-ons | Extend CI coverage, pre-commit/security checks, and document concrete integration boundaries | Keeps future expansion disciplined and safer to operate | `Next` | Foundation and reporting work | CI/test/security posture expands without weakening the current safe-default workflow | [#16](https://github.com/itprodirect/exai-search-demo/issues/16) |
+| CI/security/integration follow-ons | Extend CI coverage, pre-commit/security checks, and document concrete integration boundaries | Keeps future expansion disciplined and safer to operate | `In progress` | Foundation and reporting work | CI/test/security posture expands without weakening the current safe-default workflow | [#16](https://github.com/itprodirect/exai-search-demo/issues/16) |
 
 ## Phase 4 - Documentation, Governance, and Repo Operations
 
@@ -64,7 +64,7 @@ This phase governs how roadmap work is tracked and how delivery history is prese
 
 | Roadmap item | Goal | Why it matters | Current status | Dependencies | Success criteria | GitHub issue |
 | --- | --- | --- | --- | --- | --- | --- |
-| Governance and delivery tracking | Maintain roadmap, issue tracker, ADRs, and session notes as durable project history | Preserves why decisions were made and what changed each session | `Next` | None | Docs and GitHub stay in sync for roadmap items and active work | [#17](https://github.com/itprodirect/exai-search-demo/issues/17) |
+| Governance and delivery tracking | Maintain roadmap, issue tracker, ADRs, and session notes as durable project history | Preserves why decisions were made and what changed each session | `In progress` | None | Docs and GitHub stay in sync for roadmap items and active work | [#17](https://github.com/itprodirect/exai-search-demo/issues/17) |
 | README alignment and top-level navigation | Keep the README synchronized with the actual repo baseline, roadmap, and governance docs | Makes the repo entry point accurate for future sessions and contributors | `Done` | Governance conventions | README links, feature framing, and architecture context stay aligned with the roadmap | [#18](https://github.com/itprodirect/exai-search-demo/issues/18) |
 
 ## Planned Interfaces and Contracts
@@ -112,8 +112,13 @@ experiments/<run-id>/results.jsonl
 experiments/<run-id>/summary.json
 experiments/<run-id>/answer.json
 experiments/<run-id>/research.json
+experiments/<run-id>/research.md
 experiments/<run-id>/find_similar.json
 experiments/<run-id>/structured_output.json
+experiments/<run-id>/results.csv
+experiments/<run-id>/comparison.json
+experiments/<run-id>/grouped_query_outcomes.csv
+experiments/<run-id>/manifest.json
 ```
 
 ## Hold / Explore

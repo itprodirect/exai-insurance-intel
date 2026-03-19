@@ -348,7 +348,7 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - GitHub issue tracker mapping: [docs/issue-tracker.md](docs/issue-tracker.md)
 - ADR index: [docs/adr/README.md](docs/adr/README.md)
 - Session note template: [docs/sessions/README.md](docs/sessions/README.md)
-- Latest implementation session: [docs/sessions/2026-03-19-phase3-manual-live-validation.md](docs/sessions/2026-03-19-phase3-manual-live-validation.md)
+- Latest implementation session: [docs/sessions/2026-03-19-phase3-closeout-audit.md](docs/sessions/2026-03-19-phase3-closeout-audit.md)
 
 ## Guardrails
 
