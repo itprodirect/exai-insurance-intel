@@ -60,6 +60,7 @@ def test_run_search_workflow_smoke_writes_ranked_artifacts(tmp_path) -> None:
     assert summary_payload['query_records_written'] == 1
     assert summary_payload['extra']['runtime']['execution_mode'] == 'smoke'
     assert summary_payload['extra']['taxonomy']['failure_rate'] == 0.0
+    assert summary_payload['qualitative_notes'][-1] == 'Smoke mode active: results are mocked and costs are zero.'
 
 
 def test_run_eval_workflow_direct_compare_writes_comparison_bundle(tmp_path) -> None:
@@ -139,6 +140,7 @@ def test_run_eval_workflow_direct_compare_writes_comparison_bundle(tmp_path) -> 
     assert (artifact_dir / 'workflow-eval' / 'grouped_query_outcomes.csv').exists()
     assert summary_payload['extra']['run_context']['query_suite'] == 'all'
     assert summary_payload['extra']['comparison']['baseline_run_id'] == 'baseline-run'
+    assert summary_payload['qualitative_notes'][-1] == 'Smoke mode active: results are mocked and costs are zero.'
 
 
 def test_run_answer_workflow_smoke_writes_summary_context(tmp_path) -> None:

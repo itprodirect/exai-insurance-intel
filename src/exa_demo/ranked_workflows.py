@@ -77,62 +77,42 @@ def run_search_workflow(
     search_people = _make_search_people(config, pricing, runtime, cache_store)
     response_json, meta = search_people(query, num_results=int(config["num_results"]))
     results = response_json.get("results", []) if isinstance(response_json, dict) else []
+    evaluation_options = _evaluation_options(config)
     evaluated = evaluate_result_set(
         results,
-        num_results=int(config["num_results"]),
-        relevance_keywords=list(DEFAULT_RELEVANCE_KEYWORDS),
-        redact_text=lambda value: redact_text(
-            value,
-            enabled=bool(config.get("redact_emails_phones", True)),
-        ),
-        extract_preview=lambda row, max_chars: extract_preview(
-            row,
-            max_chars=max_chars,
-            redact_enabled=bool(config.get("redact_emails_phones", True)),
-        ),
+        **evaluation_options,
     )
     record = QueryEvaluationRecord.from_runtime(query, response_json, meta, evaluated)
     batch_df = pd.DataFrame([record.to_flat_dict()])
-    taxonomy = summarize_failure_taxonomy(batch_df)
-    summary = cache_store.spend_so_far(run_id=runtime.run_id)
-    qualitative_notes = build_qualitative_notes(
-        batch_df,
-        config,
-        smoke_no_network=runtime.smoke_no_network,
-    )
-    projections = build_cost_projections(summary, config=config, pricing=pricing)
-    rec = recommendation(
-        summary,
-        batch_df,
-        run_id=runtime.run_id,
-        budget_cap_usd=float(config["budget_cap_usd"]),
-        smoke_no_network=runtime.smoke_no_network,
-    )
-    writer = ExperimentArtifactWriter(
-        run_id=runtime.run_id,
+    summary_data = _summary_data(
+        batch_df=batch_df,
+        cache_store=cache_store,
         config=config,
         pricing=pricing,
-        run_context={},
-        runtime_metadata=dict(runtime_metadata),
-        base_dir=artifact_dir,
+        runtime=runtime,
+    )
+    writer = _ranked_writer(
+        artifact_dir=artifact_dir,
+        config=config,
+        pricing=pricing,
+        runtime=runtime,
+        runtime_metadata=runtime_metadata,
     )
     writer.record_query(record)
-    writer.write_summary(
-        summary,
-        projections=projections,
-        recommendation_data=rec,
+    _write_ranked_summary(
+        writer,
+        summary_data=summary_data,
         batch_df=batch_df,
-        qualitative_notes=qualitative_notes,
-        extra={"taxonomy": taxonomy},
+        extra={"taxonomy": summary_data["taxonomy"]},
     )
 
     payload = {
         "run_id": runtime.run_id,
         "artifact_dir": str(writer.artifact_dir),
         "record": record.to_dict(),
-        "summary": summary,
-        "taxonomy": taxonomy,
-        "recommendation": rec,
+        "summary": summary_data["summary"],
+        "taxonomy": summary_data["taxonomy"],
+        "recommendation": summary_data["recommendation"],
     }
     return payload, record
 
@@ -175,13 +155,14 @@ def run_eval_workflow(
     compare_base_dir: str | None = None,
 ) -> Dict[str, Any]:
     cache_store = _cache_store(config)
-    writer = ExperimentArtifactWriter(
-        run_id=runtime.run_id,
+    query_suite = normalized_query_suite(suite)
+    writer = _ranked_writer(
+        artifact_dir=artifact_dir,
         config=config,
         pricing=pricing,
-        run_context={"query_suite": normalized_query_suite(suite)},
-        runtime_metadata=dict(runtime_metadata),
-        base_dir=artifact_dir,
+        runtime=runtime,
+        runtime_metadata=runtime_metadata,
+        query_suite=query_suite,
     )
     queries = load_queries(
         queries_file=queries_file,
@@ -189,37 +170,20 @@ def run_eval_workflow(
         limit=limit,
     )
     search_people = _make_search_people(config, pricing, runtime, cache_store)
+    evaluation_options = _evaluation_options(config)
     batch_df = evaluate_batch_queries(
         queries,
         search_people=search_people,
-        num_results=int(config["num_results"]),
-        relevance_keywords=list(DEFAULT_RELEVANCE_KEYWORDS),
-        redact_text=lambda value: redact_text(
-            value,
-            enabled=bool(config.get("redact_emails_phones", True)),
-        ),
-        extract_preview=lambda row, max_chars: extract_preview(
-            row,
-            max_chars=max_chars,
-            redact_enabled=bool(config.get("redact_emails_phones", True)),
-        ),
+        **evaluation_options,
         record_query=writer.record_query,
     )
     writer.write_dataframe_csv("results.csv", batch_df, kind="results-csv")
-    taxonomy = summarize_failure_taxonomy(batch_df)
-    summary = cache_store.spend_so_far(run_id=runtime.run_id)
-    qualitative_notes = build_qualitative_notes(
-        batch_df,
-        config,
-        smoke_no_network=runtime.smoke_no_network,
-    )
-    projections = build_cost_projections(summary, config=config, pricing=pricing)
-    rec = recommendation(
-        summary,
-        batch_df,
-        run_id=runtime.run_id,
-        budget_cap_usd=float(config["budget_cap_usd"]),
-        smoke_no_network=runtime.smoke_no_network,
+    summary_data = _summary_data(
+        batch_df=batch_df,
+        cache_store=cache_store,
+        config=config,
+        pricing=pricing,
+        runtime=runtime,
     )
 
     comparison_report: Dict[str, Any] | None = None
@@ -230,10 +194,10 @@ def run_eval_workflow(
         comparison_report = build_before_after_report(
             compare_run_dir,
             after_run_id=runtime.run_id,
-            after_summary_metrics=summary,
+            after_summary_metrics=summary_data["summary"],
             after_batch_df=batch_df,
-            after_recommendation=rec,
-            after_context={"query_suite": normalized_query_suite(suite)},
+            after_recommendation=summary_data["recommendation"],
+            after_context={"query_suite": query_suite},
         )
         comparison_markdown_path = write_comparison_markdown(
             writer.artifact_dir,
@@ -248,16 +212,14 @@ def run_eval_workflow(
                 kind="comparison-csv",
             )
 
-    summary_extra: Dict[str, Any] = {"taxonomy": taxonomy}
+    summary_extra: Dict[str, Any] = {"taxonomy": summary_data["taxonomy"]}
     if comparison_report is not None:
         summary_extra["comparison"] = comparison_report
 
-    summary_path = writer.write_summary(
-        summary,
-        projections=projections,
-        recommendation_data=rec,
+    summary_path = _write_ranked_summary(
+        writer,
+        summary_data=summary_data,
         batch_df=batch_df,
-        qualitative_notes=qualitative_notes,
         extra=summary_extra,
     )
 
@@ -266,10 +228,10 @@ def run_eval_workflow(
         "queries_executed": int(len(batch_df.index)),
         "artifact_dir": str(writer.artifact_dir),
         "summary_path": str(summary_path),
-        "summary": summary,
-        "taxonomy": taxonomy,
-        "projections": projections,
-        "recommendation": rec,
+        "summary": summary_data["summary"],
+        "taxonomy": summary_data["taxonomy"],
+        "projections": summary_data["projections"],
+        "recommendation": summary_data["recommendation"],
     }
     if comparison_report is not None:
         payload["comparison"] = comparison_report
@@ -340,6 +302,92 @@ def _make_search_people(
         )
 
     return _search
+
+
+def _ranked_writer(
+    *,
+    artifact_dir: str,
+    config: Dict[str, Any],
+    pricing: Dict[str, float],
+    runtime: Any,
+    runtime_metadata: Mapping[str, Any],
+    query_suite: str | None = None,
+) -> ExperimentArtifactWriter:
+    run_context = {"query_suite": query_suite} if query_suite is not None else {}
+    return ExperimentArtifactWriter(
+        run_id=runtime.run_id,
+        config=config,
+        pricing=pricing,
+        run_context=run_context,
+        runtime_metadata=dict(runtime_metadata),
+        base_dir=artifact_dir,
+    )
+
+
+def _evaluation_options(config: Mapping[str, Any]) -> Dict[str, Any]:
+    redact_enabled = bool(config.get("redact_emails_phones", True))
+    return {
+        "num_results": int(config["num_results"]),
+        "relevance_keywords": list(DEFAULT_RELEVANCE_KEYWORDS),
+        "redact_text": lambda value: redact_text(
+            value,
+            enabled=redact_enabled,
+        ),
+        "extract_preview": lambda row, max_chars: extract_preview(
+            row,
+            max_chars=max_chars,
+            redact_enabled=redact_enabled,
+        ),
+    }
+
+
+def _summary_data(
+    *,
+    batch_df: pd.DataFrame,
+    cache_store: SqliteCacheStore,
+    config: Dict[str, Any],
+    pricing: Dict[str, float],
+    runtime: Any,
+) -> Dict[str, Any]:
+    summary = cache_store.spend_so_far(run_id=runtime.run_id)
+    taxonomy = summarize_failure_taxonomy(batch_df)
+    projections = build_cost_projections(summary, config=config, pricing=pricing)
+    recommendation_payload = recommendation(
+        summary,
+        batch_df,
+        run_id=runtime.run_id,
+        budget_cap_usd=float(config["budget_cap_usd"]),
+        smoke_no_network=runtime.smoke_no_network,
+    )
+    qualitative_notes = build_qualitative_notes(
+        batch_df,
+        config,
+        smoke_no_network=runtime.smoke_no_network,
+    )
+    return {
+        "summary": summary,
+        "taxonomy": taxonomy,
+        "projections": projections,
+        "recommendation": recommendation_payload,
+        "qualitative_notes": qualitative_notes,
+    }
+
+
+def _write_ranked_summary(
+    writer: ExperimentArtifactWriter,
+    *,
+    summary_data: Mapping[str, Any],
+    batch_df: pd.DataFrame,
+    extra: Mapping[str, Any],
+) -> Path:
+    return writer.write_summary(
+        summary_data["summary"],
+        projections=summary_data["projections"],
+        recommendation_data=summary_data["recommendation"],
+        batch_df=batch_df,
+        qualitative_notes=summary_data["qualitative_notes"],
+        extra=extra,
+    )
 
 
 def _cache_store(config: Dict[str, Any]) -> SqliteCacheStore:
