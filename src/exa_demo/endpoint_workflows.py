@@ -8,22 +8,15 @@ import pandas as pd
 
 from .artifacts import ExperimentArtifactWriter
 from .cache import SqliteCacheStore
-from .client import exa_research
-from .cost_model import estimate_cost_from_pricing
+from .client import exa_answer, exa_find_similar, exa_research, exa_structured_search
 from .models import ResearchRecord
 from .reporting import render_research_markdown
 from .workflows import (
-    answer_http_call,
     build_answer_artifact,
-    build_answer_request_payload,
     build_find_similar_artifact,
-    build_find_similar_request_payload,
     build_research_artifact,
     build_structured_search_artifact,
-    build_structured_search_request_payload,
-    find_similar_http_call,
     load_json_schema,
-    structured_search_http_call,
 )
 
 
@@ -37,32 +30,22 @@ def run_answer_workflow(
     runtime_metadata: Mapping[str, Any],
 ) -> Dict[str, Any]:
     cache_store = _cache_store(config)
-    request_payload = build_answer_request_payload(query)
-    estimated_cost = estimate_cost_from_pricing(
-        {"type": "auto"},
-        1,
-        pricing,
-        int(config["max_supported_results_for_estimate"]),
-    )
-
-    response_json, cache_hit = cache_store.get_or_set(
-        request_payload,
-        estimated_cost,
+    response_json, meta = exa_answer(
+        query,
+        config=config,
+        pricing=pricing,
+        exa_api_key=runtime.exa_api_key,
+        smoke_no_network=runtime.smoke_no_network,
         run_id=runtime.run_id,
-        budget_cap_usd=float(config["budget_cap_usd"]),
-        fetcher=lambda payload: answer_http_call(
-            payload,
-            exa_api_key=runtime.exa_api_key,
-            smoke_no_network=runtime.smoke_no_network,
-        ),
+        cache_store=cache_store,
     )
 
     answer_payload = build_answer_artifact(
         query,
-        request_payload=request_payload,
+        request_payload=meta.request_payload,
         response_json=response_json,
-        cache_hit=cache_hit,
-        estimated_cost_usd=estimated_cost,
+        cache_hit=meta.cache_hit,
+        estimated_cost_usd=meta.estimated_cost_usd,
     )
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
     writer = ExperimentArtifactWriter(
@@ -92,7 +75,7 @@ def run_answer_workflow(
             "workflow": "answer",
             "answer": {
                 "query": query,
-                "cache_hit": cache_hit,
+                "cache_hit": meta.cache_hit,
                 "citation_count": answer_payload["citation_count"],
                 "answer_length": len(answer_payload["answer_text"]),
             },
@@ -106,7 +89,7 @@ def run_answer_workflow(
         "answer": answer_payload["answer_text"],
         "citations": answer_payload["citations"],
         "citation_count": answer_payload["citation_count"],
-        "cache_hit": cache_hit,
+        "cache_hit": meta.cache_hit,
         "request_id": answer_payload.get("request_id"),
         "summary": summary,
     }
@@ -243,33 +226,25 @@ def run_find_similar_workflow(
     runtime_metadata: Mapping[str, Any],
 ) -> Dict[str, Any]:
     cache_store = _cache_store(config)
-    request_payload = build_find_similar_request_payload(seed_url, config)
-    estimated_cost = estimate_cost_from_pricing(
-        request_payload,
-        int(request_payload.get("numResults") or config["num_results"]),
-        pricing,
-        int(config["max_supported_results_for_estimate"]),
-    )
-
-    response_json, cache_hit = cache_store.get_or_set(
-        request_payload,
-        estimated_cost,
+    response_json, meta = exa_find_similar(
+        seed_url,
+        config=config,
+        pricing=pricing,
+        exa_api_key=runtime.exa_api_key,
+        smoke_no_network=runtime.smoke_no_network,
         run_id=runtime.run_id,
-        budget_cap_usd=float(config["budget_cap_usd"]),
-        fetcher=lambda payload: find_similar_http_call(
-            payload,
-            exa_api_key=runtime.exa_api_key,
-            smoke_no_network=runtime.smoke_no_network,
-            config=config,
-        ),
+        cache_store=cache_store,
+        num_results=min(int(config["num_results"]), 3)
+        if runtime.smoke_no_network
+        else int(config["num_results"]),
     )
 
     find_similar_payload = build_find_similar_artifact(
         seed_url,
-        request_payload=request_payload,
+        request_payload=meta.request_payload,
         response_json=response_json,
-        cache_hit=cache_hit,
-        estimated_cost_usd=estimated_cost,
+        cache_hit=meta.cache_hit,
+        estimated_cost_usd=meta.estimated_cost_usd,
     )
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
     writer = ExperimentArtifactWriter(
@@ -299,7 +274,7 @@ def run_find_similar_workflow(
             "workflow": "find-similar",
             "find_similar": {
                 "seed_url": seed_url,
-                "cache_hit": cache_hit,
+                "cache_hit": meta.cache_hit,
                 "result_count": find_similar_payload["result_count"],
                 "top_result_title": (
                     find_similar_payload["top_result"]["title"]
@@ -315,7 +290,7 @@ def run_find_similar_workflow(
         "run_id": runtime.run_id,
         "artifact_dir": str(writer.artifact_dir),
         "seed_url": seed_url,
-        "cache_hit": cache_hit,
+        "cache_hit": meta.cache_hit,
         "request_id": find_similar_payload.get("request_id"),
         "result_count": find_similar_payload["result_count"],
         "top_result": find_similar_payload.get("top_result"),
@@ -354,34 +329,24 @@ def run_structured_search_workflow(
     cache_store = _cache_store(config)
     schema_path = Path(schema_file)
     output_schema = load_json_schema(schema_path)
-    request_payload = build_structured_search_request_payload(query, config, output_schema)
-    estimated_cost = estimate_cost_from_pricing(
-        request_payload,
-        int(request_payload.get("numResults") or config["num_results"]),
-        pricing,
-        int(config["max_supported_results_for_estimate"]),
-    )
-
-    response_json, cache_hit = cache_store.get_or_set(
-        request_payload,
-        estimated_cost,
+    response_json, meta = exa_structured_search(
+        query,
+        config=config,
+        pricing=pricing,
+        exa_api_key=runtime.exa_api_key,
+        smoke_no_network=runtime.smoke_no_network,
         run_id=runtime.run_id,
-        budget_cap_usd=float(config["budget_cap_usd"]),
-        fetcher=lambda payload: structured_search_http_call(
-            payload,
-            exa_api_key=runtime.exa_api_key,
-            smoke_no_network=runtime.smoke_no_network,
-            config=config,
-        ),
+        cache_store=cache_store,
+        output_schema=output_schema,
     )
 
     structured_payload = build_structured_search_artifact(
         query,
         schema_path=schema_path,
-        request_payload=request_payload,
+        request_payload=meta.request_payload,
         response_json=response_json,
-        cache_hit=cache_hit,
-        estimated_cost_usd=estimated_cost,
+        cache_hit=meta.cache_hit,
+        estimated_cost_usd=meta.estimated_cost_usd,
     )
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
     writer = ExperimentArtifactWriter(
@@ -412,7 +377,7 @@ def run_structured_search_workflow(
             "structured_search": {
                 "query": query,
                 "schema_file": str(schema_path),
-                "cache_hit": cache_hit,
+                "cache_hit": meta.cache_hit,
                 "structured_keys": structured_payload["structured_output_keys"],
             },
         },
@@ -423,7 +388,7 @@ def run_structured_search_workflow(
         "run_id": runtime.run_id,
         "artifact_dir": str(writer.artifact_dir),
         "schema_file": str(schema_path),
-        "cache_hit": cache_hit,
+        "cache_hit": meta.cache_hit,
         "request_id": structured_payload.get("request_id"),
         "structured_output": structured_payload.get("structured_output"),
         "summary": summary,

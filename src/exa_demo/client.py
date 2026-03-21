@@ -198,15 +198,37 @@ def mock_exa_find_similar_response(payload: Mapping[str, Any]) -> Dict[str, Any]
 
     source_domain = _domain_from_url(url)
     result_domain = f"related-{slug}.example.com" if bool(payload.get("excludeSourceDomain")) else source_domain
+    mock_titles = [
+        "Florida Insurance Litigation Firm",
+        "Public Adjuster and Catastrophe Claims Team",
+        "Property Insurance Appraisal Resources",
+    ]
+    mock_snippets = [
+        "Mock result for seed-url discovery and competitor analysis.",
+        "Mock result for expert discovery and similar professional pages.",
+        "Mock result for content discovery around appraisal and coverage disputes.",
+    ]
     results = []
     for index in range(num_results):
         result_url = f"https://{result_domain}/similar/{slug}-{index + 1}"
+        title = (
+            mock_titles[index]
+            if index < len(mock_titles)
+            else f"Mock Similar Result {index + 1} - CAT loss / insurance expert"
+        )
+        snippet = (
+            mock_snippets[index]
+            if index < len(mock_snippets)
+            else "Mock result for seed-url discovery and similar-page analysis."
+        )
         item: Dict[str, Any] = {
             "id": result_url,
-            "title": f"Mock Similar Result {index + 1} - CAT loss / insurance expert",
+            "title": title,
             "url": result_url,
             "publishedDate": "2026-03-18",
             "author": "Mock Analyst",
+            "snippet": snippet,
+            "score": round(0.98 - (index * 0.04), 2),
         }
         if wants_text:
             item["text"] = f"Mock similar text for seed URL: {url}. Public/professional info only."
@@ -235,7 +257,25 @@ def mock_exa_structured_search_response(payload: Mapping[str, Any]) -> Dict[str,
     query = str(payload.get("query") or "")
     slug = sha256_hex(query)[:8]
     num_results = int(payload.get("numResults") or 5)
-    structured_output = _mock_structured_output(payload.get("outputSchema"), query)
+    schema = payload.get("outputSchema") if isinstance(payload.get("outputSchema"), Mapping) else {}
+    structured_output = _mock_structured_output(schema, query)
+    properties = schema.get("properties") if isinstance(schema.get("properties"), Mapping) else {}
+    structured_data = {
+        "query": query,
+        "schema_title": str(schema.get("title") or "structured-output"),
+        "field_names": sorted(str(key) for key in properties.keys()),
+        "record_count": 1,
+        "records": [
+            {
+                "name": "Mock Structured Record",
+                "role": "Insurance expert witness",
+                "firm": "Mock Advisory Group",
+                "state_licenses": ["FL"],
+                "specializations": ["catastrophe claims", "appraisal"],
+                "notable_cases_or_experience": "Mock structured output for smoke testing.",
+            }
+        ],
+    }
 
     results = []
     for index in range(num_results):
@@ -250,6 +290,7 @@ def mock_exa_structured_search_response(payload: Mapping[str, Any]) -> Dict[str,
         "requestId": f"smoke-{slug}",
         "resolvedSearchType": str(payload.get("type") or "auto"),
         "results": results,
+        "structuredData": structured_data,
         "structuredOutput": structured_output,
         "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
         "_smokeMode": True,
@@ -261,16 +302,19 @@ def mock_exa_answer_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
     slug = sha256_hex(query)[:8]
     citations = [
         {
-            "title": f"Mock Answer Citation {index + 1}",
-            "url": f"https://example.com/mock-answer/{slug}/{index + 1}",
-            "snippet": (
-                f"Mock source snippet {index + 1} for query: {query}. "
-                "Public/professional info only."
-            ),
+            "title": "Florida appraisal clause overview",
+            "url": f"https://example.com/mock-answer/{slug}/1",
+            "snippet": "Mock citation about appraisal clause dispute flow.",
             "publishedDate": "2026-03-18",
             "author": "Mock Analyst",
-        }
-        for index in range(2)
+        },
+        {
+            "title": "Insurance claim dispute process",
+            "url": f"https://example.com/mock-answer/{slug}/2",
+            "snippet": "Mock citation about dispute resolution steps.",
+            "publishedDate": "2026-03-18",
+            "author": "Mock Analyst",
+        },
     ]
     return {
         "requestId": f"smoke-{slug}",
