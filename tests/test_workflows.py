@@ -6,6 +6,7 @@ from pathlib import Path
 from exa_demo.client import ExaCallMeta
 from exa_demo.config import RuntimeState, default_config, default_pricing
 from exa_demo.endpoint_workflows import (
+    run_answer_workflow,
     run_find_similar_workflow,
     run_research_workflow,
     run_structured_search_workflow,
@@ -140,6 +141,34 @@ def test_run_eval_workflow_direct_compare_writes_comparison_bundle(tmp_path) -> 
     assert summary_payload['extra']['comparison']['baseline_run_id'] == 'baseline-run'
 
 
+def test_run_answer_workflow_smoke_writes_summary_context(tmp_path) -> None:
+    runtime = _smoke_runtime('workflow-answer')
+    config = _config(tmp_path)
+    pricing = default_pricing()
+
+    payload = run_answer_workflow(
+        query='What is the Florida appraisal clause dispute process?',
+        artifact_dir=str(tmp_path / 'artifacts'),
+        config=config,
+        pricing=pricing,
+        runtime=runtime,
+        runtime_metadata=_runtime_metadata(runtime),
+    )
+
+    run_dir = tmp_path / 'artifacts' / 'workflow-answer'
+    summary_payload = json.loads((run_dir / 'summary.json').read_text(encoding='utf-8'))
+
+    assert payload['workflow'] == 'answer'
+    assert payload['citation_count'] == 2
+    assert 'Mock answer' in payload['answer']
+    assert summary_payload['extra']['workflow'] == 'answer'
+    assert summary_payload['extra']['answer']['citation_count'] == 2
+    assert summary_payload['qualitative_notes'] == [
+        'Answer workflow active: answer text and citations are stored in answer.json.',
+        'Smoke mode active: answers are mocked and costs are zero.',
+    ]
+
+
 def test_run_research_workflow_smoke_writes_markdown_and_summary_context(tmp_path) -> None:
     runtime = _smoke_runtime('workflow-research')
     config = _config(tmp_path)
@@ -164,6 +193,10 @@ def test_run_research_workflow_smoke_writes_markdown_and_summary_context(tmp_pat
     assert '# Research Report' in markdown
     assert summary_payload['extra']['workflow'] == 'research'
     assert summary_payload['extra']['research']['citation_count'] == 3
+    assert summary_payload['qualitative_notes'] == [
+        'Research workflow active: the response payload is stored in research.json.',
+        'Smoke mode active: research reports are mocked and costs are zero.',
+    ]
     assert summary_payload['extra']['runtime']['execution_mode'] == 'smoke'
 
 

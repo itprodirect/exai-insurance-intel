@@ -48,29 +48,21 @@ def run_answer_workflow(
         estimated_cost_usd=meta.estimated_cost_usd,
     )
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
-    writer = ExperimentArtifactWriter(
-        run_id=runtime.run_id,
+    writer = _endpoint_writer(
+        workflow="answer",
+        artifact_dir=artifact_dir,
         config=config,
         pricing=pricing,
-        run_context={"workflow": "answer"},
-        runtime_metadata=dict(runtime_metadata),
-        base_dir=artifact_dir,
+        runtime=runtime,
+        runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("answer.json", answer_payload)
-    writer.write_summary(
+    _write_endpoint_summary(
+        writer,
         summary,
-        projections=_summary_projections(summary),
-        recommendation_data={
-            "headline_recommendation": "Use for cited-answer workflows with human review"
-        },
-        qualitative_notes=[
-            "Answer workflow active: answer text and citations are stored in answer.json.",
-            "Smoke mode active: answers are mocked and costs are zero.",
-        ]
-        if runtime.smoke_no_network
-        else [
-            "Answer workflow active: answer text and citations are stored in answer.json.",
-        ],
+        headline_recommendation="Use for cited-answer workflows with human review",
+        active_note="Answer workflow active: answer text and citations are stored in answer.json.",
+        smoke_note="Smoke mode active: answers are mocked and costs are zero.",
         extra={
             "workflow": "answer",
             "answer": {
@@ -80,6 +72,7 @@ def run_answer_workflow(
                 "answer_length": len(answer_payload["answer_text"]),
             },
         },
+        smoke_no_network=runtime.smoke_no_network,
     )
 
     return {
@@ -141,13 +134,13 @@ def run_research_workflow(
     )
 
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
-    writer = ExperimentArtifactWriter(
-        run_id=runtime.run_id,
+    writer = _endpoint_writer(
+        workflow="research",
+        artifact_dir=artifact_dir,
         config=config,
         pricing=pricing,
-        run_context={"workflow": "research"},
-        runtime_metadata=dict(runtime_metadata),
-        base_dir=artifact_dir,
+        runtime=runtime,
+        runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("research.json", research_payload)
     writer.write_text_artifact(
@@ -159,20 +152,12 @@ def run_research_workflow(
         ),
         kind="markdown",
     )
-    writer.write_summary(
+    _write_endpoint_summary(
+        writer,
         summary,
-        projections=_summary_projections(summary),
-        recommendation_data={
-            "headline_recommendation": "Use for research-style report generation with human review"
-        },
-        qualitative_notes=[
-            "Research workflow active: the response payload is stored in research.json.",
-            "Smoke mode active: research reports are mocked and costs are zero.",
-        ]
-        if runtime.smoke_no_network
-        else [
-            "Research workflow active: the response payload is stored in research.json.",
-        ],
+        headline_recommendation="Use for research-style report generation with human review",
+        active_note="Research workflow active: the response payload is stored in research.json.",
+        smoke_note="Smoke mode active: research reports are mocked and costs are zero.",
         extra={
             "workflow": "research",
             "research": {
@@ -182,6 +167,7 @@ def run_research_workflow(
                 "report_length": len(record.report_text or ""),
             },
         },
+        smoke_no_network=runtime.smoke_no_network,
     )
 
     return {
@@ -247,29 +233,21 @@ def run_find_similar_workflow(
         estimated_cost_usd=meta.estimated_cost_usd,
     )
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
-    writer = ExperimentArtifactWriter(
-        run_id=runtime.run_id,
+    writer = _endpoint_writer(
+        workflow="find-similar",
+        artifact_dir=artifact_dir,
         config=config,
         pricing=pricing,
-        run_context={"workflow": "find-similar"},
-        runtime_metadata=dict(runtime_metadata),
-        base_dir=artifact_dir,
+        runtime=runtime,
+        runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("find_similar.json", find_similar_payload)
-    writer.write_summary(
+    _write_endpoint_summary(
+        writer,
         summary,
-        projections=_summary_projections(summary),
-        recommendation_data={
-            "headline_recommendation": "Use for seed-url discovery workflows"
-        },
-        qualitative_notes=[
-            "Find-similar workflow active: the response payload is stored in find_similar.json.",
-            "Smoke mode active: similar-page results are mocked and costs are zero.",
-        ]
-        if runtime.smoke_no_network
-        else [
-            "Find-similar workflow active: the response payload is stored in find_similar.json.",
-        ],
+        headline_recommendation="Use for seed-url discovery workflows",
+        active_note="Find-similar workflow active: the response payload is stored in find_similar.json.",
+        smoke_note="Smoke mode active: similar-page results are mocked and costs are zero.",
         extra={
             "workflow": "find-similar",
             "find_similar": {
@@ -283,6 +261,7 @@ def run_find_similar_workflow(
                 ),
             },
         },
+        smoke_no_network=runtime.smoke_no_network,
     )
 
     return {
@@ -349,29 +328,21 @@ def run_structured_search_workflow(
         estimated_cost_usd=meta.estimated_cost_usd,
     )
     summary = cache_store.spend_so_far(run_id=runtime.run_id)
-    writer = ExperimentArtifactWriter(
-        run_id=runtime.run_id,
+    writer = _endpoint_writer(
+        workflow="structured-search",
+        artifact_dir=artifact_dir,
         config=config,
         pricing=pricing,
-        run_context={"workflow": "structured-search"},
-        runtime_metadata=dict(runtime_metadata),
-        base_dir=artifact_dir,
+        runtime=runtime,
+        runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("structured_output.json", structured_payload)
-    writer.write_summary(
+    _write_endpoint_summary(
+        writer,
         summary,
-        projections=_summary_projections(summary),
-        recommendation_data={
-            "headline_recommendation": "Use for schema-driven extraction workflows"
-        },
-        qualitative_notes=[
-            "Structured output active: the response payload is stored in structured_output.json.",
-            "Smoke mode active: structured output is mocked and costs are zero.",
-        ]
-        if runtime.smoke_no_network
-        else [
-            "Structured output active: the response payload is stored in structured_output.json.",
-        ],
+        headline_recommendation="Use for schema-driven extraction workflows",
+        active_note="Structured output active: the response payload is stored in structured_output.json.",
+        smoke_note="Smoke mode active: structured output is mocked and costs are zero.",
         extra={
             "workflow": "structured-search",
             "structured_search": {
@@ -381,6 +352,7 @@ def run_structured_search_workflow(
                 "structured_keys": structured_payload["structured_output_keys"],
             },
         },
+        smoke_no_network=runtime.smoke_no_network,
     )
 
     return {
@@ -411,6 +383,62 @@ def emit_structured_search_payload(payload: Mapping[str, Any], *, as_json: bool)
 
 def _cache_store(config: Dict[str, Any]) -> SqliteCacheStore:
     return SqliteCacheStore(config["sqlite_path"], float(config["cache_ttl_hours"]))
+
+
+def _endpoint_writer(
+    *,
+    workflow: str,
+    artifact_dir: str,
+    config: Dict[str, Any],
+    pricing: Dict[str, float],
+    runtime: Any,
+    runtime_metadata: Mapping[str, Any],
+) -> ExperimentArtifactWriter:
+    return ExperimentArtifactWriter(
+        run_id=runtime.run_id,
+        config=config,
+        pricing=pricing,
+        run_context={"workflow": workflow},
+        runtime_metadata=dict(runtime_metadata),
+        base_dir=artifact_dir,
+    )
+
+
+def _write_endpoint_summary(
+    writer: ExperimentArtifactWriter,
+    summary: Mapping[str, Any],
+    *,
+    headline_recommendation: str,
+    active_note: str,
+    smoke_note: str,
+    extra: Mapping[str, Any],
+    smoke_no_network: bool,
+) -> Path:
+    return writer.write_summary(
+        summary,
+        projections=_summary_projections(summary),
+        recommendation_data={
+            "headline_recommendation": headline_recommendation,
+        },
+        qualitative_notes=_qualitative_notes(
+            active_note=active_note,
+            smoke_note=smoke_note,
+            smoke_no_network=smoke_no_network,
+        ),
+        extra=extra,
+    )
+
+
+def _qualitative_notes(
+    *,
+    active_note: str,
+    smoke_note: str,
+    smoke_no_network: bool,
+) -> list[str]:
+    notes = [active_note]
+    if smoke_no_network:
+        notes.append(smoke_note)
+    return notes
 
 
 def _summary_projections(summary: Mapping[str, Any]) -> Dict[str, Any]:
