@@ -19,14 +19,18 @@ This repo is designed to stay safe-by-default while still supporting deliberate 
 - Smoke runs preserve the same artifact shape as live runs whenever possible.
 - Workflow-specific payloads remain additive. Existing JSON and JSONL contracts should not be rewritten just because a new export is added.
 - Every run records runtime execution metadata in `config.json`, `summary.json`, and `manifest.json` so reviewers can distinguish smoke artifacts from live artifacts.
+- Manual live validation should assert the expected artifact contract for each workflow before the run is treated as successful.
+- Contract checks should confirm the presence of the workflow-specific artifact file plus the core summary output for that run.
+- Single-workflow live validations should also assert that the emitted JSON payload includes a non-empty `request_id`.
 
 ## CI Boundary
 
 - CI should stay smoke-only by default.
 - CI is allowed to run lint, pytest, and the notebook smoke runner.
-- Live API validation should remain an explicit manual workflow until its scope, spend guardrails, and secrets handling are documented more tightly.
+- Live API validation should remain an explicit manual workflow until its scope, spend guardrails, secrets handling, and artifact assertions are documented more tightly.
 - The manual live-validation path is [`.github/workflows/live-validation.yml`](../.github/workflows/live-validation.yml), backed by [`scripts/run_live_validation.py`](../scripts/run_live_validation.py).
 - The runner writes a `validation_summary.json` file plus the underlying workflow artifacts for review; these outputs are runtime artifacts and should not be committed.
+- The manual workflow should fail closed on a missing `EXA_API_KEY` in live mode and should keep comparison validation opt-in.
 
 ## Cost and Safety Boundary
 

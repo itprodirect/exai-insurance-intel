@@ -9,6 +9,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import nbformat
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -204,11 +205,102 @@ def test_run_live_validation_smoke_writes_summary(tmp_path, monkeypatch, capsys)
     def fake_run(argv, cwd, capture_output, text, check, env):
         calls.append({'argv': argv, 'cwd': cwd, 'env': env})
         command_name = argv[3]
-        payload = {
-            'workflow': command_name,
-            'artifact_dir': str(fake_repo_root / 'live-validation-artifacts' / f'test-prefix-{command_name}'),
-            'request_id': f'req-{command_name}',
+        run_id_map = {
+            'search': 'test-prefix-search',
+            'answer': 'test-prefix-answer',
+            'research': 'test-prefix-research',
+            'structured-search': 'test-prefix-structured',
+            'find-similar': 'test-prefix-find-similar',
+            'compare-search-types': 'test-prefix-compare',
         }
+        run_id = run_id_map[command_name]
+        run_dir = fake_repo_root / 'live-validation-artifacts' / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / 'summary.json').write_text('{}\n', encoding='utf-8')
+        payload = {'workflow': command_name}
+
+        if command_name == 'search':
+            (run_dir / 'results.jsonl').write_text('{}\n', encoding='utf-8')
+            payload.update(
+                {
+                    'run_id': run_id,
+                    'artifact_dir': str(run_dir),
+                    'request_id': f'req-{command_name}',
+                    'record': {'query': 'demo'},
+                    'summary': {'spent_usd': 0.0},
+                }
+            )
+        elif command_name == 'answer':
+            (run_dir / 'answer.json').write_text('{}\n', encoding='utf-8')
+            payload.update(
+                {
+                    'run_id': run_id,
+                    'artifact_dir': str(run_dir),
+                    'request_id': f'req-{command_name}',
+                    'answer': 'Mock answer',
+                    'citation_count': 2,
+                    'summary': {'spent_usd': 0.0},
+                }
+            )
+        elif command_name == 'research':
+            (run_dir / 'research.json').write_text('{}\n', encoding='utf-8')
+            (run_dir / 'research.md').write_text('# Research Report\n', encoding='utf-8')
+            payload.update(
+                {
+                    'run_id': run_id,
+                    'artifact_dir': str(run_dir),
+                    'request_id': f'req-{command_name}',
+                    'report': 'Mock research report',
+                    'citation_count': 2,
+                    'summary': {'spent_usd': 0.0},
+                }
+            )
+        elif command_name == 'structured-search':
+            (run_dir / 'structured_output.json').write_text('{}\n', encoding='utf-8')
+            payload.update(
+                {
+                    'run_id': run_id,
+                    'artifact_dir': str(run_dir),
+                    'request_id': f'req-{command_name}',
+                    'structured_output': {'records': []},
+                    'summary': {'spent_usd': 0.0},
+                }
+            )
+        elif command_name == 'find-similar':
+            (run_dir / 'find_similar.json').write_text('{}\n', encoding='utf-8')
+            payload.update(
+                {
+                    'run_id': run_id,
+                    'artifact_dir': str(run_dir),
+                    'request_id': f'req-{command_name}',
+                    'result_count': 1,
+                    'summary': {'spent_usd': 0.0},
+                }
+            )
+        else:
+            baseline_dir = fake_repo_root / 'live-validation-artifacts' / 'test-prefix-compare-deep'
+            candidate_dir = fake_repo_root / 'live-validation-artifacts' / 'test-prefix-compare-deep-reasoning'
+            baseline_dir.mkdir(parents=True, exist_ok=True)
+            candidate_dir.mkdir(parents=True, exist_ok=True)
+            (baseline_dir / 'summary.json').write_text('{}\n', encoding='utf-8')
+            (baseline_dir / 'results.jsonl').write_text('{}\n', encoding='utf-8')
+            (candidate_dir / 'summary.json').write_text('{}\n', encoding='utf-8')
+            (candidate_dir / 'comparison.json').write_text('{}\n', encoding='utf-8')
+            (candidate_dir / 'comparison.md').write_text('# Comparison\n', encoding='utf-8')
+            payload = {
+                'workflow': 'compare-search-types',
+                'base_run_id': run_id,
+                'baseline_run': {
+                    'run_id': 'test-prefix-compare-deep',
+                    'artifact_dir': str(baseline_dir),
+                },
+                'candidate_run': {
+                    'run_id': 'test-prefix-compare-deep-reasoning',
+                    'artifact_dir': str(candidate_dir),
+                },
+                'comparison': {'deltas': {}},
+                'comparison_markdown_path': str(candidate_dir / 'comparison.md'),
+            }
         return FakeCompletedProcess(json.dumps(payload))
 
     monkeypatch.setattr(module, '__file__', str(fake_script))
@@ -232,7 +324,59 @@ def test_run_live_validation_smoke_writes_summary(tmp_path, monkeypatch, capsys)
     assert summary_payload['mode'] == 'smoke'
     assert summary_payload['run_id_prefix'] == 'test-prefix'
     assert summary_payload['commands'][0]['name'] == 'search'
+    assert summary_payload['commands'][0]['request_id_present'] is True
+    assert summary_payload['commands'][0]['validated_artifacts']
     assert summary_payload['commands'][-1]['name'] == 'compare-search-types'
+    assert any(path.endswith('comparison.md') for path in summary_payload['commands'][-1]['validated_artifacts'])
+
+
+def test_run_live_validation_live_requires_request_ids_for_single_workflows(
+    tmp_path, monkeypatch
+) -> None:
+    module = _load_script_module(
+        'scripts_run_live_validation_test_request_id',
+        'scripts/run_live_validation.py',
+    )
+    fake_repo_root = tmp_path
+    fake_script = fake_repo_root / 'scripts' / 'run_live_validation.py'
+    fake_script.parent.mkdir(parents=True)
+    fake_script.write_text('# test script placeholder\n', encoding='utf-8')
+    assets_dir = fake_repo_root / 'assets'
+    assets_dir.mkdir()
+    (assets_dir / 'live_validation_schema.json').write_text('{"type":"object"}\n', encoding='utf-8')
+
+    class FakeCompletedProcess:
+        def __init__(self, stdout: str) -> None:
+            self.returncode = 0
+            self.stdout = stdout
+            self.stderr = ''
+
+    def fake_run(argv, cwd, capture_output, text, check, env):
+        command_name = argv[3]
+        run_dir = fake_repo_root / 'live-validation-artifacts' / f'live-check-{command_name}'
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / 'summary.json').write_text('{}\n', encoding='utf-8')
+        (run_dir / 'results.jsonl').write_text('{}\n', encoding='utf-8')
+        payload = {
+            'workflow': 'search',
+            'run_id': 'live-check-search',
+            'artifact_dir': str(run_dir),
+            'record': {'query': 'demo'},
+            'summary': {'spent_usd': 0.0},
+        }
+        return FakeCompletedProcess(json.dumps(payload))
+
+    monkeypatch.setattr(module, '__file__', str(fake_script))
+    monkeypatch.setattr(
+        module,
+        'parse_args',
+        lambda: Namespace(mode='live', artifact_dir='live-validation-artifacts', run_id_prefix='live-check', include_comparison=False),
+    )
+    monkeypatch.setattr(module.subprocess, 'run', fake_run)
+    monkeypatch.setenv('EXA_API_KEY', 'test-key')
+
+    with pytest.raises(RuntimeError, match='missing request_id'):
+        module.main()
 
 
 def test_build_validation_commands_includes_smoke_workflows(tmp_path) -> None:
