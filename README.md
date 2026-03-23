@@ -2,9 +2,30 @@
 
 Exa-powered **insurance intelligence toolkit** for CAT-loss, claims, expert, contractor, and market research workflows.
 
+## What This Repo Is Today
+
+This repo is a **backend workflow engine, API, and pilot web UI** for insurance intelligence. All core intelligence workflows (ranked search, cited answers, research reports, structured extraction, seed-URL discovery, benchmark evaluation) are fully implemented, tested, and runnable from the CLI, Jupyter notebook, FastAPI server, and Next.js frontend.
+
+**What exists:**
+- Complete CLI with 8 commands covering all Exa API endpoints
+- FastAPI server wrapping all workflows as JSON endpoints
+- Next.js frontend with search, answer, and research workflow UIs
+- SQLite caching with budget enforcement and cost ledger
+- Evaluation taxonomy with benchmark suites (55+ insurance queries)
+- Artifact export system (JSON/JSONL/CSV/Markdown)
+- Smoke + live execution modes with CI on every push
+- Comprehensive test suite (~3,300 lines)
+
+**What does not exist yet:**
+- Container or cloud deployment (no Docker, no Terraform)
+- Production database (SQLite cache only)
+- Authentication or multi-user support
+
+**Near-term direction:** Build a controlled pilot web product layer on top of the existing workflow engine. See [docs/roadmap.md](docs/roadmap.md) for phased tracks and [docs/pilot-architecture-decision.md](docs/pilot-architecture-decision.md) for architectural defaults.
+
 This repo stays intentionally lean while supporting repeatable notebook and CLI workflows for insurance research, cited answers, structured extraction, and report generation.
 
-This repo is intentionally in **minimal mode**:
+Core local resources:
 - one core notebook: `exa_people_search_eval.ipynb`
 - one local env file: `.env` (not committed)
 - one local sqlite cache: `exa_cache.sqlite` (not committed)
@@ -16,6 +37,8 @@ This repo is intentionally in **minimal mode**:
 - [Architecture](#architecture)
 - [Windows 11 setup](#windows-11-setup-python-310)
 - [CLI commands](#cli-commands)
+- [API server](#api-server)
+- [Frontend](#frontend)
 - [Experiment artifacts](#experiment-artifacts)
 - [Demo gallery](#demo-gallery)
 - [Integration boundaries](#integration-boundaries)
@@ -35,6 +58,8 @@ This repo is intentionally in **minimal mode**:
 | Structured extraction | Done | `python -m exa_demo structured-search` | `structured_output.json` | Uses `outputSchema` for schema-driven extraction |
 | Seed-URL discovery | Done | `python -m exa_demo find-similar` | `find_similar.json` | Separate `/findSimilar` workflow and normalization path |
 | Cache and budget ledger | Done | Notebook + CLI | `exa_cache.sqlite`, `summary.json` | Prevents re-billing on cache hits |
+| API server | Done | `uvicorn exa_demo.api:app` | JSON responses | Thin FastAPI wrapper over CLI workflows; smoke mode first-class |
+| Frontend UI | Done | `npm run dev` in `frontend/` | Browser UI | Next.js + TypeScript + Tailwind + shadcn/ui; search, answer, research |
 | Smoke CI and local tests | Done | GitHub Actions + `pytest -q` | CI runs and local test suite | Default workflow runs `pytest` and notebook smoke |
 
 ## Architecture
@@ -199,6 +224,81 @@ When comparison is enabled, the run also writes a human-readable `experiments/<R
 `answer` is a separate cited-answer workflow and intentionally does not reuse the ranked-search evaluation taxonomy.
 `structured-search` is a separate schema-driven extraction workflow and intentionally stores the raw structured payload outside the ranked-search `results.jsonl` path.
 `find-similar` is a separate discovery workflow and intentionally stores the similar-result payload outside the ranked-search evaluation path.
+
+## API Server
+
+The API is a thin FastAPI wrapper over the same workflow functions the CLI uses. Install with the `api` extra:
+
+```powershell
+pip install -e ".[api]"
+```
+
+Start the server:
+
+```powershell
+uvicorn exa_demo.api:app --reload
+```
+
+The server runs on `http://127.0.0.1:8000` by default. Interactive docs are at `/docs`.
+
+### Endpoints
+
+| Method | Path | Request body | Description |
+| --- | --- | --- | --- |
+| `GET` | `/health` | — | Health check |
+| `POST` | `/api/search` | `{"query": "...", "mode": "smoke"}` | Ranked search with evaluation |
+| `POST` | `/api/answer` | `{"query": "...", "mode": "smoke"}` | Cited-answer workflow |
+| `POST` | `/api/research` | `{"query": "...", "mode": "smoke"}` | Research report workflow |
+| `POST` | `/api/find-similar` | `{"url": "...", "mode": "smoke"}` | Seed-URL discovery |
+| `POST` | `/api/structured-search` | `{"query": "...", "output_schema": {...}, "mode": "smoke"}` | Schema-driven extraction |
+
+All endpoints default to `smoke` mode. Set `"mode": "live"` for real Exa API calls (requires `EXA_API_KEY`).
+
+### Quick smoke test
+
+```powershell
+curl -X POST http://127.0.0.1:8000/api/search -H "Content-Type: application/json" -d "{\"query\": \"forensic engineer insurance\", \"mode\": \"smoke\"}"
+```
+
+## Frontend
+
+The frontend is a Next.js app in `frontend/` that calls the FastAPI backend through a server-side proxy (no CORS issues).
+
+### Setup
+
+```powershell
+cd frontend
+npm install
+cp .env.local.example .env.local
+```
+
+### Local Development (backend + frontend)
+
+Terminal 1 — start the API server:
+
+```powershell
+uvicorn exa_demo.api:app --reload
+```
+
+Terminal 2 — start the frontend:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Open `http://localhost:3000`. The frontend proxies API calls to the backend at `http://127.0.0.1:8000` (configurable via `BACKEND_URL` in `frontend/.env.local`).
+
+### What the frontend provides
+
+- Health indicator showing backend connection status
+- Tab-based workflow selector (Search, Answer, Research)
+- Search: query input, result count, taxonomy scores, result cards with highlights
+- Answer: question input, cited answer display with source links
+- Research: topic input, report display with sources
+- Loading spinners and error handling on all workflows
+
+All workflows default to smoke mode — no API key or network needed for frontend development.
 
 ## Benchmark Fixture
 

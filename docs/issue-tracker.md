@@ -37,6 +37,27 @@ Update it whenever issues are created, closed, re-scoped, or moved between miles
 | `#17 Maintain roadmap, issue tracker, ADRs, and session notes` | Task | `Phase 3 - Domain/Productization` | `type:task`, `area:docs`, `priority:p0`, `status:ready` | In progress | `#15` | Phase 4 - Documentation, Governance, and Repo Operations | `https://github.com/itprodirect/exai-insurance-intel/issues/17` | `docs/sessions/2026-03-21-payload-boundary-cleanup.md` |
 | `#18 Upgrade README with feature matrix, architecture diagram, and roadmap links` | Task | `Phase 3 - Domain/Productization` | `type:task`, `area:docs`, `priority:p1`, `status:ready` | Closed | `#15` | Phase 4 - Documentation, Governance, and Repo Operations | `https://github.com/itprodirect/exai-insurance-intel/issues/18` | `docs/sessions/2026-03-18-phase2-parallel-slices.md` |
 
+## Phase 5 - Pilot Web Product
+
+| Issue | Type | Milestone | Labels | Status | Dependency | Source roadmap section | GitHub URL | Last-updated session log |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `#19 Epic: Pilot web product layer` | Epic | `Phase 5 - Pilot` | `type:epic`, `area:pilot`, `priority:p0`, `status:ready` | Open | Phases 1-4 | Phase 5 - Pilot Web Product | TBD | `docs/sessions/2026-03-22-pilot-alignment.md` |
+| `#20 Thin FastAPI wrapper over existing workflows` | Task | `Phase 5 - Pilot` | `type:task`, `area:api`, `priority:p0`, `status:done` | Done | `#19` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-api-wrapper.md` |
+| `#21 Frontend app shell (Next.js + Tailwind + shadcn/ui)` | Task | `Phase 5 - Pilot` | `type:task`, `area:frontend`, `priority:p0`, `status:done` | Done | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-frontend-shell.md` |
+| `#22 Pilot auth + request/budget boundary controls` | Task | `Phase 5 - Pilot` | `type:task`, `area:auth`, `priority:p0`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-pilot-alignment.md` |
+| `#23 Persistence/state baseline (S3 artifacts + Postgres usage)` | Task | `Phase 5 - Pilot` | `type:task`, `area:infra`, `priority:p1`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-pilot-alignment.md` |
+
+### Next Coding Slices (Sequenced)
+
+These are the immediate next implementation tasks, in recommended execution order:
+
+1. ~~**Slice 1: Thin API wrapper** (`#20`)~~ — Done. FastAPI app at `src/exa_demo/api.py` with 5 POST endpoints + health. 9 smoke-mode tests.
+2. ~~**Slice 2: Frontend app shell** (`#21`)~~ — Done. Next.js app in `frontend/` with search, answer, research panels. Server-side proxy to backend.
+3. **Slice 3: Pilot auth + boundary controls** (`#22`) — Internal-only auth (API key or simple token), request validation, rate limiting, per-session budget caps, request logging middleware.
+4. **Slice 4: Persistence baseline** (`#23`) — S3 artifact storage for run outputs, Postgres for usage/state tracking, migration from local-only SQLite for pilot environments.
+
+Each slice should be one focused agent session. See [agent-execution-defaults.md](./agent-execution-defaults.md) for session rules.
+
 ## Usage Rules
 
 - Every active roadmap item outside Phase 0 must map to exactly one GitHub issue.

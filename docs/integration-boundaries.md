@@ -39,3 +39,36 @@ This repo is designed to stay safe-by-default while still supporting deliberate 
 - Comparison validation should stay opt-in because it performs multiple real search calls.
 - Public/professional info only.
 - No address hunting, contact harvesting, or operational use without human review.
+
+## In-Repo vs Later Platform Layers
+
+This section clarifies what belongs in the repo now versus what should be deferred to platform or infrastructure layers.
+
+### In-repo now (owns the code)
+
+| Component | Rationale |
+| --- | --- |
+| Workflow engine (`src/exa_demo/`) | Core business logic; tested; stable |
+| CLI + notebook interfaces | Existing user surfaces |
+| SQLite cache + budget ledger | Local dev and smoke mode persistence |
+| Benchmark fixtures and evaluation | Domain-specific; tightly coupled to workflows |
+| Thin FastAPI wrapper (next) | Thin adapter over existing workflows; belongs with the code it wraps |
+| Frontend app (next) | Product UI; lives in-repo as `frontend/` or similar until scale demands separation |
+
+### Deferred to platform / infra layers
+
+| Component | Rationale |
+| --- | --- |
+| Container orchestration (ECS/K8s) | Deploy-time concern; not needed for pilot |
+| Infrastructure as code (Terraform/CDK) | Separate repo or separate directory once pilot is validated |
+| Secret management (AWS Secrets Manager, Vault) | Environment-level concern; use env vars for pilot |
+| CDN / edge config | Vercel handles this for frontend; backend can add later |
+| Log aggregation / APM (Datadog, etc.) | Platform-level; structured logging in-repo is sufficient for pilot |
+| CI/CD pipeline for production deploy | GitHub Actions handles smoke CI; production deploy pipeline is a Level 2+ concern |
+
+### Boundary rules
+
+- Do not add infrastructure-as-code to the repo until the pilot architecture is validated with real users.
+- Keep the API wrapper thin — it should delegate to existing workflow functions, not duplicate logic.
+- Frontend and backend can share a monorepo during pilot. Separation is a Level 3 concern.
+- Auth should start as simple middleware in the API layer, not as a separate service.

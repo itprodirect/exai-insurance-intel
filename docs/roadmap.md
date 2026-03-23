@@ -121,6 +121,45 @@ experiments/<run-id>/grouped_query_outcomes.csv
 experiments/<run-id>/manifest.json
 ```
 
+## Phase 5 - Pilot Web Product
+
+This phase builds a controlled web product layer on top of the existing workflow engine. It is organized in three maturity levels so work can be sequenced and scoped without overbuilding.
+
+See [pilot-architecture-decision.md](./pilot-architecture-decision.md) for the locked architectural defaults.
+
+### Level 1 - Private / Internal Pilot
+
+Goal: a working web UI that internal users can use to run existing workflows through a browser instead of the CLI.
+
+| Roadmap item | Goal | Why it matters | Current status | Dependencies | Success criteria | GitHub issue |
+| --- | --- | --- | --- | --- | --- | --- |
+| Thin API wrapper | Expose existing workflows as FastAPI endpoints | Decouples frontend from Python CLI; enables web product path | `Done` | Phase 1-4 baseline | FastAPI app serves search, answer, research, find-similar, structured-search over HTTP with JSON responses | TBD |
+| Frontend app shell | Next.js + TypeScript + Tailwind + shadcn/ui scaffold with App Router | Establishes the frontend stack and deploy target | `Done` | Thin API wrapper | App shell renders, routes work, can call API endpoints | TBD |
+| Pilot auth + request boundary | Internal-only auth, request validation, rate limiting, budget guardrails, request logging | Prevents uncontrolled usage before the product is hardened | `Next` | Thin API wrapper | Only authenticated internal users can make requests; spend is bounded and logged | TBD |
+| Persistence baseline | Artifacts in S3, relational state/usage in Postgres, existing SQLite cache kept for local dev | Moves beyond local-only SQLite for pilot durability | `Next` | Thin API wrapper | Pilot runs persist artifacts to S3 and track usage in Postgres | TBD |
+
+### Level 2 - Limited External Beta
+
+Goal: controlled access for a small number of external users with observability and feedback loops.
+
+| Roadmap item | Goal | Current status |
+| --- | --- | --- |
+| Observability baseline | Structured logging, error tracking, basic latency/cost dashboards | `Later` |
+| Multi-user state | Per-user run history, saved queries, usage tracking | `Later` |
+| Async job support | Background execution for long-running research workflows if needed | `Later` |
+| Feedback and iteration UI | In-app feedback capture, query refinement flows | `Later` |
+
+### Level 3 - Hardened Long-Term Baseline
+
+Goal: production-grade reliability, security, and operational maturity.
+
+| Roadmap item | Goal | Current status |
+| --- | --- | --- |
+| Infrastructure as code | Terraform/CDK for repeatable deploy | `Later` |
+| Security hardening | OWASP baseline, dependency scanning, secret rotation | `Later` |
+| Horizontal scaling | Stateless API, connection pooling, CDN for frontend | `Later` |
+| CI/CD for full stack | Frontend + backend deploy pipelines, preview environments | `Later` |
+
 ## Hold / Explore
 
 These are preserved as future exploration themes, but they are not committed backlog items yet because they need sharper acceptance criteria first.
@@ -129,7 +168,6 @@ These are preserved as future exploration themes, but they are not committed bac
 - War Room integration patterns
 - Websets / persistent monitoring
 - MCP server integration
-- Streamlit or richer visualization layers beyond report exports
 
 ## Source Inputs
 
