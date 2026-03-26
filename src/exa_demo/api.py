@@ -44,6 +44,7 @@ from .endpoint_workflows import (
     run_research_workflow,
     run_structured_search_workflow,
 )
+from .jobs import submit_job
 from .persistence import (
     SavedQuery,
     create_artifact_store,
@@ -198,6 +199,10 @@ class RunResponse(BaseModel):
     artifact_count: int = 0
     error_message: Optional[str] = None
     user_id: Optional[str] = None
+
+
+class JobResponse(RunResponse):
+    result: Optional[Dict[str, Any]] = None
 
 
 class RunListResponse(BaseModel):
@@ -499,6 +504,49 @@ def api_research(req: ResearchRequest, request: Request) -> Dict[str, Any]:
         raise
 
 
+@api_router.post(
+    "/research/jobs",
+    response_model=JobResponse,
+    status_code=202,
+)
+def api_submit_research_job(
+    req: ResearchRequest, request: Request
+) -> Dict[str, Any]:
+    validate_mode(req.mode)
+    validate_query(req.query)
+    config, pricing, runtime, meta = _prepare_context(req.mode)
+    rid = _get_request_id(request)
+    uid = get_current_user(request)
+
+    record = submit_job(
+        run_repo=run_repo,
+        artifact_store=artifact_store,
+        workflow="research",
+        mode=req.mode,
+        request_id=rid,
+        query_preview=req.query,
+        run_fn=lambda: run_research_workflow(
+            query=req.query,
+            artifact_dir=ARTIFACT_DIR,
+            config=config,
+            pricing=pricing,
+            runtime=runtime,
+            runtime_metadata=meta,
+        ),
+        artifact_dir=ARTIFACT_DIR,
+        user_id=uid,
+    )
+    return _job_to_dict(record)
+
+
+@api_router.get("/research/jobs/{job_id}", response_model=JobResponse)
+def api_get_research_job(job_id: str) -> Dict[str, Any]:
+    record = run_repo.get(job_id)
+    if record is None or record.workflow != "research":
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _job_to_dict(record)
+
+
 @api_router.post("/find-similar", response_model=FindSimilarResponse)
 def api_find_similar(req: FindSimilarRequest, request: Request) -> Dict[str, Any]:
     validate_mode(req.mode)
@@ -749,6 +797,16 @@ def api_ops_summary(request: Request) -> Dict[str, Any]:
 def _run_to_dict(record) -> Dict[str, Any]:  # type: ignore[no-untyped-def]
     """Convert a RunRecord to a response-safe dict."""
     return asdict(record)
+
+
+def _job_to_dict(record) -> Dict[str, Any]:  # type: ignore[no-untyped-def]
+    """Convert a RunRecord job into the API response shape."""
+    payload = _run_to_dict(record)
+    result = None
+    if isinstance(record.extra, dict):
+        result = record.extra.get("result")
+    payload["result"] = result
+    return payload
 
 
 app.include_router(api_router)
