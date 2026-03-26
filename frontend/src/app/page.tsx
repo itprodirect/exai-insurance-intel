@@ -1,22 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HealthIndicator } from "@/components/health-indicator";
 import { SearchPanel } from "@/components/search-panel";
 import { AnswerPanel } from "@/components/answer-panel";
 import { ResearchPanel } from "@/components/research-panel";
+import OpsPanel from "@/components/ops-panel";
+import { MyWorkPanel } from "@/components/my-work-panel";
+import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-const TABS = [
+const BASE_TABS = [
   { id: "search", label: "Search" },
   { id: "answer", label: "Answer" },
   { id: "research", label: "Research" },
+  { id: "my-work", label: "My Work" },
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+const OPS_TAB = { id: "ops", label: "Ops" } as const;
+
+type TabId = (typeof BASE_TABS)[number]["id"] | typeof OPS_TAB.id;
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("search");
+  const [canAccessOps, setCanAccessOps] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .me()
+      .then((data) => {
+        if (!cancelled) {
+          setCanAccessOps(data.can_access_ops);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCanAccessOps(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!canAccessOps && activeTab === "ops") {
+      setActiveTab("my-work");
+    }
+  }, [activeTab, canAccessOps]);
+
+  const tabs = useMemo(
+    () => (canAccessOps ? [...BASE_TABS, OPS_TAB] : BASE_TABS),
+    [canAccessOps]
+  );
 
   return (
     <div className="min-h-screen">
@@ -37,7 +74,7 @@ export default function Home() {
       <main className="mx-auto max-w-4xl px-6 py-8">
         {/* Tab navigation */}
         <div className="mb-8 flex gap-1 rounded-lg bg-muted p-1">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -57,6 +94,8 @@ export default function Home() {
         {activeTab === "search" && <SearchPanel />}
         {activeTab === "answer" && <AnswerPanel />}
         {activeTab === "research" && <ResearchPanel />}
+        {activeTab === "my-work" && <MyWorkPanel />}
+        {activeTab === "ops" && canAccessOps && <OpsPanel />}
       </main>
     </div>
   );

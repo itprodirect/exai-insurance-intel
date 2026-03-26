@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+const BACKEND_API_KEY = process.env.BACKEND_API_KEY || "";
 
 async function handler(
   request: NextRequest,
@@ -10,9 +11,16 @@ async function handler(
   const backendPath = `/api/${path.join("/")}`;
   const url = `${BACKEND_URL}${backendPath}`;
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (BACKEND_API_KEY) {
+    headers["Authorization"] = `Bearer ${BACKEND_API_KEY}`;
+  }
+
   const init: RequestInit = {
     method: request.method,
-    headers: { "Content-Type": "application/json" },
+    headers,
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
@@ -21,6 +29,9 @@ async function handler(
 
   try {
     const resp = await fetch(url, init);
+    if (resp.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
     const data = await resp.json();
     return NextResponse.json(data, { status: resp.status });
   } catch {
@@ -33,3 +44,4 @@ async function handler(
 
 export const GET = handler;
 export const POST = handler;
+export const DELETE = handler;
