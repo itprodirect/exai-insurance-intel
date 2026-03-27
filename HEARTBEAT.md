@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-03-27T21:56:59.850773+00:00_
+_Generated: 2026-03-27T22:14:42.570314+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,20 +59,20 @@ _Generated: 2026-03-27T21:56:59.850773+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-03-27d
-- Objective: Add a short repo-native `AGENTS.md` for `exai-insurance-intel`.
+- Date: 2026-03-27e
+- Objective: Add a tracked `.github/PULL_REQUEST_TEMPLATE.md` for thin-slice review consistency.
 - Changes made:
-  - Confirmed there was no existing `AGENTS.md` anywhere relevant in the repo.
-  - Read `docs/agent-execution-defaults.md`, `README.md`, and `HEARTBEAT.md` to keep the new file aligned with current repo wording and focus.
-  - Added a root `AGENTS.md` covering repo purpose, current likely focus, what not to touch without explicit instruction, preferred agent workflow, required output format, and a narrow evidence-backed auth note.
+  - Confirmed `.github/` already exists and that no PR template existed anywhere relevant in the repo.
+  - Read `AGENTS.md` so the new template would complement the root agent guidance instead of duplicating it.
+  - Added `.github/PULL_REQUEST_TEMPLATE.md` with concise sections for summary, scope boundary, validation, risks/follow-ups, and a conditional single-record auth checklist.
   - Added a focused session log for this docs/process slice.
 - Validation:
-  - Verified the final `AGENTS.md` content and section coverage.
+  - Verified the final PR template content and section coverage.
   - Regenerated `HEARTBEAT.md` and `heartbeat.json`.
 - Open issues:
-  - `AGENTS.md` and `docs/agent-execution-defaults.md` now overlap slightly; this is acceptable for now because the new file is intentionally short and repo-root discoverable.
+  - The template stays intentionally small, so reviewers still need to exercise judgment on broader architectural or rollout risks not covered by the checklist.
 - Decisions proposed:
-  - Keep `AGENTS.md` short and repo-specific rather than copying the fuller defaults doc into the root.
+  - Keep the PR template checklist-style and complementary to `AGENTS.md` rather than turning it into a second long-form process guide.
 
 ## Next thin slice
-- If agent guidance starts to drift, consolidate `AGENTS.md` and `docs/agent-execution-defaults.md` around one clearly primary source.
+- If later needed, add one tiny contributor-facing note in README pointing maintainers to `AGENTS.md` and the PR template.
