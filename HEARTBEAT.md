@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-03-27T13:55:26.257276+00:00_
+_Generated: 2026-03-27T20:47:18.625729+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,30 +59,26 @@ _Generated: 2026-03-27T13:55:26.257276+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-03-27
-- Objective: Assess exai-insurance-intel for the memory + heartbeat pilot, scaffold the minimum repo-native files, generate one truthful heartbeat, and stop after the first validated scaffold pass.
+- Date: 2026-03-27a
+- Objective: Close the smallest real multi-user data-isolation gap by enforcing owner-or-ops authorization on single-record run/job read routes and validate the change with focused API tests.
 - Changes made:
-  - Inspected `README.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, `docs/pilot-architecture-decision.md`, `docs/agent-execution-defaults.md`, the 2026-03-22 pilot/session notes, `scripts/`, and the existing live-validation runner before writing new files.
-  - Verified that no prior `MEMORY.md`, `memory/`, `HEARTBEAT.md`, or `heartbeat.json` artifacts existed in this repo.
-  - Added `MEMORY.md` with verified repo purpose, strategic role, current milestone, durable decisions, operating posture, blockers, docs/setup notes, validation path, key files, automation guardrails, and update policy.
-  - Added `scripts/generate_heartbeat.py` to generate `HEARTBEAT.md` and `heartbeat.json` from `MEMORY.md` plus the latest `memory/*.md` file only.
-  - Generated the first `HEARTBEAT.md` and `heartbeat.json` for this repo.
+  - Inspected `src/exa_demo/api.py`, `src/exa_demo/api_auth.py`, `src/exa_demo/persistence.py`, `tests/test_api.py`, and `tests/test_api_auth.py` to confirm the single-record read gap and existing auth patterns.
+  - Added `require_owner_or_ops_access(...)` in `src/exa_demo/api_auth.py` as a minimal helper for already-fetched run records.
+  - Applied the helper to `GET /api/research/jobs/{job_id}` and `GET /api/runs/{record_id}` in `src/exa_demo/api.py`.
+  - Chose `404` for non-owner non-ops single-record reads so the API does not reveal whether another user's record exists.
+  - Added six focused multi-user tests in `tests/test_api_auth.py` covering owner, non-owner, and ops access for both research-job and run-record reads.
+  - Added a focused session log in `docs/sessions/2026-03-27-single-record-owner-or-ops-auth.md`.
 - Validation:
-  - Read the established pilot scaffold pattern from `C:\Users\user\github-reorg-project\` and `C:\Users\user\claims-ops-workbench\` and adapted the local generator shape without copying repo-specific claims/governance wording.
-  - Ran `python scripts/generate_heartbeat.py`.
-  - Confirmed `HEARTBEAT.md` and `heartbeat.json` were created successfully.
-  - Re-ran `python scripts/generate_heartbeat.py`.
-  - Confirmed the rerun refreshed generated outputs without changing `MEMORY.md` or `memory/2026-03-27.md`.
+  - Ran `python -m pytest tests/test_api_auth.py -q` and confirmed `21 passed`.
+  - Ran `python -m pytest tests/test_api.py -q` and confirmed `9 passed`.
+  - Ran `python -m ruff check src/exa_demo/api.py src/exa_demo/api_auth.py tests/test_api_auth.py` and confirmed all checks passed.
 - Open issues:
-  - The repo has a real FastAPI layer and frontend shell, but `docs/pilot-architecture-decision.md` and `docs/sessions/2026-03-22-pilot-alignment.md` still contain outdated current-state wording that says there is no frontend or HTTP API layer.
-  - The inspected docs and session history verify repeated smoke validation, but this scaffold pass did not verify a recorded real `--mode live` validation result for the shipped pilot surface.
-  - This session validated the memory + heartbeat scaffold only; it did not re-run the repo's broader lint, pytest, or smoke/live workflow suite.
+  - Single-record reads for legacy `RunRecord` rows with `user_id = null` now require ops access because ownership cannot be proven.
+  - This slice intentionally did not audit or redesign any other auth surfaces beyond `GET /api/research/jobs/{job_id}` and `GET /api/runs/{record_id}`.
 - Decisions proposed:
-  - Keep durable memory focused on verified repo posture, blockers, setup facts, canonical docs, and update policy instead of repeating the full roadmap.
-  - Keep the heartbeat generator local, markdown-sourced, and limited to writing `HEARTBEAT.md` and `heartbeat.json`.
-  - Treat doc drift as a heartbeat fact for human review rather than mutating strategic docs during this scaffold-only session.
+  - Keep single-record authorization logic as a narrow helper in `api_auth.py` instead of pushing ownership checks into persistence for this slice.
+  - Use `404` rather than `403` for non-owner access to per-record reads so record existence is not disclosed across users.
 
 ## Next thin slice
-- Review `MEMORY.md` for wording that should become approved durable memory for this repo.
-- Run the repo's broader local validation path only if you want a follow-up session-memory entry with fresh command results.
-- In a later focused session, reconcile the stale current-state wording in the pilot architecture/alignment docs and then record a deliberate real validation pass.
+- Audit whether any other single-record endpoints return user-owned data without an owner-or-ops check.
+- Decide separately whether legacy `user_id = null` records need a migration/backfill or should remain ops-only.

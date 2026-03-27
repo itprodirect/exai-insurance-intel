@@ -148,6 +148,25 @@ def require_ops_access(request: Request) -> str:
     return user_id
 
 
+def require_owner_or_ops_access(
+    request: Request,
+    owner_user_id: str | None,
+    *,
+    not_found_detail: str = "Record not found",
+) -> str:
+    """Allow access to the owner of a record or any ops user.
+
+    Non-owners receive a 404 so single-record lookups do not reveal whether a
+    record exists for another user.
+    """
+    user_id = get_current_user(request)
+    if user_can_access_ops(user_id):
+        return user_id
+    if owner_user_id and owner_user_id == user_id:
+        return user_id
+    raise HTTPException(status_code=404, detail=not_found_detail)
+
+
 # ---------------------------------------------------------------------------
 # Rate limiting (in-memory, per-IP)
 # ---------------------------------------------------------------------------

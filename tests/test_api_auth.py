@@ -55,6 +55,23 @@ def auth_client(_base_patches, monkeypatch):
     return TestClient(api_module.app)
 
 
+@pytest.fixture()
+def multi_user_client(_base_patches, monkeypatch):
+    """Client with per-user auth and a dedicated ops user."""
+    monkeypatch.setenv(
+        "PILOT_USERS",
+        json.dumps(
+            {
+                "alice": "key-alice",
+                "bob": "key-bob",
+                "ops": "key-ops",
+            }
+        ),
+    )
+    monkeypatch.setenv("PILOT_OPS_USERS", "ops")
+    return TestClient(api_module.app)
+
+
 # ---------------------------------------------------------------------------
 # Auth: bearer token
 # ---------------------------------------------------------------------------
@@ -231,6 +248,131 @@ def test_ops_forbidden_for_non_allowlisted_user(_base_patches, monkeypatch):
     )
     assert me.status_code == 200
     assert me.json()["can_access_ops"] is False
+
+
+# ---------------------------------------------------------------------------
+# Single-record run/job authorization
+# ---------------------------------------------------------------------------
+
+
+def test_owner_can_read_own_research_job(multi_user_client):
+    create = multi_user_client.post(
+        "/api/research/jobs",
+        json={"query": "Summarize the Florida CAT market outlook.", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert create.status_code == 202
+    job_id = create.json()["id"]
+
+    resp = multi_user_client.get(
+        f"/api/research/jobs/{job_id}",
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["user_id"] == "alice"
+
+
+def test_non_owner_cannot_read_another_users_research_job(multi_user_client):
+    create = multi_user_client.post(
+        "/api/research/jobs",
+        json={"query": "Summarize the Florida CAT market outlook.", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert create.status_code == 202
+    job_id = create.json()["id"]
+
+    resp = multi_user_client.get(
+        f"/api/research/jobs/{job_id}",
+        headers={"Authorization": "Bearer key-bob"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Job not found"
+
+
+def test_ops_user_can_read_another_users_research_job(multi_user_client):
+    create = multi_user_client.post(
+        "/api/research/jobs",
+        json={"query": "Summarize the Florida CAT market outlook.", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert create.status_code == 202
+    job_id = create.json()["id"]
+
+    resp = multi_user_client.get(
+        f"/api/research/jobs/{job_id}",
+        headers={"Authorization": "Bearer key-ops"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["user_id"] == "alice"
+
+
+def test_owner_can_read_own_run_record(multi_user_client):
+    create = multi_user_client.post(
+        "/api/search",
+        json={"query": "forensic engineer insurance", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert create.status_code == 200
+
+    runs = multi_user_client.get(
+        "/api/me/runs",
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert runs.status_code == 200
+    record_id = runs.json()["runs"][0]["id"]
+
+    resp = multi_user_client.get(
+        f"/api/runs/{record_id}",
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["user_id"] == "alice"
+
+
+def test_non_owner_cannot_read_another_users_run_record(multi_user_client):
+    create = multi_user_client.post(
+        "/api/search",
+        json={"query": "forensic engineer insurance", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert create.status_code == 200
+
+    runs = multi_user_client.get(
+        "/api/me/runs",
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert runs.status_code == 200
+    record_id = runs.json()["runs"][0]["id"]
+
+    resp = multi_user_client.get(
+        f"/api/runs/{record_id}",
+        headers={"Authorization": "Bearer key-bob"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Run not found"
+
+
+def test_ops_user_can_read_another_users_run_record(multi_user_client):
+    create = multi_user_client.post(
+        "/api/search",
+        json={"query": "forensic engineer insurance", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert create.status_code == 200
+
+    runs = multi_user_client.get(
+        "/api/me/runs",
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert runs.status_code == 200
+    record_id = runs.json()["runs"][0]["id"]
+
+    resp = multi_user_client.get(
+        f"/api/runs/{record_id}",
+        headers={"Authorization": "Bearer key-ops"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["user_id"] == "alice"
 
 
 # ---------------------------------------------------------------------------

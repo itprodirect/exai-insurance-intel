@@ -30,6 +30,7 @@ from .api_auth import (
     check_rate_limit,
     clamp_num_results,
     get_current_user,
+    require_owner_or_ops_access,
     require_ops_access,
     require_api_key,
     user_can_access_ops,
@@ -540,10 +541,15 @@ def api_submit_research_job(
 
 
 @api_router.get("/research/jobs/{job_id}", response_model=JobResponse)
-def api_get_research_job(job_id: str) -> Dict[str, Any]:
+def api_get_research_job(job_id: str, request: Request) -> Dict[str, Any]:
     record = run_repo.get(job_id)
     if record is None or record.workflow != "research":
         raise HTTPException(status_code=404, detail="Job not found")
+    require_owner_or_ops_access(
+        request,
+        record.user_id,
+        not_found_detail="Job not found",
+    )
     return _job_to_dict(record)
 
 
@@ -781,10 +787,15 @@ def api_list_runs(
 
 
 @api_router.get("/runs/{record_id}", response_model=RunResponse)
-def api_get_run(record_id: str) -> Dict[str, Any]:
+def api_get_run(record_id: str, request: Request) -> Dict[str, Any]:
     record = run_repo.get(record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Run not found")
+    require_owner_or_ops_access(
+        request,
+        record.user_id,
+        not_found_detail="Run not found",
+    )
     return _run_to_dict(record)
 
 
