@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-03-27T21:46:57.566869+00:00_
+_Generated: 2026-03-27T21:56:59.850773+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,21 +59,20 @@ _Generated: 2026-03-27T21:46:57.566869+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-03-27c
-- Objective: Add one minimal repo-process guardrail to prevent future single-record auth regressions.
+- Date: 2026-03-27d
+- Objective: Add a short repo-native `AGENTS.md` for `exai-insurance-intel`.
 - Changes made:
-  - Confirmed there is no `AGENTS.md` file and no PR template under `.github/` in this repo.
-  - Confirmed `.agents/skills/tier-a-review/SKILL.md` is gitignored local agent state and should not be pulled into this branch closeout.
-  - Chose `docs/agent-execution-defaults.md` as the smallest existing tracked review/process location.
-  - Added one short review rule requiring explicit owner-or-ops enforcement at the route boundary plus tests for owner read, non-owner denial, and ops read when allowed for new single-record routes returning user-owned data.
-  - Added a focused session log for this process-only slice.
+  - Confirmed there was no existing `AGENTS.md` anywhere relevant in the repo.
+  - Read `docs/agent-execution-defaults.md`, `README.md`, and `HEARTBEAT.md` to keep the new file aligned with current repo wording and focus.
+  - Added a root `AGENTS.md` covering repo purpose, current likely focus, what not to touch without explicit instruction, preferred agent workflow, required output format, and a narrow evidence-backed auth note.
+  - Added a focused session log for this docs/process slice.
 - Validation:
-  - Verified the inserted guidance in `docs/agent-execution-defaults.md`.
+  - Verified the final `AGENTS.md` content and section coverage.
   - Regenerated `HEARTBEAT.md` and `heartbeat.json`.
 - Open issues:
-  - This is a process guardrail only; it does not enforce policy automatically in code or CI.
+  - `AGENTS.md` and `docs/agent-execution-defaults.md` now overlap slightly; this is acceptable for now because the new file is intentionally short and repo-root discoverable.
 - Decisions proposed:
-  - Keep the guardrail in the smallest existing tracked repo process doc rather than creating a broader new process file for this thin slice.
+  - Keep `AGENTS.md` short and repo-specific rather than copying the fuller defaults doc into the root.
 
 ## Next thin slice
-- If desired later, mirror this rule into a PR template or automated review check once the repo has a stable contributor process surface.
+- If agent guidance starts to drift, consolidate `AGENTS.md` and `docs/agent-execution-defaults.md` around one clearly primary source.
