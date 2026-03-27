@@ -11,3 +11,8 @@ credibility_pass_results.csv
 exa_cache.sqlite.bak.*
 live-validation-artifacts/
 experiments/*
+.claude/
+.agents/
+artifacts_store/
+pilot_runs.sqlite
+*.egg-info/
