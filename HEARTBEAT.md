@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-03-27T22:14:42.570314+00:00_
+_Generated: 2026-03-27T22:28:42.948435+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,20 +59,21 @@ _Generated: 2026-03-27T22:14:42.570314+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-03-27e
-- Objective: Add a tracked `.github/PULL_REQUEST_TEMPLATE.md` for thin-slice review consistency.
+- Date: 2026-03-27f
+- Objective: Inspect one single-record mutation route involving user-owned data and patch at most one confirmed auth gap.
 - Changes made:
-  - Confirmed `.github/` already exists and that no PR template existed anywhere relevant in the repo.
-  - Read `AGENTS.md` so the new template would complement the root agent guidance instead of duplicating it.
-  - Added `.github/PULL_REQUEST_TEMPLATE.md` with concise sections for summary, scope boundary, validation, risks/follow-ups, and a conditional single-record auth checklist.
-  - Added a focused session log for this docs/process slice.
+  - Inventoried the mutation routes in `src/exa_demo/api.py`.
+  - Chose `DELETE /api/me/saved-queries/{query_id}` as the clearest single-record user-owned mutation boundary.
+  - Inspected the route in `src/exa_demo/api.py`, the scoped delete implementation in `src/exa_demo/persistence.py`, and the adjacent saved-query auth tests in `tests/test_users.py`.
+  - Confirmed the route already enforces owner-only deletion by passing the current `user_id` into a repository delete scoped by both `query_id` and `user_id`.
+  - Added a focused no-gap session log for this mutation auth audit.
 - Validation:
-  - Verified the final PR template content and section coverage.
-  - Regenerated `HEARTBEAT.md` and `heartbeat.json`.
+  - Ran `python -m pytest tests/test_users.py -q -k "delete_saved_query or delete_not_found or user_cannot_delete_others_query or delete_wrong_user"` and confirmed `4 passed, 20 deselected`.
 - Open issues:
-  - The template stays intentionally small, so reviewers still need to exercise judgment on broader architectural or rollout risks not covered by the checklist.
+  - No confirmed auth gap remains for the inspected saved-query deletion boundary.
+  - This slice intentionally did not audit any additional mutation routes.
 - Decisions proposed:
-  - Keep the PR template checklist-style and complementary to `AGENTS.md` rather than turning it into a second long-form process guide.
+  - Close this slice without product-code changes because the inspected mutation boundary already has correct owner scoping and adjacent coverage.
 
 ## Next thin slice
-- If later needed, add one tiny contributor-facing note in README pointing maintainers to `AGENTS.md` and the PR template.
+- Inspect one other single-record mutation route only if a clearly user-owned ID-based mutation endpoint is added or identified.
