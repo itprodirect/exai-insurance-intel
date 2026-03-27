@@ -1,6 +1,6 @@
 {
   "repo": "exai-insurance-intel",
-  "generated_at": "2026-03-27T21:46:57.566869+00:00",
+  "generated_at": "2026-03-27T21:56:59.850773+00:00",
   "purpose": "Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.",
   "strategic_role": "Workflow engine plus controlled pilot web-product base for internal insurance-intelligence validation.",
   "current_milestone": "Phase 5 Level 1 is partially complete: the thin FastAPI wrapper and frontend shell are shipped, while pilot auth/request controls and persistence baseline remain the next bounded slices.",
@@ -51,30 +51,29 @@
   ],
   "update_policy": "`MEMORY.md` stays curated and human-reviewed. `memory/YYYY-MM-DD.md` stays append-only. `HEARTBEAT.md` and `heartbeat.json` are reproducible generated outputs and are never the durable source of truth.",
   "last_session": {
-    "date": "2026-03-27c",
-    "objective": "Add one minimal repo-process guardrail to prevent future single-record auth regressions.",
+    "date": "2026-03-27d",
+    "objective": "Add a short repo-native `AGENTS.md` for `exai-insurance-intel`.",
     "changes_made": [
-      "Confirmed there is no `AGENTS.md` file and no PR template under `.github/` in this repo.",
-      "Confirmed `.agents/skills/tier-a-review/SKILL.md` is gitignored local agent state and should not be pulled into this branch closeout.",
-      "Chose `docs/agent-execution-defaults.md` as the smallest existing tracked review/process location.",
-      "Added one short review rule requiring explicit owner-or-ops enforcement at the route boundary plus tests for owner read, non-owner denial, and ops read when allowed for new single-record routes returning user-owned data.",
-      "Added a focused session log for this process-only slice."
+      "Confirmed there was no existing `AGENTS.md` anywhere relevant in the repo.",
+      "Read `docs/agent-execution-defaults.md`, `README.md`, and `HEARTBEAT.md` to keep the new file aligned with current repo wording and focus.",
+      "Added a root `AGENTS.md` covering repo purpose, current likely focus, what not to touch without explicit instruction, preferred agent workflow, required output format, and a narrow evidence-backed auth note.",
+      "Added a focused session log for this docs/process slice."
     ],
     "validation_run": [
-      "Verified the inserted guidance in `docs/agent-execution-defaults.md`.",
+      "Verified the final `AGENTS.md` content and section coverage.",
       "Regenerated `HEARTBEAT.md` and `heartbeat.json`."
     ],
     "open_issues": [
-      "This is a process guardrail only; it does not enforce policy automatically in code or CI."
+      "`AGENTS.md` and `docs/agent-execution-defaults.md` now overlap slightly; this is acceptable for now because the new file is intentionally short and repo-root discoverable."
     ],
     "decisions_proposed": [
-      "Keep the guardrail in the smallest existing tracked repo process doc rather than creating a broader new process file for this thin slice."
+      "Keep `AGENTS.md` short and repo-specific rather than copying the fuller defaults doc into the root."
     ],
     "next_thin_slice": [
-      "If desired later, mirror this rule into a PR template or automated review check once the repo has a stable contributor process surface."
+      "If agent guidance starts to drift, consolidate `AGENTS.md` and `docs/agent-execution-defaults.md` around one clearly primary source."
     ]
   },
   "next_thin_slice": [
-    "If desired later, mirror this rule into a PR template or automated review check once the repo has a stable contributor process surface."
+    "If agent guidance starts to drift, consolidate `AGENTS.md` and `docs/agent-execution-defaults.md` around one clearly primary source."
   ]
 }
