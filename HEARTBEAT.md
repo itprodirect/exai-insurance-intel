@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-03-27T22:28:42.948435+00:00_
+_Generated: 2026-03-27T22:46:51.963062+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,21 +59,21 @@ _Generated: 2026-03-27T22:28:42.948435+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-03-27f
-- Objective: Inspect one single-record mutation route involving user-owned data and patch at most one confirmed auth gap.
+- Date: 2026-03-27g
+- Objective: Inspect one collection/list auth boundary involving user-owned data and patch at most one confirmed gap.
 - Changes made:
-  - Inventoried the mutation routes in `src/exa_demo/api.py`.
-  - Chose `DELETE /api/me/saved-queries/{query_id}` as the clearest single-record user-owned mutation boundary.
-  - Inspected the route in `src/exa_demo/api.py`, the scoped delete implementation in `src/exa_demo/persistence.py`, and the adjacent saved-query auth tests in `tests/test_users.py`.
-  - Confirmed the route already enforces owner-only deletion by passing the current `user_id` into a repository delete scoped by both `query_id` and `user_id`.
-  - Added a focused no-gap session log for this mutation auth audit.
+  - Inventoried the collection/list routes in `src/exa_demo/api.py`.
+  - Chose `GET /api/runs` because it exists and is the highest-risk non-`/me` collection route in the current branch state.
+  - Inspected the route in `src/exa_demo/api.py`, the underlying `list_runs(...)` repository call in `src/exa_demo/persistence.py`, the ops gate in `src/exa_demo/api_auth.py`, and the adjacent `/api/runs` auth tests in `tests/test_users.py`.
+  - Confirmed the route already enforces ops-only access before the unscoped repository query can return cross-user run records.
+  - Added a focused no-gap session log for this collection auth audit.
 - Validation:
-  - Ran `python -m pytest tests/test_users.py -q -k "delete_saved_query or delete_not_found or user_cannot_delete_others_query or delete_wrong_user"` and confirmed `4 passed, 20 deselected`.
+  - Ran `python -m pytest tests/test_users.py -q -k "allowlisted_ops_user_sees_all_runs or non_ops_user_cannot_access_global_runs"` and confirmed `2 passed, 22 deselected`.
 - Open issues:
-  - No confirmed auth gap remains for the inspected saved-query deletion boundary.
-  - This slice intentionally did not audit any additional mutation routes.
+  - No confirmed auth gap remains for the inspected `GET /api/runs` boundary.
+  - This slice intentionally did not audit any additional collection routes.
 - Decisions proposed:
-  - Close this slice without product-code changes because the inspected mutation boundary already has correct owner scoping and adjacent coverage.
+  - Close this slice without product-code changes because the inspected collection boundary is already correctly ops-gated.
 
 ## Next thin slice
-- Inspect one other single-record mutation route only if a clearly user-owned ID-based mutation endpoint is added or identified.
+- Inspect one other collection/list route only if it is not `/me/...` scoped, not obviously ops-only, and can expose user-owned data across accounts.
