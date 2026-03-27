@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-03-27T20:47:18.625729+00:00_
+_Generated: 2026-03-27T21:46:57.566869+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,26 +59,21 @@ _Generated: 2026-03-27T20:47:18.625729+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-03-27a
-- Objective: Close the smallest real multi-user data-isolation gap by enforcing owner-or-ops authorization on single-record run/job read routes and validate the change with focused API tests.
+- Date: 2026-03-27c
+- Objective: Add one minimal repo-process guardrail to prevent future single-record auth regressions.
 - Changes made:
-  - Inspected `src/exa_demo/api.py`, `src/exa_demo/api_auth.py`, `src/exa_demo/persistence.py`, `tests/test_api.py`, and `tests/test_api_auth.py` to confirm the single-record read gap and existing auth patterns.
-  - Added `require_owner_or_ops_access(...)` in `src/exa_demo/api_auth.py` as a minimal helper for already-fetched run records.
-  - Applied the helper to `GET /api/research/jobs/{job_id}` and `GET /api/runs/{record_id}` in `src/exa_demo/api.py`.
-  - Chose `404` for non-owner non-ops single-record reads so the API does not reveal whether another user's record exists.
-  - Added six focused multi-user tests in `tests/test_api_auth.py` covering owner, non-owner, and ops access for both research-job and run-record reads.
-  - Added a focused session log in `docs/sessions/2026-03-27-single-record-owner-or-ops-auth.md`.
+  - Confirmed there is no `AGENTS.md` file and no PR template under `.github/` in this repo.
+  - Confirmed `.agents/skills/tier-a-review/SKILL.md` is gitignored local agent state and should not be pulled into this branch closeout.
+  - Chose `docs/agent-execution-defaults.md` as the smallest existing tracked review/process location.
+  - Added one short review rule requiring explicit owner-or-ops enforcement at the route boundary plus tests for owner read, non-owner denial, and ops read when allowed for new single-record routes returning user-owned data.
+  - Added a focused session log for this process-only slice.
 - Validation:
-  - Ran `python -m pytest tests/test_api_auth.py -q` and confirmed `21 passed`.
-  - Ran `python -m pytest tests/test_api.py -q` and confirmed `9 passed`.
-  - Ran `python -m ruff check src/exa_demo/api.py src/exa_demo/api_auth.py tests/test_api_auth.py` and confirmed all checks passed.
+  - Verified the inserted guidance in `docs/agent-execution-defaults.md`.
+  - Regenerated `HEARTBEAT.md` and `heartbeat.json`.
 - Open issues:
-  - Single-record reads for legacy `RunRecord` rows with `user_id = null` now require ops access because ownership cannot be proven.
-  - This slice intentionally did not audit or redesign any other auth surfaces beyond `GET /api/research/jobs/{job_id}` and `GET /api/runs/{record_id}`.
+  - This is a process guardrail only; it does not enforce policy automatically in code or CI.
 - Decisions proposed:
-  - Keep single-record authorization logic as a narrow helper in `api_auth.py` instead of pushing ownership checks into persistence for this slice.
-  - Use `404` rather than `403` for non-owner access to per-record reads so record existence is not disclosed across users.
+  - Keep the guardrail in the smallest existing tracked repo process doc rather than creating a broader new process file for this thin slice.
 
 ## Next thin slice
-- Audit whether any other single-record endpoints return user-owned data without an owner-or-ops check.
-- Decide separately whether legacy `user_id = null` records need a migration/backfill or should remain ops-only.
+- If desired later, mirror this rule into a PR template or automated review check once the repo has a stable contributor process surface.

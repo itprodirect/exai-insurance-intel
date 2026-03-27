@@ -17,6 +17,7 @@ Before considering a session complete:
 - `python -m pytest -q` passes
 - Any new code has tests (unit or integration)
 - If a new CLI command or API endpoint was added, it works in smoke mode
+- Any new single-record route returning user-owned data enforces explicit owner-or-ops access at the route boundary and includes tests for owner read, non-owner denial, and ops read when allowed
 
 ## Doc Update Rules
 
