@@ -1,5 +1,27 @@
 # MEMORY
 
+This file is the front door to repo memory for `exai-insurance-intel`.
+
+## Read order
+- Start here for the current durable repo snapshot and operating posture.
+- Read `AGENTS.md` next for repo-specific working constraints and closeout expectations.
+- Use `HEARTBEAT.md` or `heartbeat.json` for generated current-state summaries derived from this file plus the latest `memory/*.md` entry.
+- Use `memory/*.md` for append-only session history; read the latest entry first when you need recent work context.
+- Use `docs/sessions/` for fuller implementation history and validation notes when the memory files point you there.
+
+## Memory stack in this repo
+- `MEMORY.md` is the curated, human-reviewed source of truth and primary entry point.
+- `memory/` keeps append-only session memory history. It is not deleted or rewritten by this task, and it remains the historical trail behind the current snapshot.
+- `HEARTBEAT.md` and `heartbeat.json` are generated sidecars, not the durable source of truth.
+- The newer memory-stack files `docs/repo-brief.md`, `docs/heartbeat.md`, `docs/decisions.md`, and `logs/` do not exist in this repo today, so this file should point to the files that are actually present rather than inventing new ones.
+
+## Current operational memory files
+- `AGENTS.md`
+- `MEMORY.md`
+- `HEARTBEAT.md`
+- `heartbeat.json`
+- `memory/*.md`
+
 ## Repo
 exai-insurance-intel
 
