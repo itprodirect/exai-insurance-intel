@@ -24,7 +24,7 @@ class FakeCacheStore:
     def __init__(self) -> None:
         self.calls = []
 
-    def get_or_set(self, payload, estimated_cost, *, run_id, budget_cap_usd, fetcher):
+    def get_or_set(self, payload, estimated_cost, *, run_id, budget_cap_usd, fetcher, response_filter=None):
         self.calls.append(
             {
                 "payload": payload,
@@ -33,7 +33,10 @@ class FakeCacheStore:
                 "budget_cap_usd": budget_cap_usd,
             }
         )
-        return fetcher(payload), False
+        result = fetcher(payload)
+        if response_filter is not None:
+            result = response_filter(result)
+        return result, False
 
 
 def test_build_exa_payload_includes_additive_deep_search_fields() -> None:

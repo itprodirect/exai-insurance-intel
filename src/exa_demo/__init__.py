@@ -18,7 +18,7 @@ from .reporting import (
     summarize_failure_taxonomy,
     write_comparison_markdown,
 )
-from .safety import extract_preview, redact_text
+from .safety import extract_preview, redact_response, redact_text
 
 __all__ = [
     "CostBreakdown",
@@ -43,6 +43,7 @@ __all__ = [
     "load_benchmark_queries",
     "load_runtime_state",
     "recommendation",
+    "redact_response",
     "redact_text",
     "render_comparison_markdown",
     "request_hash_for_payload",

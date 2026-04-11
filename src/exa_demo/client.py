@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 import requests
 
@@ -22,6 +22,7 @@ from .client_smoke import (
     mock_exa_structured_search_response,
 )
 from .cost_model import estimate_cost_from_pricing
+from .safety import redact_response
 
 
 @dataclass
@@ -89,6 +90,7 @@ def exa_search_people(
         int(config["max_supported_results_for_estimate"]),
     )
 
+    _redact = _make_response_filter(config)
     response_json, cache_hit = cache_store.get_or_set(
         payload,
         estimated_cost,
@@ -101,6 +103,7 @@ def exa_search_people(
             smoke_no_network=smoke_no_network,
             endpoint_name="search",
         ),
+        response_filter=_redact,
     )
 
     return response_json, _build_call_meta(
@@ -133,6 +136,7 @@ def exa_structured_search(
         int(config["max_supported_results_for_estimate"]),
     )
 
+    _redact = _make_response_filter(config)
     response_json, cache_hit = cache_store.get_or_set(
         payload,
         estimated_cost,
@@ -145,6 +149,7 @@ def exa_structured_search(
             smoke_no_network=smoke_no_network,
             endpoint_name="search",
         ),
+        response_filter=_redact,
     )
 
     return response_json, _build_call_meta(
@@ -202,6 +207,7 @@ def exa_find_similar(
         int(config["max_supported_results_for_estimate"]),
     )
 
+    _redact = _make_response_filter(config)
     response_json, cache_hit = cache_store.get_or_set(
         payload,
         estimated_cost,
@@ -214,6 +220,7 @@ def exa_find_similar(
             smoke_no_network=smoke_no_network,
             endpoint_name="findSimilar",
         ),
+        response_filter=_redact,
     )
 
     return response_json, _build_call_meta(
@@ -237,6 +244,7 @@ def exa_answer(
     payload = build_answer_payload(query)
     estimated_cost = _estimate_answer_cost_from_pricing(pricing)
 
+    _redact = _make_response_filter(config)
     response_json, cache_hit = cache_store.get_or_set(
         payload,
         estimated_cost,
@@ -249,6 +257,7 @@ def exa_answer(
             smoke_no_network=smoke_no_network,
             endpoint_name="answer",
         ),
+        response_filter=_redact,
     )
 
     return response_json, _build_call_meta(
@@ -273,6 +282,7 @@ def exa_research(
     payload = build_research_payload(query)
     estimated_cost = _estimate_research_cost_from_pricing(pricing)
 
+    _redact = _make_response_filter(config)
     response_json, cache_hit = cache_store.get_or_set(
         payload,
         estimated_cost,
@@ -285,6 +295,7 @@ def exa_research(
             smoke_no_network=smoke_no_network,
             endpoint_name="research",
         ),
+        response_filter=_redact,
     )
 
     return response_json, _build_call_meta(
@@ -294,6 +305,14 @@ def exa_research(
         estimated_cost=estimated_cost,
         resolved_search_type=None,
     )
+
+
+def _make_response_filter(
+    config: Mapping[str, Any],
+) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
+    """Return a filter that redacts PII from Exa responses before caching."""
+    enabled = bool(config.get("redact_emails_phones", True))
+    return lambda resp: redact_response(resp, enabled=enabled)
 
 
 def _build_call_meta(
