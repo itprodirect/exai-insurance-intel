@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 
 EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
@@ -19,6 +19,48 @@ def redact_text(text: Optional[str], *, enabled: bool = True) -> Optional[str]:
     text = PHONE_RE.sub("[REDACTED_PHONE]", text)
     text = STREETISH_RE.sub("[REDACTED_ADDRESS]", text)
     return text
+
+
+_RESULT_TEXT_FIELDS = ("text", "summary", "title", "author")
+
+
+def redact_response(response_json: Dict[str, Any], *, enabled: bool = True) -> Dict[str, Any]:
+    """Redact PII from an Exa API response *before* it reaches the cache.
+
+    Operates on a shallow copy so the caller's original dict is not mutated.
+    Only touches fields that may carry free-text PII; structural fields
+    (url, id, score, costDollars, …) are left intact.
+    """
+    if not enabled or not isinstance(response_json, dict):
+        return response_json
+
+    out = dict(response_json)
+    results = out.get("results")
+    if isinstance(results, list):
+        redacted_results = []
+        for item in results:
+            if not isinstance(item, dict):
+                redacted_results.append(item)
+                continue
+            item = dict(item)  # shallow copy
+            for field in _RESULT_TEXT_FIELDS:
+                val = item.get(field)
+                if isinstance(val, str):
+                    item[field] = redact_text(val)
+            highlights = item.get("highlights")
+            if isinstance(highlights, list):
+                item["highlights"] = [
+                    redact_text(h) if isinstance(h, str) else h
+                    for h in highlights
+                ]
+            redacted_results.append(item)
+        out["results"] = redacted_results
+
+    # answer / research endpoints store top-level "answer" text
+    if isinstance(out.get("answer"), str):
+        out["answer"] = redact_text(out["answer"])
+
+    return out
 
 
 def extract_preview(

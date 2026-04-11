@@ -198,6 +198,7 @@ class SqliteCacheStore:
         run_id: str,
         budget_cap_usd: float,
         fetcher: Callable[[Dict[str, Any]], Dict[str, Any]],
+        response_filter: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> Tuple[Dict[str, Any], bool]:
         request_hash = request_hash_for_payload(payload)
         cached = self.lookup(request_hash)
@@ -222,6 +223,8 @@ class SqliteCacheStore:
         )
 
         response_json = fetcher(payload)
+        if response_filter is not None:
+            response_json = response_filter(response_json)
         self.store(request_hash, payload, response_json, estimated_cost)
         self.ledger_add(
             request_hash=request_hash,
