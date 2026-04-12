@@ -348,8 +348,7 @@ class LocalRunRepository:
         cols = ", ".join(d.keys())
         placeholders = ", ".join(["?"] * len(d))
         upsert = ", ".join(f"{k}=excluded.{k}" for k in d.keys() if k != "id")
-        sql = (
-            f"INSERT INTO runs ({cols}) VALUES ({placeholders}) "
+        sql = (            f"INSERT INTO runs ({cols}) VALUES ({placeholders}) "
             f"ON CONFLICT(id) DO UPDATE SET {upsert}"
         )
         with self._lock:
@@ -655,8 +654,7 @@ class PostgresRunRepository:
         upsert = ", ".join(
             f"{k}=EXCLUDED.{k}" for k in d.keys() if k != "id"
         )
-        sql = (
-            f"INSERT INTO runs ({cols}) VALUES ({placeholders}) "
+        sql = (            f"INSERT INTO runs ({cols}) VALUES ({placeholders}) "
             f"ON CONFLICT(id) DO UPDATE SET {upsert}"
         )
         conn = self._connect()
