@@ -1,6 +1,7 @@
 ﻿from .artifacts import ExperimentArtifactWriter
 from .cache import SqliteCacheStore, request_hash_for_payload
-from .client import ExaCallMeta, build_exa_payload, exa_search_people
+from .client import ExaCallMeta, build_exa_payload, exa_circuit_breaker, exa_search_people
+from .resilience import CircuitBreaker, CircuitOpenError
 from .config import RuntimeState, default_config, default_pricing, load_runtime_state
 from .evaluation import (
     DEFAULT_RELEVANCE_KEYWORDS,
@@ -21,6 +22,8 @@ from .reporting import (
 from .safety import extract_preview, redact_response, redact_text
 
 __all__ = [
+    "CircuitBreaker",
+    "CircuitOpenError",
     "CostBreakdown",
     "DEFAULT_RELEVANCE_KEYWORDS",
     "ExaCallMeta",
@@ -38,6 +41,7 @@ __all__ = [
     "default_pricing",
     "evaluate_batch_queries",
     "evaluate_result_set",
+    "exa_circuit_breaker",
     "exa_search_people",
     "extract_preview",
     "load_benchmark_queries",
