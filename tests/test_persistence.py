@@ -230,7 +230,12 @@ class _FakePostgresCursor:
             "COUNT(*) AS total_runs" in normalized
             and "FROM runs WHERE user_id = %s" not in normalized
         ):
-            self._results = [self._summary_row(self.db.runs.values())]
+            self._results = [
+                self._summary_row(
+                    self.db.runs.values(),
+                    coalesce_sums=False,
+                )
+            ]
             return
 
         if normalized.startswith(
@@ -268,7 +273,7 @@ class _FakePostgresCursor:
 
         if "COUNT(*) AS total_runs" in normalized and "FROM runs WHERE user_id = %s" in normalized:
             rows = [row for row in self.db.runs.values() if row.get("user_id") == params[0]]
-            self._results = [self._summary_row(rows)]
+            self._results = [self._summary_row(rows, coalesce_sums=True)]
             return
 
         if normalized.startswith(
@@ -319,15 +324,18 @@ class _FakePostgresCursor:
     def fetchall(self):
         return list(self._results)
 
-    def _summary_row(self, rows):
+    def _summary_row(self, rows, *, coalesce_sums):
         rows = list(rows)
         durations = [row["duration_ms"] for row in rows if row.get("duration_ms") is not None]
         started = [row["started_at"] for row in rows if row.get("started_at") is not None]
+        completed = sum(1 for row in rows if row.get("status") == "completed")
+        failed = sum(1 for row in rows if row.get("status") == "failed")
+        cache_hits = sum(1 for row in rows if row.get("cache_hit") is True)
         return {
             "total_runs": len(rows),
-            "completed": sum(1 for row in rows if row.get("status") == "completed"),
-            "failed": sum(1 for row in rows if row.get("status") == "failed"),
-            "cache_hits": sum(1 for row in rows if row.get("cache_hit") is True),
+            "completed": completed if rows or coalesce_sums else None,
+            "failed": failed if rows or coalesce_sums else None,
+            "cache_hits": cache_hits if rows or coalesce_sums else None,
             "avg_duration_ms": sum(durations) / len(durations) if durations else None,
             "max_duration_ms": max(durations) if durations else None,
             "earliest_run": min(started) if started else None,
@@ -473,6 +481,22 @@ class TestLocalRunRepository:
         assert restored is not None
         assert restored.cache_hit is None
 
+    def test_user_summary_empty(self, tmp_path):
+        repo = persist_module.LocalRunRepository(
+            db_path=tmp_path / "runs.sqlite"
+        )
+        summary = repo.user_summary("missing-user")
+        assert summary["total_runs"] == 0
+        assert summary["completed"] == 0
+        assert summary["failed"] == 0
+        assert summary["cache_hits"] == 0
+        assert summary["avg_duration_ms"] is None
+        assert summary["max_duration_ms"] is None
+        assert summary["earliest_run"] is None
+        assert summary["latest_run"] is None
+        assert summary["total_spent_usd"] == 0.0
+        assert summary["by_workflow"] == []
+
 
 # ---------------------------------------------------------------------------
 # PostgresRunRepository
@@ -480,6 +504,21 @@ class TestLocalRunRepository:
 
 
 class TestPostgresRunRepository:
+    def test_summary_empty(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        summary = repo.summary()
+        assert summary["total_runs"] == 0
+        assert summary["completed"] is None
+        assert summary["failed"] is None
+        assert summary["cache_hits"] is None
+        assert summary["avg_duration_ms"] is None
+        assert summary["max_duration_ms"] is None
+        assert summary["earliest_run"] is None
+        assert summary["latest_run"] is None
+        assert summary["total_spent_usd"] == 0.0
+        assert summary["by_workflow"] == []
+        assert summary["by_mode"] == []
+
     def test_save_and_get(self, fake_postgres_repo):
         repo, _ = fake_postgres_repo
         rec = persist_module.RunRecord(
@@ -527,6 +566,31 @@ class TestPostgresRunRepository:
         assert restored.cache_hit is True
         assert restored.extra == {"attempt": 2}
 
+    def test_cache_hit_false(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                cache_hit=False,
+            )
+        )
+
+        restored = repo.get(repo.list_runs(limit=1)[0].id)
+
+        assert restored is not None
+        assert restored.cache_hit is False
+
+    def test_cache_hit_none(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        rec = persist_module.RunRecord(workflow="search", mode="smoke")
+        repo.save(rec)
+
+        restored = repo.get(rec.id)
+
+        assert restored is not None
+        assert restored.cache_hit is None
+
     def test_list_runs_ordering(self, fake_postgres_repo):
         repo, _ = fake_postgres_repo
         for minute in range(5):
@@ -549,6 +613,80 @@ class TestPostgresRunRepository:
     def test_get_missing_returns_none(self, fake_postgres_repo):
         repo, _ = fake_postgres_repo
         assert repo.get("missing") is None
+
+    def test_filter_by_workflow(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        for workflow in ("search", "search", "answer"):
+            repo.save(
+                persist_module.RunRecord(
+                    workflow=workflow,
+                    mode="smoke",
+                )
+            )
+
+        assert len(repo.list_runs(workflow="search")) == 2
+        assert len(repo.list_runs(workflow="answer")) == 1
+
+    def test_filter_by_status(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                status="completed",
+            )
+        )
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                status="failed",
+            )
+        )
+
+        assert len(repo.list_runs(status="completed")) == 1
+        assert len(repo.list_runs(status="failed")) == 1
+
+    def test_filter_by_mode(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+            )
+        )
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="live",
+            )
+        )
+
+        assert len(repo.list_runs(mode="smoke")) == 1
+        assert len(repo.list_runs(mode="live")) == 1
+
+    def test_filter_by_user_id(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                user_id="user-1",
+            )
+        )
+        repo.save(
+            persist_module.RunRecord(
+                workflow="answer",
+                mode="smoke",
+                user_id="user-2",
+            )
+        )
+
+        runs = repo.list_runs(user_id="user-1")
+
+        assert len(runs) == 1
+        assert runs[0].user_id == "user-1"
+        assert runs[0].workflow == "search"
 
     def test_summary_with_data(self, fake_postgres_repo):
         repo, _ = fake_postgres_repo
@@ -599,6 +737,33 @@ class TestPostgresRunRepository:
             {"mode": "smoke", "count": 2},
             {"mode": "live", "count": 1},
         ]
+
+    def test_user_summary_no_matching_user(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                status="completed",
+                duration_ms=100.0,
+                cache_hit=True,
+                cost_summary={"spent_usd": 0.005},
+                user_id="user-1",
+            )
+        )
+
+        summary = repo.user_summary("missing-user")
+
+        assert summary["total_runs"] == 0
+        assert summary["completed"] == 0
+        assert summary["failed"] == 0
+        assert summary["cache_hits"] == 0
+        assert summary["avg_duration_ms"] is None
+        assert summary["max_duration_ms"] is None
+        assert summary["earliest_run"] is None
+        assert summary["latest_run"] is None
+        assert summary["total_spent_usd"] == 0.0
+        assert summary["by_workflow"] == []
 
     def test_user_summary(self, fake_postgres_repo):
         repo, _ = fake_postgres_repo
@@ -700,6 +865,10 @@ class TestPostgresRunRepository:
 
         assert deleted is True
         assert repo.list_saved_queries("user-1") == []
+
+    def test_delete_saved_query_miss(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        assert repo.delete_saved_query("missing-query", "user-1") is False
 
 
 # ---------------------------------------------------------------------------
