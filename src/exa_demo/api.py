@@ -57,6 +57,8 @@ from .ranked_workflows import run_search_workflow
 
 logger = logging.getLogger("exa_demo.api")
 
+SAVED_QUERY_WORKFLOWS = frozenset({"search", "answer", "research"})
+
 app = FastAPI(
     title="exai-insurance-intel API",
     description="Thin API wrapper over existing insurance intelligence workflows.",
@@ -731,10 +733,12 @@ def api_save_query(
     req: SavedQueryRequest, request: Request
 ) -> Dict[str, Any]:
     uid = get_current_user(request)
+    workflow = _validate_saved_query_workflow(req.workflow)
+    query = validate_query(req.query)
     sq = SavedQuery(
         user_id=uid,
-        workflow=req.workflow,
-        query=req.query,
+        workflow=workflow,
+        query=query,
         label=req.label,
         created_at=_utc_now(),
     )
@@ -818,6 +822,17 @@ def _job_to_dict(record) -> Dict[str, Any]:  # type: ignore[no-untyped-def]
         result = record.extra.get("result")
     payload["result"] = result
     return payload
+
+
+def _validate_saved_query_workflow(workflow: str) -> str:
+    normalized = workflow.strip()
+    if normalized not in SAVED_QUERY_WORKFLOWS:
+        allowed = ", ".join(sorted(SAVED_QUERY_WORKFLOWS))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid saved-query workflow '{workflow}'. Must be one of: {allowed}",
+        )
+    return normalized
 
 
 app.include_router(api_router)

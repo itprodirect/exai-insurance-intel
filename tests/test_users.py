@@ -290,6 +290,24 @@ class TestSavedQueries:
         assert data["count"] == 1
         assert data["queries"][0]["id"] == sq["id"]
 
+    def test_rejects_invalid_saved_query_workflow(self, multi_user_client):
+        resp = multi_user_client.post(
+            "/api/me/saved-queries",
+            json={"workflow": "unsupported-workflow", "query": "Florida CAT market"},
+            headers={"Authorization": "Bearer key-alice"},
+        )
+        assert resp.status_code == 400
+        assert "Invalid saved-query workflow" in resp.json()["detail"]
+
+    def test_rejects_saved_query_longer_than_pilot_limit(self, multi_user_client):
+        resp = multi_user_client.post(
+            "/api/me/saved-queries",
+            json={"workflow": "search", "query": "x" * 1001},
+            headers={"Authorization": "Bearer key-alice"},
+        )
+        assert resp.status_code == 400
+        assert "Query too long" in resp.json()["detail"]
+
     def test_delete_saved_query(self, multi_user_client):
         # Create.
         resp = multi_user_client.post(
