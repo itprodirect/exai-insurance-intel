@@ -1,11 +1,11 @@
-﻿name: ci
+name: ci
 
 on:
   push:
   pull_request:
 
 jobs:
-  smoke-notebook:
+  lint-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -45,3 +45,38 @@ jobs:
       - name: Run bounded smoke validation
         run: |
           python scripts/run_live_validation.py --mode smoke --run-id-prefix ci-smoke
+
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Dependency audit (pip-audit)
+        run: |
+          pip install pip-audit
+          python -m pip freeze | grep -Ev '^(#|-e |exai-insurance-intel @ )' > audit-requirements.txt
+          pip-audit --strict --desc --no-deps -r audit-requirements.txt
+
+      - name: SAST scan (bandit)
+        run: |
+          pip install bandit
+          bandit -r src/ -c pyproject.toml
+
+      - name: Secret scan (detect-secrets)
+        run: |
+          pip install detect-secrets
+          detect-secrets scan --all-files --baseline .secrets.baseline --exclude-files '\.ipynb$' --exclude-files 'experiments/'
+          detect-secrets audit --report .secrets.baseline
