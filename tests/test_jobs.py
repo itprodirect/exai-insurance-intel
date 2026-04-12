@@ -178,6 +178,29 @@ class TestSubmitJob:
         assert "running" in observed_statuses
         assert "completed" in observed_statuses
 
+    def test_job_uploads_artifacts_to_store_location(self, repo, store, tmp_path):
+        art_dir = tmp_path / "artifacts" / "run-artifacts"
+        art_dir.mkdir(parents=True)
+        (art_dir / "config.json").write_text("{}")
+        (art_dir / "summary.json").write_text("{}")
+
+        record = jobs_module.submit_job(
+            run_repo=repo,
+            artifact_store=store,
+            workflow="research",
+            mode="smoke",
+            request_id=None,
+            query_preview="test",
+            run_fn=lambda: {"run_id": "run-artifacts", "summary": {}},
+            artifact_dir=str(tmp_path / "artifacts"),
+        )
+        _wait_for_job(repo, record.id)
+
+        completed = repo.get(record.id)
+        assert completed is not None
+        assert completed.artifact_count == 2
+        assert completed.artifact_location == str(tmp_path / "store" / "run-artifacts")
+
 
 # ---------------------------------------------------------------------------
 # API endpoint tests
