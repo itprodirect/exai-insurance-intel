@@ -32,7 +32,7 @@ Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contrac
 Workflow engine plus controlled pilot web-product base for internal insurance-intelligence validation.
 
 ## Current milestone
-Phase 5 Level 1 is partially complete: the thin FastAPI wrapper and frontend shell are shipped, while pilot auth/request controls and persistence baseline remain the next bounded slices.
+Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is now the active next bounded slice.
 
 ## Durable decisions
 - Markdown docs under `docs/` remain the canonical backlog, architecture, ADR, and session-history surface for this repo.
@@ -45,8 +45,8 @@ Phase 5 Level 1 is partially complete: the thin FastAPI wrapper and frontend she
 Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI app in the same package, and a Next.js frontend in `frontend/`. SQLite cache, budget controls, benchmark fixtures, exported artifacts, and smoke/live execution modes are already in place. Manual live validation is script-backed, but the inspected docs only verify smoke validation runs so far.
 
 ## Top blockers
-- Phase 5 Level 1 is not complete because auth, request-boundary controls, rate limiting, and request logging are still the next slice in `docs/issue-tracker.md`.
-- Pilot persistence baseline is still missing; local SQLite is present, but the planned S3/Postgres pilot path is not yet implemented.
+- Phase 5 Level 1 is not complete because the persistence baseline is still missing; local SQLite is present, but the planned S3/Postgres pilot path is not yet implemented.
+- GitHub issue numbering has drifted from the local Phase 5 roadmap IDs, so the tracker still has `TBD` GitHub URLs for those items until dedicated issues are created.
 - Docs freshness is mixed because `docs/pilot-architecture-decision.md` and `docs/sessions/2026-03-22-pilot-alignment.md` still describe a pre-slice state with no frontend/API layer, while README and later slice notes show both shipped.
 
 ## Docs freshness
