@@ -1,121 +1,847 @@
 {
+  "version": "2.0.0",
   "default_suite": "all",
   "suites": {
-    "all": [
-      "public adjuster licensing requirements Florida DFS",
-      "public adjuster fee limits by state",
-      "public adjuster disciplinary actions Florida",
-      "public adjuster association board members Florida",
-      "policyholder attorney bad faith property insurance Florida site:linkedin.com",
-      "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
-      "insurance coverage expert witness former adjuster property claims site:linkedin.com",
-      "claims consultant catastrophe response litigation support property insurance site:linkedin.com",
-      "Florida property insurance appraisal clause case law",
-      "bad faith insurance claim jury verdict Florida 2024",
-      "assignment of benefits AOB litigation Florida recent rulings",
-      "Citizens Property Insurance depopulation program",
-      "insurance appraisal umpire property claims Florida site:linkedin.com",
-      "certified property damage appraiser Florida",
-      "property damage appraisal panel umpire qualified neutral",
-      "commercial property loss appraiser large loss",
-      "licensed independent adjuster Florida large loss",
-      "independent adjuster CAT team deployment hurricane",
-      "independent adjuster firm staff augmentation carrier",
-      "IA firm catastrophe response contract adjusters",
-      "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com",
-      "Xactimate trainer estimator large loss consultant site:linkedin.com",
-      "water mitigation IICRC expert witness insurance dispute site:linkedin.com",
-      "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com",
-      "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
-      "building envelope consultant moisture intrusion expert witness Florida site:linkedin.com",
-      "forensic accountant business interruption insurance claim expert witness site:linkedin.com",
-      "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
-      "fire origin and cause investigator expert witness insurance litigation site:linkedin.com",
-      "emergency board-up service hurricane Florida certified",
-      "claims management software property insurance",
-      "AI property damage assessment insurtech",
-      "civil engineer structural damage assessment hurricane expert witness site:linkedin.com",
-      "hurricane board-up contractor dispatch Florida",
-      "water extraction mitigation response vendor",
-      "mold remediation catastrophe contractor insurance claim expert witness site:linkedin.com",
-      "drying restoration vendor hurricane response Florida",
-      "contents restoration business interruption consultant",
-      "carrier preferred vendor network restoration",
-      "third party administrator catastrophe claims Florida",
-      "managed repair program contractor network insurance",
-      "Florida insurance legislative session homeowners premiums",
-      "Florida Office of Insurance Regulation market conduct bulletin",
-      "NAIC homeowners insurance model law update",
-      "Florida surplus lines market update",
-      "catastrophe reinsurance market outlook homeowners insurance",
-      "Florida property insurance rate filing news",
-      "claims technology underwriting workflow insurance",
-      "property insurance vendor performance scorecard"
-    ],
-    "public_adjusters": [
-      "public adjuster licensing requirements Florida DFS",
-      "public adjuster fee limits by state",
-      "public adjuster disciplinary actions Florida",
-      "public adjuster association board members Florida",
-      "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com"
-    ],
-    "forensic_and_damage_engineering": [
-      "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
-      "building envelope consultant moisture intrusion expert witness Florida site:linkedin.com",
-      "forensic accountant business interruption insurance claim expert witness site:linkedin.com",
-      "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
-      "fire origin and cause investigator expert witness insurance litigation site:linkedin.com"
-    ],
-    "cat_law_and_coverage": [
-      "policyholder attorney bad faith property insurance Florida site:linkedin.com",
-      "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
-      "insurance coverage expert witness former adjuster property claims site:linkedin.com",
-      "claims consultant catastrophe response litigation support property insurance site:linkedin.com",
-      "Florida property insurance appraisal clause case law",
-      "bad faith insurance claim jury verdict Florida 2024",
-      "assignment of benefits AOB litigation Florida recent rulings",
-      "Citizens Property Insurance depopulation program"
-    ],
-    "coverage_and_litigation": [
-      "policyholder attorney bad faith property insurance Florida site:linkedin.com",
-      "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
-      "insurance coverage expert witness former adjuster property claims site:linkedin.com",
-      "claims consultant catastrophe response litigation support property insurance site:linkedin.com"
-    ],
-    "appraisers_umpires_and_restoration": [
-      "insurance appraisal umpire property claims Florida site:linkedin.com",
-      "certified property damage appraiser Florida",
-      "property damage appraisal panel umpire qualified neutral",
-      "commercial property loss appraiser large loss",
-      "Xactimate trainer estimator large loss consultant site:linkedin.com",
-      "water mitigation IICRC expert witness insurance dispute site:linkedin.com",
-      "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com"
-    ],
-    "adjusters_appraisers_and_restoration": [
-      "insurance appraisal umpire property claims Florida site:linkedin.com",
-      "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com",
-      "Xactimate trainer estimator large loss consultant site:linkedin.com",
-      "water mitigation IICRC expert witness insurance dispute site:linkedin.com",
-      "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com",
-      "civil engineer structural damage assessment hurricane expert witness site:linkedin.com"
-    ],
-    "independent_adjusters": [
-      "licensed independent adjuster Florida large loss",
-      "independent adjuster CAT team deployment hurricane",
-      "independent adjuster firm staff augmentation carrier",
-      "IA firm catastrophe response contract adjusters"
-    ],
-    "adjacent_industries": [
-      "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
-      "building envelope consultant moisture intrusion expert witness Florida site:linkedin.com",
-      "forensic accountant business interruption insurance claim expert witness site:linkedin.com",
-      "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
-      "fire origin and cause investigator expert witness insurance litigation site:linkedin.com",
-      "emergency board-up service hurricane Florida certified",
-      "claims management software property insurance",
-      "AI property damage assessment insurtech",
-      "civil engineer structural damage assessment hurricane expert witness site:linkedin.com"
-    ],
+    "all": {
+      "description": "Master suite combining all domain queries across every category.",
+      "focus": "comprehensive evaluation",
+      "queries": [
+        {
+          "text": "public adjuster licensing requirements Florida DFS",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster fee limits by state",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster disciplinary actions Florida",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster association board members Florida",
+          "topic": "public adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com",
+          "topic": "public adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "public adjuster continuing education requirements Florida",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster bond and insurance requirements by state",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster commercial property claim specialist site:linkedin.com",
+          "topic": "public adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "public adjuster catastrophe response team hurricane deployment",
+          "topic": "public adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "public adjuster ethics complaint enforcement action state regulator",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "policyholder attorney bad faith property insurance Florida site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "insurance coverage expert witness former adjuster property claims site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "claims consultant catastrophe response litigation support property insurance site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "Florida property insurance appraisal clause case law",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "bad faith insurance claim jury verdict Florida 2024",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "assignment of benefits AOB litigation Florida recent rulings",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "Citizens Property Insurance depopulation program",
+          "topic": "cat law and coverage",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "property insurance concurrent causation doctrine hurricane flood",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "valued policy law total loss dispute property insurance",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "insurance bad faith extracontractual damages catastrophe claim",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "anti-assignment clause property insurance policy transfer Florida",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "property insurance coverage denial wind vs flood dispute",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "insurance appraisal umpire property claims Florida site:linkedin.com",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "certified property damage appraiser Florida",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "property damage appraisal panel umpire qualified neutral",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "commercial property loss appraiser large loss",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "Xactimate trainer estimator large loss consultant site:linkedin.com",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "residential property damage appraiser wind hail Florida",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "appraisal umpire selection process property insurance dispute",
+          "topic": "appraisers and umpires",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "commercial roof damage appraiser industrial property loss",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "insurance appraisal award enforcement compel appraisal Florida",
+          "topic": "appraisers and umpires",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "licensed independent adjuster Florida large loss",
+          "topic": "independent adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "independent adjuster CAT team deployment hurricane",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "independent adjuster firm staff augmentation carrier",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "IA firm catastrophe response contract adjusters",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "independent adjuster daily field adjuster property claims site:linkedin.com",
+          "topic": "independent adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "catastrophe adjuster certification training TWIA hurricane",
+          "topic": "independent adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "independent adjuster commercial property large loss specialist site:linkedin.com",
+          "topic": "independent adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "IA firm multi-state catastrophe deployment logistics",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "independent adjuster licensing reciprocity state requirements",
+          "topic": "independent adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "building envelope consultant moisture intrusion expert witness Florida site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "forensic accountant business interruption insurance claim expert witness site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "fire origin and cause investigator expert witness insurance litigation site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "civil engineer structural damage assessment hurricane expert witness site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "hydrologist flood damage expert witness insurance litigation site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "geotechnical engineer sinkhole damage assessment Florida insurance site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "electrical engineer lightning surge damage expert witness property claim site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "forensic architect construction defect expert witness insurance dispute site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "hurricane board-up contractor dispatch Florida",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "water extraction mitigation response vendor",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "mold remediation catastrophe contractor insurance claim expert witness site:linkedin.com",
+          "topic": "restoration and mitigation",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "drying restoration vendor hurricane response Florida",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "contents restoration business interruption consultant",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "people"
+        },
+        {
+          "text": "emergency board-up service hurricane Florida certified",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "large loss restoration contractor commercial property fire flood",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "smoke and soot remediation specialist insurance claim restoration",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "IICRC certified water damage restoration technician site:linkedin.com",
+          "topic": "restoration and mitigation",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "catastrophe temporary housing relocation services insurance",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "claims management software property insurance",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "AI property damage assessment insurtech",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "carrier preferred vendor network restoration",
+          "topic": "vendor ecosystem",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "third party administrator catastrophe claims Florida",
+          "topic": "vendor ecosystem",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "managed repair program contractor network insurance",
+          "topic": "vendor ecosystem",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "claims technology underwriting workflow insurance",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "property insurance vendor performance scorecard",
+          "topic": "vendor ecosystem",
+          "intent": "market watch",
+          "category": "company"
+        },
+        {
+          "text": "parametric insurance catastrophe risk insurtech platform",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "drone roof inspection insurance claim technology provider",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "insurance fraud detection SIU technology vendor",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "Florida insurance legislative session homeowners premiums",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "Florida Office of Insurance Regulation market conduct bulletin",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "NAIC homeowners insurance model law update",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "Florida surplus lines market update",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "catastrophe reinsurance market outlook homeowners insurance",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "Florida property insurance rate filing news",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "Louisiana insurance commissioner enforcement action property carrier",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "Texas windstorm insurance association TWIA rate increase",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "insurance insolvency guaranty fund property carrier liquidation",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "state insurance department climate risk disclosure requirement",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        }
+      ]
+    },
+    "public_adjusters": {
+      "description": "Licensed public adjusters \u00e2\u20ac\u201d licensing, regulation, fee structures, disciplinary actions, and large-loss specialists.",
+      "focus": "practitioner discovery",
+      "queries": [
+        {
+          "text": "public adjuster licensing requirements Florida DFS",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster fee limits by state",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster disciplinary actions Florida",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster association board members Florida",
+          "topic": "public adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "licensed public adjuster large loss hurricane Florida commercial property site:linkedin.com",
+          "topic": "public adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "public adjuster continuing education requirements Florida",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster bond and insurance requirements by state",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "public adjuster commercial property claim specialist site:linkedin.com",
+          "topic": "public adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "public adjuster catastrophe response team hurricane deployment",
+          "topic": "public adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "public adjuster ethics complaint enforcement action state regulator",
+          "topic": "public adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        }
+      ]
+    },
+    "cat_law_and_coverage": {
+      "description": "Property insurance litigation, bad faith, appraisal disputes, AOB, and coverage case law.",
+      "focus": "legal research",
+      "queries": [
+        {
+          "text": "policyholder attorney bad faith property insurance Florida site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "Texas hail damage property insurance attorney appraisal dispute site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "insurance coverage expert witness former adjuster property claims site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "claims consultant catastrophe response litigation support property insurance site:linkedin.com",
+          "topic": "cat law and coverage",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "Florida property insurance appraisal clause case law",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "bad faith insurance claim jury verdict Florida 2024",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "assignment of benefits AOB litigation Florida recent rulings",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "Citizens Property Insurance depopulation program",
+          "topic": "cat law and coverage",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "property insurance concurrent causation doctrine hurricane flood",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "valued policy law total loss dispute property insurance",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "insurance bad faith extracontractual damages catastrophe claim",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "anti-assignment clause property insurance policy transfer Florida",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "property insurance coverage denial wind vs flood dispute",
+          "topic": "cat law and coverage",
+          "intent": "legal research",
+          "category": "news"
+        }
+      ]
+    },
+    "appraisers_and_umpires": {
+      "description": "Property damage appraisers, neutral umpires, and appraisal panel professionals.",
+      "focus": "practitioner discovery",
+      "queries": [
+        {
+          "text": "insurance appraisal umpire property claims Florida site:linkedin.com",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "certified property damage appraiser Florida",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "property damage appraisal panel umpire qualified neutral",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "commercial property loss appraiser large loss",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "Xactimate trainer estimator large loss consultant site:linkedin.com",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "residential property damage appraiser wind hail Florida",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "appraisal umpire selection process property insurance dispute",
+          "topic": "appraisers and umpires",
+          "intent": "legal research",
+          "category": "news"
+        },
+        {
+          "text": "commercial roof damage appraiser industrial property loss",
+          "topic": "appraisers and umpires",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "insurance appraisal award enforcement compel appraisal Florida",
+          "topic": "appraisers and umpires",
+          "intent": "legal research",
+          "category": "news"
+        }
+      ]
+    },
+    "independent_adjusters": {
+      "description": "Licensed independent adjusters, IA firms, CAT team deployment, and carrier staff augmentation.",
+      "focus": "firm and practitioner discovery",
+      "queries": [
+        {
+          "text": "licensed independent adjuster Florida large loss",
+          "topic": "independent adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "independent adjuster CAT team deployment hurricane",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "independent adjuster firm staff augmentation carrier",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "IA firm catastrophe response contract adjusters",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "independent adjuster daily field adjuster property claims site:linkedin.com",
+          "topic": "independent adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "catastrophe adjuster certification training TWIA hurricane",
+          "topic": "independent adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        },
+        {
+          "text": "independent adjuster commercial property large loss specialist site:linkedin.com",
+          "topic": "independent adjusters",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "IA firm multi-state catastrophe deployment logistics",
+          "topic": "independent adjusters",
+          "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "independent adjuster licensing reciprocity state requirements",
+          "topic": "independent adjusters",
+          "intent": "regulatory lookup",
+          "category": "news"
+        }
+      ]
+    },
+    "forensic_and_damage_engineering": {
+      "description": "Forensic engineers, expert witnesses, and technical specialists in wind, water, fire, structural, and building envelope damage.",
+      "focus": "expert discovery",
+      "queries": [
+        {
+          "text": "forensic engineer wind damage expert witness Florida property insurance site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "building envelope consultant moisture intrusion expert witness Florida site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "forensic accountant business interruption insurance claim expert witness site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "meteorologist hurricane wind field expert witness litigation site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "fire origin and cause investigator expert witness insurance litigation site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "civil engineer structural damage assessment hurricane expert witness site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "roofing consultant wind uplift tile roof expert witness Florida site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "hydrologist flood damage expert witness insurance litigation site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "geotechnical engineer sinkhole damage assessment Florida insurance site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "electrical engineer lightning surge damage expert witness property claim site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        },
+        {
+          "text": "forensic architect construction defect expert witness insurance dispute site:linkedin.com",
+          "topic": "forensic and damage engineering",
+          "intent": "expert discovery",
+          "category": "people"
+        }
+      ]
+    },
     "restoration_and_mitigation": {
       "description": "Field-service vendors and mitigation specialists involved in post-loss response.",
       "focus": "vendor discovery",
@@ -149,11 +875,41 @@
           "topic": "restoration and mitigation",
           "intent": "vendor discovery",
           "category": "people"
+        },
+        {
+          "text": "emergency board-up service hurricane Florida certified",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "large loss restoration contractor commercial property fire flood",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "smoke and soot remediation specialist insurance claim restoration",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
+        },
+        {
+          "text": "IICRC certified water damage restoration technician site:linkedin.com",
+          "topic": "restoration and mitigation",
+          "intent": "people discovery",
+          "category": "people"
+        },
+        {
+          "text": "catastrophe temporary housing relocation services insurance",
+          "topic": "restoration and mitigation",
+          "intent": "vendor discovery",
+          "category": "company"
         }
       ]
     },
     "carrier_tpa_and_vendor_ecosystem": {
-      "description": "Carriers, TPAs, software vendors, and managed-repair ecosystem discovery.",
+      "description": "Carriers, TPAs, software vendors, managed-repair networks, and insurtech ecosystem discovery.",
       "focus": "firm discovery",
       "queries": [
         {
@@ -184,6 +940,36 @@
           "text": "managed repair program contractor network insurance",
           "topic": "vendor ecosystem",
           "intent": "firm discovery",
+          "category": "company"
+        },
+        {
+          "text": "claims technology underwriting workflow insurance",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "property insurance vendor performance scorecard",
+          "topic": "vendor ecosystem",
+          "intent": "market watch",
+          "category": "company"
+        },
+        {
+          "text": "parametric insurance catastrophe risk insurtech platform",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "drone roof inspection insurance claim technology provider",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
+          "category": "company"
+        },
+        {
+          "text": "insurance fraud detection SIU technology vendor",
+          "topic": "vendor ecosystem",
+          "intent": "software discovery",
           "category": "company"
         }
       ]
@@ -224,6 +1010,30 @@
         },
         {
           "text": "Florida property insurance rate filing news",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "Louisiana insurance commissioner enforcement action property carrier",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "Texas windstorm insurance association TWIA rate increase",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "insurance insolvency guaranty fund property carrier liquidation",
+          "topic": "regulatory and market news",
+          "intent": "market watch",
+          "category": "news"
+        },
+        {
+          "text": "state insurance department climate risk disclosure requirement",
           "topic": "regulatory and market news",
           "intent": "market watch",
           "category": "news"
