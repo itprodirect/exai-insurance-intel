@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
+from datetime import datetime, timezone
 from pathlib import Path
 
 import exa_demo.api as api_module
@@ -120,6 +123,260 @@ class _FakeS3Client:
         return {"Contents": contents}
 
 
+def _iso_utc(year, month, day, hour, minute=0, second=0):
+    return datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        tzinfo=timezone.utc,
+    ).isoformat()
+
+
+def _to_datetime(value):
+    if value is None or isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+class _FakePostgresDb:
+    def __init__(self):
+        self.runs = {}
+        self.saved_queries = {}
+        self.connect_calls = []
+
+
+class _FakePostgresConnection:
+    def __init__(self, db):
+        self.db = db
+        self.commits = 0
+        self.closed = False
+
+    def cursor(self, cursor_factory=None):
+        return _FakePostgresCursor(self.db, cursor_factory=cursor_factory)
+
+    def commit(self):
+        self.commits += 1
+
+    def close(self):
+        self.closed = True
+
+
+class _FakePostgresCursor:
+    def __init__(self, db, cursor_factory=None):
+        self.db = db
+        self.cursor_factory = cursor_factory
+        self._results = []
+        self.rowcount = -1
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, sql, params=None):
+        normalized = " ".join(sql.split())
+        params = list(params or [])
+        self.rowcount = -1
+
+        if normalized.startswith("CREATE TABLE IF NOT EXISTS runs"):
+            self._results = []
+            return
+
+        if normalized.startswith("INSERT INTO runs"):
+            columns = normalized.split("INSERT INTO runs (", 1)[1].split(
+                ") VALUES", 1
+            )[0]
+            row = dict(zip([col.strip() for col in columns.split(",")], params))
+            for key in ("started_at", "completed_at"):
+                row[key] = _to_datetime(row.get(key))
+            self.db.runs[row["id"]] = row
+            self._results = []
+            self.rowcount = 1
+            return
+
+        if normalized == "SELECT * FROM runs WHERE id = %s":
+            row = self.db.runs.get(params[0])
+            self._results = [dict(row)] if row is not None else []
+            return
+
+        if normalized.startswith("SELECT * FROM runs"):
+            filtered = list(self.db.runs.values())
+            param_idx = 0
+            for field in ("workflow", "mode", "status", "user_id"):
+                clause = f"{field} = %s"
+                if clause in normalized:
+                    filtered = [
+                        row for row in filtered if row.get(field) == params[param_idx]
+                    ]
+                    param_idx += 1
+            limit = params[param_idx]
+            offset = params[param_idx + 1]
+            filtered.sort(
+                key=lambda row: row.get("started_at") or datetime.min.replace(
+                    tzinfo=timezone.utc
+                ),
+                reverse=True,
+            )
+            self._results = [
+                dict(row) for row in filtered[offset : offset + limit]
+            ]
+            return
+
+        if (
+            "COUNT(*) AS total_runs" in normalized
+            and "FROM runs WHERE user_id = %s" not in normalized
+        ):
+            self._results = [self._summary_row(self.db.runs.values())]
+            return
+
+        if normalized.startswith(
+            "SELECT workflow, COUNT(*) AS count, ROUND(AVG(duration_ms)::numeric, 1)"
+        ):
+            self._results = self._by_workflow_rows(
+                self.db.runs.values(),
+                include_avg=True,
+            )
+            return
+
+        if normalized.startswith("SELECT mode, COUNT(*) AS count FROM runs"):
+            counts = {}
+            for row in self.db.runs.values():
+                counts[row["mode"]] = counts.get(row["mode"], 0) + 1
+            self._results = [
+                {"mode": mode, "count": count}
+                for mode, count in sorted(
+                    counts.items(),
+                    key=lambda item: (-item[1], item[0]),
+                )
+            ]
+            return
+
+        if "SUM((cost_summary->>'spent_usd')::numeric)" in normalized:
+            rows = self.db.runs.values()
+            if "AND user_id = %s" in normalized:
+                rows = [row for row in rows if row.get("user_id") == params[0]]
+            total = 0.0
+            for row in rows:
+                cost_summary = row.get("cost_summary") or {}
+                total += float(cost_summary.get("spent_usd", 0) or 0)
+            self._results = [{"total_spent_usd": total}]
+            return
+
+        if "COUNT(*) AS total_runs" in normalized and "FROM runs WHERE user_id = %s" in normalized:
+            rows = [row for row in self.db.runs.values() if row.get("user_id") == params[0]]
+            self._results = [self._summary_row(rows)]
+            return
+
+        if normalized.startswith(
+            "SELECT workflow, COUNT(*) AS count FROM runs WHERE user_id = %s"
+        ):
+            rows = [row for row in self.db.runs.values() if row.get("user_id") == params[0]]
+            self._results = self._by_workflow_rows(rows, include_avg=False)
+            return
+
+        if normalized.startswith("INSERT INTO saved_queries"):
+            row = {
+                "id": params[0],
+                "user_id": params[1],
+                "workflow": params[2],
+                "query": params[3],
+                "label": params[4],
+                "created_at": _to_datetime(params[5]),
+            }
+            self.db.saved_queries[row["id"]] = row
+            self._results = []
+            self.rowcount = 1
+            return
+
+        if normalized.startswith("SELECT * FROM saved_queries WHERE user_id = %s"):
+            rows = [
+                dict(row)
+                for row in self.db.saved_queries.values()
+                if row["user_id"] == params[0]
+            ]
+            rows.sort(key=lambda row: row["created_at"], reverse=True)
+            self._results = rows
+            return
+
+        if normalized.startswith("DELETE FROM saved_queries WHERE id = %s AND user_id = %s"):
+            existing = self.db.saved_queries.get(params[0])
+            deleted = existing is not None and existing["user_id"] == params[1]
+            if deleted:
+                del self.db.saved_queries[params[0]]
+            self._results = []
+            self.rowcount = 1 if deleted else 0
+            return
+
+        raise AssertionError(f"Unhandled SQL in fake Postgres cursor: {normalized}")
+
+    def fetchone(self):
+        return self._results[0] if self._results else None
+
+    def fetchall(self):
+        return list(self._results)
+
+    def _summary_row(self, rows):
+        rows = list(rows)
+        durations = [row["duration_ms"] for row in rows if row.get("duration_ms") is not None]
+        started = [row["started_at"] for row in rows if row.get("started_at") is not None]
+        return {
+            "total_runs": len(rows),
+            "completed": sum(1 for row in rows if row.get("status") == "completed"),
+            "failed": sum(1 for row in rows if row.get("status") == "failed"),
+            "cache_hits": sum(1 for row in rows if row.get("cache_hit") is True),
+            "avg_duration_ms": sum(durations) / len(durations) if durations else None,
+            "max_duration_ms": max(durations) if durations else None,
+            "earliest_run": min(started) if started else None,
+            "latest_run": max(started) if started else None,
+        }
+
+    def _by_workflow_rows(self, rows, *, include_avg):
+        grouped = {}
+        for row in rows:
+            workflow = row["workflow"]
+            bucket = grouped.setdefault(workflow, {"count": 0, "durations": []})
+            bucket["count"] += 1
+            if row.get("duration_ms") is not None:
+                bucket["durations"].append(row["duration_ms"])
+        results = []
+        for workflow, bucket in grouped.items():
+            entry = {
+                "workflow": workflow,
+                "count": bucket["count"],
+            }
+            if include_avg:
+                entry["avg_duration_ms"] = (
+                    round(sum(bucket["durations"]) / len(bucket["durations"]), 1)
+                    if bucket["durations"]
+                    else None
+                )
+            results.append(entry)
+        results.sort(key=lambda item: (-item["count"], item["workflow"]))
+        return results
+
+
+@pytest.fixture()
+def fake_postgres_repo(monkeypatch):
+    db = _FakePostgresDb()
+    extras = types.ModuleType("psycopg2.extras")
+    extras.RealDictCursor = object
+    psycopg2 = types.ModuleType("psycopg2")
+
+    def connect(dsn):
+        db.connect_calls.append(dsn)
+        return _FakePostgresConnection(db)
+
+    psycopg2.connect = connect
+    psycopg2.extras = extras
+    monkeypatch.setitem(sys.modules, "psycopg2", psycopg2)
+    monkeypatch.setitem(sys.modules, "psycopg2.extras", extras)
+    return persist_module.PostgresRunRepository("postgresql://fake"), db
+
+
 class TestS3ArtifactStore:
     def test_run_location_uses_s3_prefix(self):
         store = persist_module.S3ArtifactStore(
@@ -215,6 +472,234 @@ class TestLocalRunRepository:
         restored = repo.get(rec.id)
         assert restored is not None
         assert restored.cache_hit is None
+
+
+# ---------------------------------------------------------------------------
+# PostgresRunRepository
+# ---------------------------------------------------------------------------
+
+
+class TestPostgresRunRepository:
+    def test_save_and_get(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        rec = persist_module.RunRecord(
+            workflow="search",
+            mode="live",
+            status="completed",
+            started_at=_iso_utc(2026, 3, 22, 0, 1),
+            completed_at=_iso_utc(2026, 3, 22, 0, 2),
+            cache_hit=True,
+            cost_summary={"spent_usd": 0.015, "provider": "exa"},
+            extra={"source": "test"},
+        )
+        repo.save(rec)
+
+        restored = repo.get(rec.id)
+        assert restored is not None
+        assert restored.workflow == "search"
+        assert restored.mode == "live"
+        assert restored.status == "completed"
+        assert restored.cache_hit is True
+        assert restored.cost_summary == {"spent_usd": 0.015, "provider": "exa"}
+        assert restored.extra == {"source": "test"}
+        assert restored.started_at == _iso_utc(2026, 3, 22, 0, 1)
+        assert restored.completed_at == _iso_utc(2026, 3, 22, 0, 2)
+
+    def test_upsert(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        rec = persist_module.RunRecord(
+            workflow="answer",
+            mode="smoke",
+            status="pending",
+            cache_hit=False,
+            extra={"attempt": 1},
+        )
+        repo.save(rec)
+
+        rec.status = "completed"
+        rec.cache_hit = True
+        rec.extra = {"attempt": 2}
+        repo.save(rec)
+
+        restored = repo.get(rec.id)
+        assert restored is not None
+        assert restored.status == "completed"
+        assert restored.cache_hit is True
+        assert restored.extra == {"attempt": 2}
+
+    def test_list_runs_ordering(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        for minute in range(5):
+            repo.save(
+                persist_module.RunRecord(
+                    workflow="search",
+                    mode="smoke",
+                    started_at=_iso_utc(2026, 3, 22, 0, minute),
+                )
+            )
+
+        runs = repo.list_runs(limit=3)
+
+        assert [run.started_at for run in runs] == [
+            _iso_utc(2026, 3, 22, 0, 4),
+            _iso_utc(2026, 3, 22, 0, 3),
+            _iso_utc(2026, 3, 22, 0, 2),
+        ]
+
+    def test_get_missing_returns_none(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        assert repo.get("missing") is None
+
+    def test_summary_with_data(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                status="completed",
+                started_at=_iso_utc(2026, 3, 22, 0, 0),
+                duration_ms=100.0,
+                cache_hit=True,
+                cost_summary={"spent_usd": 0.005},
+            )
+        )
+        repo.save(
+            persist_module.RunRecord(
+                workflow="answer",
+                mode="live",
+                status="completed",
+                started_at=_iso_utc(2026, 3, 22, 1, 0),
+                duration_ms=200.0,
+                cache_hit=False,
+                cost_summary={"spent_usd": 0.01},
+            )
+        )
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                status="failed",
+                started_at=_iso_utc(2026, 3, 22, 2, 0),
+                duration_ms=50.0,
+            )
+        )
+
+        summary = repo.summary()
+
+        assert summary["total_runs"] == 3
+        assert summary["completed"] == 2
+        assert summary["failed"] == 1
+        assert summary["cache_hits"] == 1
+        assert summary["total_spent_usd"] == pytest.approx(0.015)
+        assert summary["by_workflow"] == [
+            {"workflow": "search", "count": 2, "avg_duration_ms": 75.0},
+            {"workflow": "answer", "count": 1, "avg_duration_ms": 200.0},
+        ]
+        assert summary["by_mode"] == [
+            {"mode": "smoke", "count": 2},
+            {"mode": "live", "count": 1},
+        ]
+
+    def test_user_summary(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                status="completed",
+                started_at=_iso_utc(2026, 3, 22, 0, 0),
+                duration_ms=100.0,
+                cache_hit=True,
+                cost_summary={"spent_usd": 0.005},
+                user_id="user-1",
+            )
+        )
+        repo.save(
+            persist_module.RunRecord(
+                workflow="answer",
+                mode="live",
+                status="failed",
+                started_at=_iso_utc(2026, 3, 22, 1, 0),
+                duration_ms=200.0,
+                cost_summary={"spent_usd": 0.02},
+                user_id="user-1",
+            )
+        )
+        repo.save(
+            persist_module.RunRecord(
+                workflow="search",
+                mode="smoke",
+                status="completed",
+                started_at=_iso_utc(2026, 3, 22, 2, 0),
+                duration_ms=300.0,
+                cost_summary={"spent_usd": 0.03},
+                user_id="user-2",
+            )
+        )
+
+        summary = repo.user_summary("user-1")
+
+        assert summary["total_runs"] == 2
+        assert summary["completed"] == 1
+        assert summary["failed"] == 1
+        assert summary["cache_hits"] == 1
+        assert summary["total_spent_usd"] == pytest.approx(0.025)
+        assert summary["by_workflow"] == [
+            {"workflow": "answer", "count": 1},
+            {"workflow": "search", "count": 1},
+        ]
+
+    def test_save_and_list_saved_queries(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save_query(
+            persist_module.SavedQuery(
+                id="sq-1",
+                user_id="user-1",
+                workflow="search",
+                query="first query",
+                created_at=_iso_utc(2026, 3, 22, 0, 0),
+            )
+        )
+        repo.save_query(
+            persist_module.SavedQuery(
+                id="sq-2",
+                user_id="user-1",
+                workflow="answer",
+                query="second query",
+                created_at=_iso_utc(2026, 3, 22, 1, 0),
+            )
+        )
+        repo.save_query(
+            persist_module.SavedQuery(
+                id="sq-3",
+                user_id="user-2",
+                workflow="search",
+                query="other user query",
+                created_at=_iso_utc(2026, 3, 22, 2, 0),
+            )
+        )
+
+        saved = repo.list_saved_queries("user-1")
+
+        assert [query.id for query in saved] == ["sq-2", "sq-1"]
+        assert [query.query for query in saved] == ["second query", "first query"]
+
+    def test_delete_saved_query(self, fake_postgres_repo):
+        repo, _ = fake_postgres_repo
+        repo.save_query(
+            persist_module.SavedQuery(
+                id="sq-1",
+                user_id="user-1",
+                workflow="search",
+                query="query",
+                created_at=_iso_utc(2026, 3, 22, 0, 0),
+            )
+        )
+
+        deleted = repo.delete_saved_query("sq-1", "user-1")
+
+        assert deleted is True
+        assert repo.list_saved_queries("user-1") == []
 
 
 # ---------------------------------------------------------------------------
@@ -317,6 +802,13 @@ class TestFactories:
         store = persist_module.create_artifact_store()
         assert isinstance(store, persist_module.LocalArtifactStore)
 
+    def test_create_artifact_store_s3_success(self, monkeypatch):
+        monkeypatch.setenv("PILOT_ARTIFACT_STORE", "s3")
+        monkeypatch.setenv("PILOT_S3_BUCKET", "test-bucket")
+        store = persist_module.create_artifact_store()
+        assert isinstance(store, persist_module.S3ArtifactStore)
+        assert store.bucket == "test-bucket"
+
     def test_create_artifact_store_s3_requires_bucket(self, monkeypatch):
         monkeypatch.setenv("PILOT_ARTIFACT_STORE", "s3")
         monkeypatch.delenv("PILOT_S3_BUCKET", raising=False)
@@ -327,6 +819,13 @@ class TestFactories:
         monkeypatch.delenv("PILOT_RUN_STORE", raising=False)
         repo = persist_module.create_run_repository()
         assert isinstance(repo, persist_module.LocalRunRepository)
+
+    def test_create_run_repository_postgres_success(self, monkeypatch):
+        monkeypatch.setenv("PILOT_RUN_STORE", "postgres")
+        monkeypatch.setenv("PILOT_POSTGRES_URL", "postgresql://fake")
+        repo = persist_module.create_run_repository()
+        assert isinstance(repo, persist_module.PostgresRunRepository)
+        assert repo.dsn == "postgresql://fake"
 
     def test_create_run_repository_postgres_requires_url(self, monkeypatch):
         monkeypatch.setenv("PILOT_RUN_STORE", "postgres")
