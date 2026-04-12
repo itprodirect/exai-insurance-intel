@@ -52,8 +52,9 @@ Install with: `pre-commit install`
 - Live mode gated behind `PILOT_ALLOW_LIVE_MODE=1`
 
 ### Input Validation
-- Query length bounded (`PILOT_MAX_QUERY_LENGTH`, default 1000 chars)
+- Query length bounded (`PILOT_MAX_QUERY_LENGTH`, default 1000 chars), including saved-query writes
 - Result count clamped (`PILOT_MAX_RESULTS`, default 25)
+- Saved-query workflows limited to the currently shipped pilot surfaces (`search`, `answer`, `research`)
 - Pydantic model validation on all API request bodies
 - Request ID tracking via `X-Request-ID` header
 
