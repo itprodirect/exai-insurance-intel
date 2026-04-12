@@ -120,6 +120,10 @@ class ArtifactStore(Protocol):
         """List stored artifact locations for a run."""
         ...
 
+    def run_location(self, run_id: str) -> str:
+        """Return the canonical store location for a run's artifacts."""
+        ...
+
 
 class LocalArtifactStore:
     """Artifact store backed by the local filesystem.
@@ -159,6 +163,9 @@ class LocalArtifactStore:
         if not run_dir.is_dir():
             return []
         return [str(p) for p in sorted(run_dir.iterdir()) if p.is_file()]
+
+    def run_location(self, run_id: str) -> str:
+        return str(self.base_dir / run_id)
 
 
 class S3ArtifactStore:
@@ -208,6 +215,9 @@ class S3ArtifactStore:
             f"s3://{self.bucket}/{obj['Key']}"
             for obj in resp.get("Contents", [])
         ]
+
+    def run_location(self, run_id: str) -> str:
+        return f"s3://{self.bucket}/{self.prefix}{run_id}/"
 
 
 # ---------------------------------------------------------------------------
@@ -980,7 +990,8 @@ def persist_workflow_run(
             try:
                 locations = artifact_store.upload_directory(run_id, art_dir)
                 record.artifact_count = len(locations)
-                record.artifact_location = str(art_dir)
+                if locations:
+                    record.artifact_location = artifact_store.run_location(run_id)
             except Exception:
                 logger.exception("Failed to upload artifacts for run %s", run_id)
 

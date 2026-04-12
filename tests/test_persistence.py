@@ -99,6 +99,39 @@ class TestLocalArtifactStore:
         store = persist_module.LocalArtifactStore(base_dir=tmp_path / "store")
         assert store.list_artifacts("nonexistent") == []
 
+    def test_run_location_uses_store_path(self, tmp_path):
+        store = persist_module.LocalArtifactStore(base_dir=tmp_path / "store")
+        assert store.run_location("run-1") == str(tmp_path / "store" / "run-1")
+
+
+class _FakeS3Client:
+    def __init__(self):
+        self.uploads = []
+
+    def upload_file(self, local_path, bucket, key):
+        self.uploads.append((local_path, bucket, key))
+
+    def list_objects_v2(self, Bucket, Prefix):  # noqa: N803
+        contents = [
+            {"Key": key}
+            for _, bucket, key in self.uploads
+            if bucket == Bucket and key.startswith(Prefix)
+        ]
+        return {"Contents": contents}
+
+
+class TestS3ArtifactStore:
+    def test_run_location_uses_s3_prefix(self):
+        store = persist_module.S3ArtifactStore(
+            bucket="pilot-artifacts",
+            prefix="runs",
+        )
+        store._client = _FakeS3Client()
+        assert (
+            store.run_location("run-1")
+            == "s3://pilot-artifacts/runs/run-1/"
+        )
+
 
 # ---------------------------------------------------------------------------
 # LocalRunRepository
@@ -243,6 +276,34 @@ class TestPersistWorkflowRun:
             artifact_dir=str(tmp_path / "experiments"),
         )
         assert record.artifact_count == 2
+        assert record.artifact_location == str(tmp_path / "store" / "run-42")
+
+    def test_persist_uploads_artifacts_to_s3_location(self, tmp_path):
+        repo = persist_module.LocalRunRepository(
+            db_path=tmp_path / "runs.sqlite"
+        )
+        store = persist_module.S3ArtifactStore(
+            bucket="pilot-artifacts",
+            prefix="runs",
+        )
+        store._client = _FakeS3Client()
+        art_dir = tmp_path / "experiments" / "run-42"
+        art_dir.mkdir(parents=True)
+        (art_dir / "config.json").write_text("{}")
+        (art_dir / "summary.json").write_text("{}")
+
+        record = persist_module.persist_workflow_run(
+            run_repo=repo,
+            artifact_store=store,
+            workflow="search",
+            mode="smoke",
+            request_id=None,
+            payload={"run_id": "run-42", "summary": {}},
+            artifact_dir=str(tmp_path / "experiments"),
+        )
+
+        assert record.artifact_count == 2
+        assert record.artifact_location == "s3://pilot-artifacts/runs/run-42/"
 
 
 # ---------------------------------------------------------------------------

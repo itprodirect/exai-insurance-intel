@@ -130,7 +130,10 @@ def _run_job(
                         record.run_id, art_dir
                     )
                     record.artifact_count = len(locations)
-                    record.artifact_location = str(art_dir)
+                    if locations:
+                        record.artifact_location = artifact_store.run_location(
+                            record.run_id
+                        )
                 except Exception:
                     logger.exception(
                         "Failed to upload artifacts for job %s", record_id

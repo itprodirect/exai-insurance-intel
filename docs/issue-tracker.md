@@ -45,7 +45,7 @@ Update it whenever issues are created, closed, re-scoped, or moved between miles
 | `#20 Thin FastAPI wrapper over existing workflows` | Task | `Phase 5 - Pilot` | `type:task`, `area:api`, `priority:p0`, `status:done` | Done | `#19` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-api-wrapper.md` |
 | `#21 Frontend app shell (Next.js + Tailwind + shadcn/ui)` | Task | `Phase 5 - Pilot` | `type:task`, `area:frontend`, `priority:p0`, `status:done` | Done | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-frontend-shell.md` |
 | `#22 Pilot auth + request/budget boundary controls` | Task | `Phase 5 - Pilot` | `type:task`, `area:auth`, `priority:p0`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-04-11-issue-22-run-pagination-bounds.md` |
-| `#23 Persistence/state baseline (S3 artifacts + Postgres usage)` | Task | `Phase 5 - Pilot` | `type:task`, `area:infra`, `priority:p1`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-pilot-alignment.md` |
+| `#23 Persistence/state baseline (S3 artifacts + Postgres usage)` | Task | `Phase 5 - Pilot` | `type:task`, `area:infra`, `priority:p1`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-04-11-issue-23-artifact-location-origin.md` |
 
 ### Next Coding Slices (Sequenced)
 

@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-04-12T01:58:27.133516+00:00_
+_Generated: 2026-04-12T02:08:08.666053+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,24 +59,23 @@ _Generated: 2026-04-12T01:58:27.133516+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-04-11c
-- Objective: Harden one more request-boundary gap inside `#22` by validating run-list pagination before repository queries execute.
+- Date: 2026-04-11d
+- Objective: Start `#23` with a narrow persistence fix so stored artifact locations reflect the actual backend location after upload.
 - Changes made:
-  - Inspected `/api/me/runs` and `/api/runs` in `src/exa_demo/api.py` and confirmed both routes only capped large limits while still accepting negative pagination values.
-  - Confirmed `src/exa_demo/persistence.py` used the incoming pagination values directly in SQL `LIMIT` and `OFFSET` clauses across the repository adapters.
-  - Added `validate_pagination(...)` in `src/exa_demo/api_auth.py` to reject non-positive limits and negative offsets while preserving the existing 200-item cap.
-  - Applied the shared pagination validator to both run-list routes in `src/exa_demo/api.py`.
-  - Added focused regression coverage in `tests/test_persistence.py` and `tests/test_users.py` for invalid ops/global and per-user pagination inputs.
-  - Synced the security doc and tracker/session pointers for this slice.
+  - Inspected `persist_workflow_run(...)` in `src/exa_demo/persistence.py` and `_run_job(...)` in `src/exa_demo/jobs.py` and confirmed both stored local experiment paths after artifact upload.
+  - Added `run_location(run_id)` to the artifact-store contract and implemented it for both `LocalArtifactStore` and `S3ArtifactStore`.
+  - Updated the sync persistence helper and async job runner to persist the artifact-store location instead of the source directory when uploads succeed.
+  - Added focused coverage for local-store run locations, S3-store run locations, persisted S3 artifact locations, and async job artifact-location persistence.
+  - Synced the local tracker/session pointers for this first `#23` slice.
 - Validation:
-  - Ran `python -m pytest -q tests/test_persistence.py tests/test_users.py` and confirmed `66 passed`.
-  - Ran `python -m ruff check src/exa_demo/api.py src/exa_demo/api_auth.py tests/test_persistence.py tests/test_users.py` and confirmed all checks passed.
+  - Ran `python -m pytest -q tests/test_persistence.py tests/test_jobs.py` and confirmed `54 passed`.
+  - Ran `python -m ruff check src/exa_demo/persistence.py src/exa_demo/jobs.py tests/test_persistence.py tests/test_jobs.py` and confirmed all checks passed.
 - Open issues:
-  - This slice intentionally preserved the existing oversized-limit cap semantics instead of redesigning pagination or response metadata.
-  - The repo still has no concrete shipped contract for saved-query label bounds, so that remains a weak candidate for more `#22` work.
+  - This slice did not add live S3 or Postgres integration coverage; it only tightened the backend-location contract around the existing abstractions.
+  - The repo still needs more thin `#23` slices before cloud-backed persistence is operationally well pinned.
 - Decisions proposed:
-  - Continue to centralize request-boundary helpers in `api_auth.py` when they apply across multiple FastAPI routes.
-  - Treat future `#22` slices as complete only when they map to one inspected route or helper plus focused regression coverage.
+  - Treat stored artifact locations as canonical store references so later pilot surfaces can dereference artifacts without guessing whether a run used local or S3-backed storage.
+  - Keep `#23` additive and test-first by tightening one persistence contract at a time instead of attempting a broad rollout.
 
 ## Next thin slice
-- Reassess whether another evidence-backed `#22` gap still exists; if not, move to the first thin `#23` persistence baseline slice.
+- Add one more thin `#23` slice around persistence factory success paths or a small Postgres/S3 seam that can be verified without live infrastructure.
