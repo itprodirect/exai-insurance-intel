@@ -462,6 +462,7 @@ def test_answer_command_smoke_emits_json_and_artifact(tmp_path, capsys) -> None:
     assert output['citation_count'] == 2
     assert 'Mock answer' in output['answer']
     assert (artifact_dir / 'answer-run' / 'answer.json').exists()
+    assert (artifact_dir / 'answer-run' / 'report.md').exists()
     assert (artifact_dir / 'answer-run' / 'summary.json').exists()
     answer_payload = json.loads((artifact_dir / 'answer-run' / 'answer.json').read_text(encoding='utf-8'))
     assert answer_payload['citation_count'] == 2
@@ -497,6 +498,7 @@ def test_research_command_smoke_emits_json_and_artifact(tmp_path, capsys) -> Non
     assert 'Mock research report' in output['report']
     assert (artifact_dir / 'research-run' / 'research.json').exists()
     assert (artifact_dir / 'research-run' / 'research.md').exists()
+    assert (artifact_dir / 'research-run' / 'report.md').exists()
     assert (artifact_dir / 'research-run' / 'summary.json').exists()
     research_payload = json.loads((artifact_dir / 'research-run' / 'research.json').read_text(encoding='utf-8'))
     assert research_payload['citation_count'] == 3
@@ -575,6 +577,7 @@ def test_structured_search_command_smoke_emits_json_and_artifact(tmp_path, capsy
     assert output['structured_output']['schema_title'] == 'Structured Professionals'
     assert output['structured_output']['field_names'] == ['name', 'role']
     assert (artifact_dir / 'structured-run' / 'structured_output.json').exists()
+    assert (artifact_dir / 'structured-run' / 'report.md').exists()
     assert (artifact_dir / 'structured-run' / 'summary.json').exists()
     structured_payload = json.loads((artifact_dir / 'structured-run' / 'structured_output.json').read_text(encoding='utf-8'))
     assert structured_payload['structured_output']['record_count'] == 1
@@ -638,6 +641,7 @@ def test_find_similar_command_smoke_emits_json_and_artifact(tmp_path, capsys) ->
     assert output['result_count'] == 3
     assert output['top_result']['title'] == 'Florida Insurance Litigation Firm'
     assert (artifact_dir / 'find-similar-run' / 'find_similar.json').exists()
+    assert (artifact_dir / 'find-similar-run' / 'report.md').exists()
     assert (artifact_dir / 'find-similar-run' / 'summary.json').exists()
     artifact_payload = json.loads((artifact_dir / 'find-similar-run' / 'find_similar.json').read_text(encoding='utf-8'))
     assert artifact_payload['seed_url'] == 'https://www.merlinlawgroup.com/'

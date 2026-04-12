@@ -6,6 +6,7 @@ import pandas as pd
 
 from exa_demo.reporting import (
     build_before_after_report,
+    render_endpoint_report_markdown,
     render_research_markdown,
     render_comparison_markdown,
     summarize_failure_taxonomy,
@@ -280,4 +281,51 @@ def test_render_research_markdown_includes_report_and_citations() -> None:
     assert 'Summarize the Florida CAT market outlook.' in markdown
     assert 'Mock research report body.' in markdown
     assert '[Florida market bulletin](https://example.com/bulletin)' in markdown
+
+
+def test_render_endpoint_report_markdown_for_answer_includes_summary_and_citations() -> None:
+    markdown = render_endpoint_report_markdown(
+        workflow='answer',
+        run_id='answer-run',
+        payload={
+            'query': 'What is the Florida appraisal clause dispute process?',
+            'answer_text': 'Mock answer text.',
+            'citations': [
+                {
+                    'title': 'Florida appraisal clause overview',
+                    'url': 'https://example.com/florida-appraisal-clause',
+                    'snippet': 'Mock citation.',
+                }
+            ],
+            'cache_hit': False,
+            'request_id': 'smoke-answer-1',
+        },
+        summary={'request_count': 1, 'spent_usd': 0.0},
+    )
+
+    assert '# Answer Workflow Report' in markdown
+    assert 'What is the Florida appraisal clause dispute process?' in markdown
+    assert 'Mock answer text.' in markdown
+    assert '[Florida appraisal clause overview](https://example.com/florida-appraisal-clause)' in markdown
+    assert '- Requests this run: `1`' in markdown
+
+
+def test_render_endpoint_report_markdown_for_structured_search_includes_json_block() -> None:
+    markdown = render_endpoint_report_markdown(
+        workflow='structured-search',
+        run_id='structured-run',
+        payload={
+            'query': 'independent adjuster florida catastrophe claims',
+            'schema_file': 'schema.json',
+            'structured_output_keys': ['field_names', 'records'],
+            'structured_output': {'field_names': ['name'], 'records': [{'name': 'Jane Doe'}]},
+            'cache_hit': True,
+        },
+        summary={'request_count': 1, 'spent_usd': 0.02},
+    )
+
+    assert '# Structured Search Workflow Report' in markdown
+    assert '- Schema file: `schema.json`' in markdown
+    assert '"name": "Jane Doe"' in markdown
+    assert '```json' in markdown
 

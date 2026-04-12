@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List, Mapping
 
 import pandas as pd
@@ -294,6 +295,91 @@ def render_research_markdown(
     return "\n".join(lines).strip() + "\n"
 
 
+def render_endpoint_report_markdown(
+    *,
+    workflow: str,
+    run_id: str,
+    payload: Mapping[str, Any],
+    summary: Mapping[str, Any] | None = None,
+) -> str:
+    lines: List[str] = []
+    lines.append(f"# {_workflow_report_title(workflow)}")
+    lines.append("")
+    lines.append(f"- Workflow: `{workflow}`")
+    lines.append(f"- Run ID: `{run_id}`")
+
+    query = str(payload.get("query") or "").strip()
+    if query:
+        lines.append(f"- Query: `{query}`")
+
+    seed_url = str(payload.get("seed_url") or "").strip()
+    if seed_url:
+        lines.append(f"- Seed URL: {seed_url}")
+
+    if "cache_hit" in payload:
+        lines.append(f"- Cache hit: `{str(bool(payload.get('cache_hit'))).lower()}`")
+
+    request_id = str(payload.get("request_id") or "").strip()
+    if request_id:
+        lines.append(f"- Request ID: `{request_id}`")
+
+    if summary:
+        lines.append(f"- Requests this run: `{int(summary.get('request_count', 0) or 0)}`")
+        lines.append(f"- Spend this run (USD): `{float(summary.get('spent_usd', 0.0) or 0.0):.4f}`")
+
+    lines.append("")
+
+    if workflow == "answer":
+        lines.append("## Answer")
+        lines.append("")
+        lines.append(str(payload.get("answer_text") or "No answer text returned.").strip())
+        _append_citations_section(lines, payload.get("citations"))
+    elif workflow == "research":
+        lines.append("## Report")
+        lines.append("")
+        lines.append(str(payload.get("report_text") or "No report text returned.").strip())
+        _append_citations_section(lines, payload.get("citations"))
+    elif workflow == "structured-search":
+        lines.append("## Structured Output")
+        lines.append("")
+        schema_file = str(payload.get("schema_file") or "").strip()
+        if schema_file:
+            lines.append(f"- Schema file: `{schema_file}`")
+        keys = payload.get("structured_output_keys")
+        if isinstance(keys, list) and keys:
+            lines.append(f"- Output keys: `{', '.join(str(key) for key in keys)}`")
+        structured_output = payload.get("structured_output")
+        lines.append("")
+        lines.append("```json")
+        lines.append(json.dumps(structured_output, indent=2, sort_keys=True, ensure_ascii=False))
+        lines.append("```")
+    elif workflow == "find-similar":
+        top_result = payload.get("top_result")
+        lines.append("## Top Result")
+        lines.append("")
+        if isinstance(top_result, Mapping):
+            _append_find_similar_result(lines, top_result)
+        else:
+            lines.append("No similar results returned.")
+        results = payload.get("results")
+        if isinstance(results, list) and results:
+            lines.append("")
+            lines.append("## Result Preview")
+            lines.append("")
+            for item in results[:5]:
+                if not isinstance(item, Mapping):
+                    continue
+                _append_find_similar_result(lines, item)
+    else:
+        lines.append("## Payload")
+        lines.append("")
+        lines.append("```json")
+        lines.append(json.dumps(dict(payload), indent=2, sort_keys=True, ensure_ascii=False))
+        lines.append("```")
+
+    return "\n".join(lines).strip() + "\n"
+
+
 def _mean_score(df: pd.DataFrame, column: str, fallback_column: str | None = None) -> float:
     if column in df.columns:
         observed = pd.to_numeric(df[column], errors="coerce").dropna()
@@ -306,3 +392,50 @@ def _mean_score(df: pd.DataFrame, column: str, fallback_column: str | None = Non
             return float(fallback.mean())
 
     return 0.0
+
+
+def _workflow_report_title(workflow: str) -> str:
+    titles = {
+        "answer": "Answer Workflow Report",
+        "research": "Research Workflow Report",
+        "structured-search": "Structured Search Workflow Report",
+        "find-similar": "Find Similar Workflow Report",
+    }
+    return titles.get(workflow, "Workflow Report")
+
+
+def _append_citations_section(lines: List[str], citations: Any) -> None:
+    if not isinstance(citations, list) or not citations:
+        return
+
+    lines.append("")
+    lines.append("## Citations")
+    lines.append("")
+    for citation in citations:
+        if not isinstance(citation, Mapping):
+            continue
+        title = str(citation.get("title") or "Untitled source").strip()
+        url = str(citation.get("url") or "").strip()
+        snippet = str(citation.get("snippet") or "").strip()
+        if url:
+            lines.append(f"- [{title}]({url})")
+        else:
+            lines.append(f"- {title}")
+        if snippet:
+            lines.append(f"  Snippet: {snippet}")
+
+
+def _append_find_similar_result(lines: List[str], result: Mapping[str, Any]) -> None:
+    title = str(result.get("title") or "Untitled result").strip()
+    url = str(result.get("url") or "").strip()
+    snippet = str(result.get("snippet") or "").strip()
+    score = result.get("score")
+
+    if url:
+        lines.append(f"- [{title}]({url})")
+    else:
+        lines.append(f"- {title}")
+    if snippet:
+        lines.append(f"  Snippet: {snippet}")
+    if score is not None:
+        lines.append(f"  Score: {score}")

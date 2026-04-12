@@ -10,7 +10,7 @@ from .artifacts import ExperimentArtifactWriter
 from .cache import SqliteCacheStore
 from .client import exa_answer, exa_find_similar, exa_research, exa_structured_search
 from .models import ResearchRecord
-from .reporting import render_research_markdown
+from .reporting import render_endpoint_report_markdown, render_research_markdown
 from .workflows import (
     build_answer_artifact,
     build_find_similar_artifact,
@@ -57,6 +57,16 @@ def run_answer_workflow(
         runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("answer.json", answer_payload)
+    writer.write_text_artifact(
+        "report.md",
+        render_endpoint_report_markdown(
+            workflow="answer",
+            run_id=runtime.run_id,
+            payload=answer_payload,
+            summary=summary,
+        ),
+        kind="markdown",
+    )
     _write_endpoint_summary(
         writer,
         summary,
@@ -143,6 +153,16 @@ def run_research_workflow(
         runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("research.json", research_payload)
+    writer.write_text_artifact(
+        "report.md",
+        render_endpoint_report_markdown(
+            workflow="research",
+            run_id=runtime.run_id,
+            payload=research_payload,
+            summary=summary,
+        ),
+        kind="markdown",
+    )
     writer.write_text_artifact(
         "research.md",
         render_research_markdown(
@@ -242,6 +262,16 @@ def run_find_similar_workflow(
         runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("find_similar.json", find_similar_payload)
+    writer.write_text_artifact(
+        "report.md",
+        render_endpoint_report_markdown(
+            workflow="find-similar",
+            run_id=runtime.run_id,
+            payload=find_similar_payload,
+            summary=summary,
+        ),
+        kind="markdown",
+    )
     _write_endpoint_summary(
         writer,
         summary,
@@ -337,6 +367,16 @@ def run_structured_search_workflow(
         runtime_metadata=runtime_metadata,
     )
     writer.write_json_artifact("structured_output.json", structured_payload)
+    writer.write_text_artifact(
+        "report.md",
+        render_endpoint_report_markdown(
+            workflow="structured-search",
+            run_id=runtime.run_id,
+            payload=structured_payload,
+            summary=summary,
+        ),
+        kind="markdown",
+    )
     _write_endpoint_summary(
         writer,
         summary,
