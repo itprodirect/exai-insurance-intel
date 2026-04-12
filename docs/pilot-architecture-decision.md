@@ -6,14 +6,19 @@ This document records the near-term architectural defaults for the pilot web pro
 
 ## Current State
 
-The repo is a fully implemented **backend workflow engine** with:
+The repo is a fully implemented **backend workflow engine plus Phase 5 Level 1 pilot surface** with:
 - 8 CLI commands covering all Exa API endpoints
+- FastAPI API layer wrapping the shipped workflows
+- Next.js frontend for search, answer, and research flows
+- Pilot auth and request-boundary controls for bearer auth, per-user scoping, and bounded usage
+- Additive persistence baseline work: local SQLite by default plus S3/Postgres adapters for pilot environments
+- In-process async research jobs backed by persisted run metadata
 - SQLite caching with budget enforcement
 - Evaluation taxonomy and benchmark suites
 - Artifact export system
 - Comprehensive test suite
 
-There is no web frontend, no HTTP API layer, no container deployment, and no production database.
+There is still no container or cloud deployment, no infrastructure automation baseline, and no production-hardened external access model.
 
 ## Target: Private Internal Pilot
 
@@ -74,7 +79,7 @@ A working web product that internal users can use to run insurance intelligence 
 
 ### Async Jobs
 
-Long-running async jobs are **not required for the first pilot** unless testing reveals that research or comparison workflows consistently exceed reasonable HTTP timeout thresholds. If needed, the simplest path is a background task queue (e.g., FastAPI BackgroundTasks or a simple Redis/Celery setup), not a full job orchestration system.
+The repo now includes a minimal in-process async research-job path backed by persisted run records. That is sufficient for the current pilot slice; if reliability or throughput demands grow, the next step should still be a simple background task queue rather than a full job orchestration system.
 
 ## What This Does NOT Decide
 
