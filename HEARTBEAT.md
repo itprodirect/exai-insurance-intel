@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-04-12T01:39:04.067897+00:00_
+_Generated: 2026-04-12T01:47:49.355039+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,23 +59,23 @@ _Generated: 2026-04-12T01:39:04.067897+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-04-11a
-- Objective: Harden one real multi-user request-boundary gap inside `#22` without widening the auth design.
+- Date: 2026-04-11b
+- Objective: Harden one more request-boundary gap inside `#22` by tightening saved-query creation without broadening the pilot surface.
 - Changes made:
-  - Inspected the shipped pilot API auth layer in `src/exa_demo/api_auth.py` and the FastAPI boundary usage in `src/exa_demo/api.py`.
-  - Confirmed the existing limiter keyed all requests by client IP, including authenticated multi-user traffic.
-  - Added `_rate_limit_key(request)` so multi-user mode isolates rate-limit buckets per resolved authenticated user while single-key and no-auth modes keep the existing per-IP behavior.
-  - Added focused coverage in `tests/test_api_auth.py` proving Alice and Bob do not consume each other's quota in multi-user mode.
-  - Synced the local security doc and tracker/session pointers for the slice.
+  - Inspected `POST /api/me/saved-queries` in `src/exa_demo/api.py` and confirmed the route persisted raw input with no saved-query-specific validation.
+  - Confirmed the existing pilot query-length guard already lived in `src/exa_demo/api_auth.py` and that the shipped frontend only offered saved-query creation for `search`, `answer`, and `research`.
+  - Added a saved-query workflow allowlist for the currently shipped pilot surfaces and reused `validate_query(...)` for saved-query writes.
+  - Added focused saved-query regression coverage in `tests/test_users.py` for invalid workflow and overlong query rejections.
+  - Synced the security doc and tracker/session pointers for this slice.
 - Validation:
-  - Ran `python -m pytest -q tests/test_api_auth.py` and confirmed `22 passed`.
-  - Ran `python -m ruff check src/exa_demo/api_auth.py tests/test_api_auth.py` and confirmed all checks passed.
+  - Ran `python -m pytest -q tests/test_users.py` and confirmed `26 passed`.
+  - Ran `python -m ruff check src/exa_demo/api.py tests/test_users.py` and confirmed all checks passed.
 - Open issues:
-  - GitHub issue tracking is still behind the local tracker for the current Phase 5 slices; `#22` exists only in repo docs today.
-  - This slice intentionally did not change single-key/no-auth rate limiting, saved-query validation, or persistence behavior.
+  - This slice intentionally did not add label bounds because the repo does not yet have a documented or shipped label contract for saved queries.
+  - Run-list pagination and other request-boundary tightening under `#22` are still open.
 - Decisions proposed:
-  - Continue treating `#22` as a sequence of thin, evidence-backed request-boundary fixes rather than a single broad auth rewrite.
-  - Prefer fixes that are directly tied to one inspected route or helper plus one focused regression test.
+  - Keep `#22` moving via one inspected route or helper at a time, with regression coverage attached to each narrow fix.
+  - Treat saved-query workflow acceptance as a pilot-surface boundary, not as a generic storage field that should accept every backend workflow by default.
 
 ## Next thin slice
-- Inspect one more request-boundary gap under `#22`, with saved-query input bounds or run-list pagination bounds as the best next candidates.
+- Add narrow pagination bounds for `/api/me/runs` and `/api/runs` so negative or pathological values cannot create odd behavior.
