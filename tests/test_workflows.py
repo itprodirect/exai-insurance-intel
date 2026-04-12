@@ -159,10 +159,13 @@ def test_run_answer_workflow_smoke_writes_summary_context(tmp_path) -> None:
 
     run_dir = tmp_path / 'artifacts' / 'workflow-answer'
     summary_payload = json.loads((run_dir / 'summary.json').read_text(encoding='utf-8'))
+    report_markdown = (run_dir / 'report.md').read_text(encoding='utf-8')
 
     assert payload['workflow'] == 'answer'
     assert payload['citation_count'] == 2
     assert 'Mock answer' in payload['answer']
+    assert '# Answer Workflow Report' in report_markdown
+    assert 'Florida appraisal clause overview' in report_markdown
     assert summary_payload['extra']['workflow'] == 'answer'
     assert summary_payload['extra']['answer']['citation_count'] == 2
     assert summary_payload['qualitative_notes'] == [
@@ -188,11 +191,14 @@ def test_run_research_workflow_smoke_writes_markdown_and_summary_context(tmp_pat
     run_dir = tmp_path / 'artifacts' / 'workflow-research'
     summary_payload = json.loads((run_dir / 'summary.json').read_text(encoding='utf-8'))
     markdown = (run_dir / 'research.md').read_text(encoding='utf-8')
+    report_markdown = (run_dir / 'report.md').read_text(encoding='utf-8')
 
     assert payload['workflow'] == 'research'
     assert payload['citation_count'] == 3
     assert 'Mock research report' in (payload['report'] or '')
     assert '# Research Report' in markdown
+    assert '# Research Workflow Report' in report_markdown
+    assert 'Mock Research Source 1' in report_markdown
     assert summary_payload['extra']['workflow'] == 'research'
     assert summary_payload['extra']['research']['citation_count'] == 3
     assert summary_payload['qualitative_notes'] == [
@@ -263,11 +269,16 @@ def test_run_find_similar_workflow_smoke_caps_requested_results(tmp_path, monkey
     summary_payload = json.loads(
         (tmp_path / 'artifacts' / 'workflow-find-similar' / 'summary.json').read_text(encoding='utf-8')
     )
+    report_markdown = (
+        tmp_path / 'artifacts' / 'workflow-find-similar' / 'report.md'
+    ).read_text(encoding='utf-8')
 
     assert captured['url'] == 'https://www.merlinlawgroup.com/'
     assert captured['num_results'] == 3
     assert payload['result_count'] == 1
     assert payload['top_result']['title'] == 'Florida Insurance Litigation Firm'
+    assert '# Find Similar Workflow Report' in report_markdown
+    assert 'Florida Insurance Litigation Firm' in report_markdown
     assert summary_payload['extra']['workflow'] == 'find-similar'
     assert summary_payload['extra']['find_similar']['result_count'] == 1
 
@@ -301,11 +312,15 @@ def test_run_structured_search_workflow_smoke_writes_schema_context(tmp_path) ->
         runtime_metadata=_runtime_metadata(runtime),
     )
 
-    summary_payload = json.loads((tmp_path / 'artifacts' / 'workflow-structured' / 'summary.json').read_text(encoding='utf-8'))
+    run_dir = tmp_path / 'artifacts' / 'workflow-structured'
+    summary_payload = json.loads((run_dir / 'summary.json').read_text(encoding='utf-8'))
+    report_markdown = (run_dir / 'report.md').read_text(encoding='utf-8')
 
     assert payload['workflow'] == 'structured-search'
     assert payload['schema_file'] == str(schema_file)
     assert payload['structured_output']['schema_title'] == 'Structured Professionals'
+    assert '# Structured Search Workflow Report' in report_markdown
+    assert 'Structured Professionals' in report_markdown
     assert summary_payload['extra']['workflow'] == 'structured-search'
     assert summary_payload['extra']['structured_search']['schema_file'] == str(schema_file)
     assert summary_payload['extra']['structured_search']['structured_keys'] == [

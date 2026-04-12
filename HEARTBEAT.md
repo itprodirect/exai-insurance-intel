@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-03-27T22:46:51.963062+00:00_
+_Generated: 2026-04-12T01:25:06.552210+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,21 +59,23 @@ _Generated: 2026-03-27T22:46:51.963062+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-03-27g
-- Objective: Inspect one collection/list auth boundary involving user-owned data and patch at most one confirmed gap.
+- Date: 2026-04-11
+- Objective: Take a thin follow-on slice on `#14` by adding one reusable markdown export path without widening the workflow surface.
 - Changes made:
-  - Inventoried the collection/list routes in `src/exa_demo/api.py`.
-  - Chose `GET /api/runs` because it exists and is the highest-risk non-`/me` collection route in the current branch state.
-  - Inspected the route in `src/exa_demo/api.py`, the underlying `list_runs(...)` repository call in `src/exa_demo/persistence.py`, the ops gate in `src/exa_demo/api_auth.py`, and the adjacent `/api/runs` auth tests in `tests/test_users.py`.
-  - Confirmed the route already enforces ops-only access before the unscoped repository query can return cross-user run records.
-  - Added a focused no-gap session log for this collection auth audit.
+  - Confirmed the broader `#14` scope was already shipped locally in the roadmap, issue tracker, README, and demo gallery.
+  - Added a shared `report.md` companion artifact for the endpoint-style workflows in `src/exa_demo/endpoint_workflows.py`.
+  - Added `render_endpoint_report_markdown(...)` in `src/exa_demo/reporting.py` to generate stakeholder-friendly markdown for answer, research, structured-search, and find-similar runs.
+  - Updated `README.md` and `docs/demo-gallery.md` so the reusable markdown export path is discoverable.
+  - Added a new session log for the slice and synced the issue-tracker reference to it.
 - Validation:
-  - Ran `python -m pytest tests/test_users.py -q -k "allowlisted_ops_user_sees_all_runs or non_ops_user_cannot_access_global_runs"` and confirmed `2 passed, 22 deselected`.
+  - Ran `python -m pytest -q tests/test_reporting.py tests/test_workflows.py` and confirmed `13 passed`.
+  - Ran `python -m ruff check src/exa_demo/reporting.py src/exa_demo/endpoint_workflows.py tests/test_reporting.py tests/test_workflows.py` and confirmed all checks passed.
 - Open issues:
-  - No confirmed auth gap remains for the inspected `GET /api/runs` boundary.
-  - This slice intentionally did not audit any additional collection routes.
+  - GitHub issue `#14` is still open even though the local roadmap/tracker already treat it as closed work.
+  - This slice intentionally did not touch ranked-search/eval exports or pilot web-product work.
 - Decisions proposed:
-  - Close this slice without product-code changes because the inspected collection boundary is already correctly ops-gated.
+  - Keep future export/report additions additive and artifact-first rather than changing existing JSON workflow contracts.
+  - Treat any GitHub issue closure for `#14` as a repo-governance follow-up once the branch or PR is in place.
 
 ## Next thin slice
-- Inspect one other collection/list route only if it is not `/me/...` scoped, not obviously ops-only, and can expose user-owned data across accounts.
+- Either close the GitHub-side `#14` issue with the corresponding PR, or move directly to `#22` pilot auth/request boundary controls for the next code session.

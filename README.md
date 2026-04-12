@@ -213,6 +213,7 @@ The `answer` command writes the same run directory and adds an `answer.json` art
 The `research` command writes the same run directory and adds `research.json` plus `research.md` artifacts for the research-report payload.
 The `structured-search` command runs a schema-driven deep search and writes a `structured_output.json` artifact containing the extracted structured payload.
 The `find-similar` command runs a seed-URL discovery workflow and writes a `find_similar.json` artifact containing the similar-result payload.
+The endpoint-style workflows (`answer`, `research`, `structured-search`, and `find-similar`) also emit a reusable `report.md` companion artifact for human review.
 Eval workflows also emit additive export companions such as `results.csv`, `comparison.json`, `grouped_query_outcomes.csv`, and `manifest.json` without changing the existing JSON/JSONL contracts.
 Deep-search-oriented request shaping is now exposed directly in the CLI with additive flags such as `--additional-query`, `--start-published-date`, `--end-published-date`, and `--livecrawl`.
 Search cost estimation can also be overridden from the CLI for search-type experiments with flags such as `--deep-search-cost-1-25` and `--deep-reasoning-search-cost-1-25`.
@@ -320,6 +321,7 @@ Each notebook run now writes a versioned artifact bundle under `experiments/<RUN
 Workflow-specific commands may also add:
 
 - `answer.json`
+- `report.md`
 - `research.json`
 - `research.md`
 - `find_similar.json`
@@ -466,6 +468,5 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - No contact harvesting
 - Redaction stays enabled in notebook output
 - Human review required before operational use
-
 
 
