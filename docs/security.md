@@ -47,7 +47,7 @@ Install with: `pre-commit install`
 
 ### API Authentication (`api_auth.py`)
 - Bearer token validation (multi-user or single shared key)
-- Per-IP sliding-window rate limiting (default 60 req/min, returns 429)
+- Sliding-window rate limiting (default 60 req/min, returns 429). Multi-user mode isolates buckets per authenticated user; single-key and no-auth modes fall back to per-IP limiting.
 - Ops user allowlist for admin endpoints
 - Live mode gated behind `PILOT_ALLOW_LIVE_MODE=1`
 
