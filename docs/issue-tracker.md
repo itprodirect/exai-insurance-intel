@@ -44,7 +44,7 @@ Update it whenever issues are created, closed, re-scoped, or moved between miles
 | `#19 Epic: Pilot web product layer` | Epic | `Phase 5 - Pilot` | `type:epic`, `area:pilot`, `priority:p0`, `status:ready` | Open | Phases 1-4 | Phase 5 - Pilot Web Product | TBD | `docs/sessions/2026-03-22-pilot-alignment.md` |
 | `#20 Thin FastAPI wrapper over existing workflows` | Task | `Phase 5 - Pilot` | `type:task`, `area:api`, `priority:p0`, `status:done` | Done | `#19` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-api-wrapper.md` |
 | `#21 Frontend app shell (Next.js + Tailwind + shadcn/ui)` | Task | `Phase 5 - Pilot` | `type:task`, `area:frontend`, `priority:p0`, `status:done` | Done | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-frontend-shell.md` |
-| `#22 Pilot auth + request/budget boundary controls` | Task | `Phase 5 - Pilot` | `type:task`, `area:auth`, `priority:p0`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-04-11-issue-22-saved-query-bounds.md` |
+| `#22 Pilot auth + request/budget boundary controls` | Task | `Phase 5 - Pilot` | `type:task`, `area:auth`, `priority:p0`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-04-11-issue-22-run-pagination-bounds.md` |
 | `#23 Persistence/state baseline (S3 artifacts + Postgres usage)` | Task | `Phase 5 - Pilot` | `type:task`, `area:infra`, `priority:p1`, `status:next` | Next | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-pilot-alignment.md` |
 
 ### Next Coding Slices (Sequenced)
@@ -64,4 +64,3 @@ Each slice should be one focused agent session. See [agent-execution-defaults.md
 - Close the roadmap item and issue together, or document why they diverged.
 - Update the `Last-updated session log` field whenever the issue scope, status, or acceptance criteria changes.
 - Record durable process changes in `docs/adr/`.
-

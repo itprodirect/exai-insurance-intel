@@ -365,6 +365,21 @@ def test_runs_list_pagination(client):
     assert data2["count"] == 1
 
 
+def test_runs_list_rejects_negative_pagination(client):
+    for i in range(2):
+        client.post(
+            "/api/search", json={"query": f"query {i}", "mode": "smoke"}
+        )
+
+    resp = client.get("/api/runs?limit=-1&offset=0")
+    assert resp.status_code == 400
+    assert "Invalid limit" in resp.json()["detail"]
+
+    resp = client.get("/api/runs?limit=2&offset=-1")
+    assert resp.status_code == 400
+    assert "Invalid offset" in resp.json()["detail"]
+
+
 def test_answer_persists_run(client):
     client.post(
         "/api/answer",

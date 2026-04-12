@@ -35,6 +35,7 @@ from .api_auth import (
     require_api_key,
     user_can_access_ops,
     validate_mode,
+    validate_pagination,
     validate_query,
 )
 from .cli_runtime import resolve_runtime, runtime_metadata
@@ -690,10 +691,10 @@ def api_my_runs(
 ) -> Dict[str, Any]:
     """List runs belonging to the current user."""
     uid = get_current_user(request)
-    capped_limit = min(limit, 200)
+    capped_limit, validated_offset = validate_pagination(limit, offset)
     runs = run_repo.list_runs(
         limit=capped_limit,
-        offset=offset,
+        offset=validated_offset,
         workflow=workflow,
         status=status,
         user_id=uid,
@@ -776,10 +777,10 @@ def api_list_runs(
     status: Optional[str] = None,
 ) -> Dict[str, Any]:
     require_ops_access(request)
-    capped_limit = min(limit, 200)
+    capped_limit, validated_offset = validate_pagination(limit, offset)
     runs = run_repo.list_runs(
         limit=capped_limit,
-        offset=offset,
+        offset=validated_offset,
         workflow=workflow,
         mode=mode,
         status=status,
