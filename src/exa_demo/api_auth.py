@@ -206,10 +206,26 @@ def _rate_limit_per_min() -> int:
 rate_limiter = RateLimiter(max_requests=_rate_limit_per_min())
 
 
+def _rate_limit_key(request: Request) -> str:
+    """Resolve the limiter bucket for the current request.
+
+    Multi-user mode should isolate quotas by authenticated user so one user's
+    traffic does not consume another user's allowance when both arrive from the
+    same client IP. Single-key and no-auth modes fall back to the existing
+    per-IP behavior.
+    """
+    if _pilot_users():
+        user_id = getattr(request.state, "user_id", "").strip()
+        if user_id:
+            return f"user:{user_id}"
+
+    client_host = request.client.host if request.client else "unknown"
+    return f"ip:{client_host}"
+
+
 def check_rate_limit(request: Request) -> None:
     """FastAPI dependency.  Enforces per-client rate limiting."""
-    client_key = request.client.host if request.client else "unknown"
-    allowed, remaining = rate_limiter.check(client_key)
+    allowed, remaining = rate_limiter.check(_rate_limit_key(request))
     if not allowed:
         raise HTTPException(
             status_code=429,

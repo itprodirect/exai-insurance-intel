@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-04-12T01:25:06.552210+00:00_
+_Generated: 2026-04-12T01:39:04.067897+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,23 +59,23 @@ _Generated: 2026-04-12T01:25:06.552210+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-04-11
-- Objective: Take a thin follow-on slice on `#14` by adding one reusable markdown export path without widening the workflow surface.
+- Date: 2026-04-11a
+- Objective: Harden one real multi-user request-boundary gap inside `#22` without widening the auth design.
 - Changes made:
-  - Confirmed the broader `#14` scope was already shipped locally in the roadmap, issue tracker, README, and demo gallery.
-  - Added a shared `report.md` companion artifact for the endpoint-style workflows in `src/exa_demo/endpoint_workflows.py`.
-  - Added `render_endpoint_report_markdown(...)` in `src/exa_demo/reporting.py` to generate stakeholder-friendly markdown for answer, research, structured-search, and find-similar runs.
-  - Updated `README.md` and `docs/demo-gallery.md` so the reusable markdown export path is discoverable.
-  - Added a new session log for the slice and synced the issue-tracker reference to it.
+  - Inspected the shipped pilot API auth layer in `src/exa_demo/api_auth.py` and the FastAPI boundary usage in `src/exa_demo/api.py`.
+  - Confirmed the existing limiter keyed all requests by client IP, including authenticated multi-user traffic.
+  - Added `_rate_limit_key(request)` so multi-user mode isolates rate-limit buckets per resolved authenticated user while single-key and no-auth modes keep the existing per-IP behavior.
+  - Added focused coverage in `tests/test_api_auth.py` proving Alice and Bob do not consume each other's quota in multi-user mode.
+  - Synced the local security doc and tracker/session pointers for the slice.
 - Validation:
-  - Ran `python -m pytest -q tests/test_reporting.py tests/test_workflows.py` and confirmed `13 passed`.
-  - Ran `python -m ruff check src/exa_demo/reporting.py src/exa_demo/endpoint_workflows.py tests/test_reporting.py tests/test_workflows.py` and confirmed all checks passed.
+  - Ran `python -m pytest -q tests/test_api_auth.py` and confirmed `22 passed`.
+  - Ran `python -m ruff check src/exa_demo/api_auth.py tests/test_api_auth.py` and confirmed all checks passed.
 - Open issues:
-  - GitHub issue `#14` is still open even though the local roadmap/tracker already treat it as closed work.
-  - This slice intentionally did not touch ranked-search/eval exports or pilot web-product work.
+  - GitHub issue tracking is still behind the local tracker for the current Phase 5 slices; `#22` exists only in repo docs today.
+  - This slice intentionally did not change single-key/no-auth rate limiting, saved-query validation, or persistence behavior.
 - Decisions proposed:
-  - Keep future export/report additions additive and artifact-first rather than changing existing JSON workflow contracts.
-  - Treat any GitHub issue closure for `#14` as a repo-governance follow-up once the branch or PR is in place.
+  - Continue treating `#22` as a sequence of thin, evidence-backed request-boundary fixes rather than a single broad auth rewrite.
+  - Prefer fixes that are directly tied to one inspected route or helper plus one focused regression test.
 
 ## Next thin slice
-- Either close the GitHub-side `#14` issue with the corresponding PR, or move directly to `#22` pilot auth/request boundary controls for the next code session.
+- Inspect one more request-boundary gap under `#22`, with saved-query input bounds or run-list pagination bounds as the best next candidates.

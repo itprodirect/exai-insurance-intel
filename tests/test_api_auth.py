@@ -150,6 +150,36 @@ def test_rate_limit_enforced(auth_client, monkeypatch):
     assert "Retry-After" in resp.headers
 
 
+def test_rate_limit_isolated_per_user_in_multi_user_mode(
+    multi_user_client, monkeypatch
+):
+    """One multi-user client should not consume another user's bucket."""
+    monkeypatch.setattr(
+        auth_module, "rate_limiter", auth_module.RateLimiter(max_requests=1)
+    )
+
+    alice = multi_user_client.post(
+        "/api/search",
+        json={"query": "alice query", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert alice.status_code == 200
+
+    bob = multi_user_client.post(
+        "/api/search",
+        json={"query": "bob query", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-bob"},
+    )
+    assert bob.status_code == 200
+
+    alice_again = multi_user_client.post(
+        "/api/search",
+        json={"query": "alice query", "mode": "smoke"},
+        headers={"Authorization": "Bearer key-alice"},
+    )
+    assert alice_again.status_code == 429
+
+
 # ---------------------------------------------------------------------------
 # Mode validation
 # ---------------------------------------------------------------------------
