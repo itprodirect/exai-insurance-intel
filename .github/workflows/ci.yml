@@ -67,7 +67,8 @@ jobs:
       - name: Dependency audit (pip-audit)
         run: |
           pip install pip-audit
-          pip-audit --strict --desc --skip-editable
+          python -m pip freeze | grep -Ev '^(#|-e |exai-insurance-intel @ )' > audit-requirements.txt
+          pip-audit --strict --desc --no-deps -r audit-requirements.txt
 
       - name: SAST scan (bandit)
         run: |
