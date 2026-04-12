@@ -29,9 +29,9 @@ class FakeMeta:
 def test_load_benchmark_queries_matches_current_fixture() -> None:
     queries = load_benchmark_queries()
 
-    assert len(queries) == 49
+    assert len(queries) == 82
     assert queries[0].startswith("public adjuster licensing requirements Florida")
-    assert queries[-1].startswith("property insurance vendor performance scorecard")
+    assert queries[-1].startswith("state insurance department climate risk disclosure")
 
 
 def test_load_benchmark_queries_can_target_named_suite() -> None:
@@ -39,37 +39,28 @@ def test_load_benchmark_queries_can_target_named_suite() -> None:
     public_adjuster_queries = load_benchmark_queries(suite="public_adjusters")
     forensic_queries = load_benchmark_queries(suite="forensic_and_damage_engineering")
     coverage_queries = load_benchmark_queries(suite="cat_law_and_coverage")
-    legacy_coverage_queries = load_benchmark_queries(suite="coverage_and_litigation")
-    appraiser_queries = load_benchmark_queries(suite="appraisers_umpires_and_restoration")
-    legacy_adjuster_queries = load_benchmark_queries(suite="adjusters_appraisers_and_restoration")
+    appraiser_queries = load_benchmark_queries(suite="appraisers_and_umpires")
     adjuster_queries = load_benchmark_queries(suite="independent_adjusters")
-    adjacent_queries = load_benchmark_queries(suite="adjacent_industries")
     restoration_queries = load_benchmark_queries(suite="restoration_and_mitigation")
     vendor_queries = load_benchmark_queries(suite="carrier_tpa_and_vendor_ecosystem")
     market_queries = load_benchmark_queries(suite="regulatory_legislative_and_market_news")
     suite_definitions = load_benchmark_suite_definitions()
     suites = load_benchmark_suites()
 
-    assert len(all_queries) == 49
-    assert len(public_adjuster_queries) == 5
-    assert len(forensic_queries) == 5
-    assert len(coverage_queries) == 8
-    assert len(legacy_coverage_queries) == 4
-    assert len(appraiser_queries) == 7
-    assert len(legacy_adjuster_queries) == 6
-    assert len(adjuster_queries) == 4
-    assert len(adjacent_queries) == 9
-    assert len(restoration_queries) == 5
-    assert len(vendor_queries) == 5
-    assert len(market_queries) == 6
+    assert len(all_queries) == 82
+    assert len(public_adjuster_queries) == 10
+    assert len(forensic_queries) == 11
+    assert len(coverage_queries) == 13
+    assert len(appraiser_queries) == 9
+    assert len(adjuster_queries) == 9
+    assert len(restoration_queries) == 10
+    assert len(vendor_queries) == 10
+    assert len(market_queries) == 10
     assert suites["public_adjusters"][0].startswith("public adjuster licensing requirements")
     assert suites["forensic_and_damage_engineering"][0].startswith("forensic engineer wind damage")
     assert suites["cat_law_and_coverage"][0].startswith("policyholder attorney")
-    assert suites["coverage_and_litigation"][0].startswith("policyholder attorney")
-    assert suites["appraisers_umpires_and_restoration"][0].startswith("insurance appraisal umpire")
-    assert suites["adjusters_appraisers_and_restoration"][0].startswith("insurance appraisal umpire")
+    assert suites["appraisers_and_umpires"][0].startswith("insurance appraisal umpire")
     assert suites["independent_adjusters"][0].startswith("licensed independent adjuster")
-    assert suites["adjacent_industries"][-1].startswith("civil engineer structural")
     assert suites["restoration_and_mitigation"][0].startswith("hurricane board-up contractor")
     assert suites["carrier_tpa_and_vendor_ecosystem"][1].startswith("AI property damage assessment")
     assert suites["regulatory_legislative_and_market_news"][0].startswith("Florida insurance legislative session")
