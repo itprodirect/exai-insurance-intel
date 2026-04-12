@@ -2,12 +2,12 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-04-12T02:08:08.666053+00:00_
+_Generated: 2026-04-12T02:14:21.887065+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
 - Strategic role: Workflow engine plus controlled pilot web-product base for internal insurance-intelligence validation.
-- Current milestone: Phase 5 Level 1 is partially complete: the thin FastAPI wrapper and frontend shell are shipped, while pilot auth/request controls and persistence baseline remain the next bounded slices.
+- Current milestone: Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is now the active next bounded slice.
 
 ## Operating posture
 - Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI app in the same package, and a Next.js frontend in `frontend/`. SQLite cache, budget controls, benchmark fixtures, exported artifacts, and smoke/live execution modes are already in place. Manual live validation is script-backed, but the inspected docs only verify smoke validation runs so far.
@@ -20,8 +20,8 @@ _Generated: 2026-04-12T02:08:08.666053+00:00_
 - Durable memory must stay curated and human-reviewed; heartbeat artifacts are generated sidecars, not the source of truth.
 
 ## Top blockers
-- Phase 5 Level 1 is not complete because auth, request-boundary controls, rate limiting, and request logging are still the next slice in `docs/issue-tracker.md`.
-- Pilot persistence baseline is still missing; local SQLite is present, but the planned S3/Postgres pilot path is not yet implemented.
+- Phase 5 Level 1 is not complete because the persistence baseline is still missing; local SQLite is present, but the planned S3/Postgres pilot path is not yet implemented.
+- GitHub issue numbering has drifted from the local Phase 5 roadmap IDs, so the tracker still has `TBD` GitHub URLs for those items until dedicated issues are created.
 - Docs freshness is mixed because `docs/pilot-architecture-decision.md` and `docs/sessions/2026-03-22-pilot-alignment.md` still describe a pre-slice state with no frontend/API layer, while README and later slice notes show both shipped.
 
 ## Docs + setup
@@ -59,23 +59,22 @@ _Generated: 2026-04-12T02:08:08.666053+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-04-11d
-- Objective: Start `#23` with a narrow persistence fix so stored artifact locations reflect the actual backend location after upload.
+- Date: 2026-04-11e
+- Objective: Take a simple end-of-session docs slice by syncing the local Phase 5 tracker and durable memory to the merged work.
 - Changes made:
-  - Inspected `persist_workflow_run(...)` in `src/exa_demo/persistence.py` and `_run_job(...)` in `src/exa_demo/jobs.py` and confirmed both stored local experiment paths after artifact upload.
-  - Added `run_location(run_id)` to the artifact-store contract and implemented it for both `LocalArtifactStore` and `S3ArtifactStore`.
-  - Updated the sync persistence helper and async job runner to persist the artifact-store location instead of the source directory when uploads succeed.
-  - Added focused coverage for local-store run locations, S3-store run locations, persisted S3 artifact locations, and async job artifact-location persistence.
-  - Synced the local tracker/session pointers for this first `#23` slice.
+  - Inspected the local tracker, roadmap, heartbeat, and memory snapshot after the merged `#22` and first `#23` slices.
+  - Marked the local Phase 5 `#22` tracker item as done and kept `#23` as the active next slice.
+  - Updated the roadmap and `MEMORY.md` so they reflect that auth/request-boundary hardening is shipped and persistence is now the primary Phase 5 Level 1 blocker.
+  - Documented the Phase 5 numbering drift: local tracker IDs `#19`-`#23` are roadmap/task IDs, while GitHub numbers `22` and `23` are already occupied by older merged PRs.
+  - Added the session note and synced the tracker pointer for `#17`.
 - Validation:
-  - Ran `python -m pytest -q tests/test_persistence.py tests/test_jobs.py` and confirmed `54 passed`.
-  - Ran `python -m ruff check src/exa_demo/persistence.py src/exa_demo/jobs.py tests/test_persistence.py tests/test_jobs.py` and confirmed all checks passed.
+  - No code or test changes; docs-only sync.
 - Open issues:
-  - This slice did not add live S3 or Postgres integration coverage; it only tightened the backend-location contract around the existing abstractions.
-  - The repo still needs more thin `#23` slices before cloud-backed persistence is operationally well pinned.
+  - Dedicated GitHub issues still need to be created for the local Phase 5 tracker items if the repo wants live issue links instead of `TBD`.
+  - `docs/pilot-architecture-decision.md` and the earlier pilot-alignment note still lag the shipped API/frontend reality.
 - Decisions proposed:
-  - Treat stored artifact locations as canonical store references so later pilot surfaces can dereference artifacts without guessing whether a run used local or S3-backed storage.
-  - Keep `#23` additive and test-first by tightening one persistence contract at a time instead of attempting a broad rollout.
+  - Treat the local Phase 5 tracker IDs as internal roadmap IDs until dedicated GitHub issues are created, instead of linking them to unrelated GitHub numbers.
+  - Keep the next coding work on `#23` persistence slices rather than reopening the completed `#22` boundary track.
 
 ## Next thin slice
-- Add one more thin `#23` slice around persistence factory success paths or a small Postgres/S3 seam that can be verified without live infrastructure.
+- Continue `#23` with another small persistence-baseline seam, or end the session here if you want to wind down cleanly.

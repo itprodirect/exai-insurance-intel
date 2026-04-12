@@ -135,8 +135,8 @@ Goal: a working web UI that internal users can use to run existing workflows thr
 | --- | --- | --- | --- | --- | --- | --- |
 | Thin API wrapper | Expose existing workflows as FastAPI endpoints | Decouples frontend from Python CLI; enables web product path | `Done` | Phase 1-4 baseline | FastAPI app serves search, answer, research, find-similar, structured-search over HTTP with JSON responses | TBD |
 | Frontend app shell | Next.js + TypeScript + Tailwind + shadcn/ui scaffold with App Router | Establishes the frontend stack and deploy target | `Done` | Thin API wrapper | App shell renders, routes work, can call API endpoints | TBD |
-| Pilot auth + request boundary | Internal-only auth, request validation, rate limiting, budget guardrails, request logging | Prevents uncontrolled usage before the product is hardened | `Next` | Thin API wrapper | Only authenticated internal users can make requests; spend is bounded and logged | TBD |
-| Persistence baseline | Artifacts in S3, relational state/usage in Postgres, existing SQLite cache kept for local dev | Moves beyond local-only SQLite for pilot durability | `Next` | Thin API wrapper | Pilot runs persist artifacts to S3 and track usage in Postgres | TBD |
+| Pilot auth + request boundary | Internal-only auth, request validation, rate limiting, budget guardrails, request logging | Prevents uncontrolled usage before the product is hardened | `Done` | Thin API wrapper | Only authenticated internal users can make requests; spend is bounded and logged | TBD |
+| Persistence baseline | Artifacts in S3, relational state/usage in Postgres, existing SQLite cache kept for local dev | Moves beyond local-only SQLite for pilot durability | `Current` | Thin API wrapper | Pilot runs persist artifacts to S3 and track usage in Postgres | TBD |
 
 ### Level 2 - Limited External Beta
 
@@ -174,6 +174,5 @@ These are preserved as future exploration themes, but they are not committed bac
 - [Improvement roadmap](./exai-insurance-intel-improvements.md)
 - [docs/rebuild_review.md](./rebuild_review.md)
 - Current repository code, tests, CI, and README baseline observed on March 10, 2026
-
 
 
