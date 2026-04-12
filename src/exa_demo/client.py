@@ -22,7 +22,11 @@ from .client_smoke import (
     mock_exa_structured_search_response,
 )
 from .cost_model import estimate_cost_from_pricing
+from .resilience import CircuitBreaker
 from .safety import redact_response
+
+# Module-level circuit breaker shared across all Exa API calls.
+exa_circuit_breaker = CircuitBreaker()
 
 
 @dataclass
@@ -60,15 +64,18 @@ def exa_http_call(
     if not exa_api_key:
         raise RuntimeError("Missing EXA_API_KEY for live Exa request.")
 
-    headers = {"x-api-key": exa_api_key, "Content-Type": "application/json"}
-    response = requests.post(
-        _resolve_exa_endpoint(str(config["exa_endpoint"]), endpoint_name=endpoint_name),
-        headers=headers,
-        json=payload,
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    return response.json()
+    def _do_request() -> Dict[str, Any]:
+        headers = {"x-api-key": exa_api_key, "Content-Type": "application/json"}
+        response = requests.post(
+            _resolve_exa_endpoint(str(config["exa_endpoint"]), endpoint_name=endpoint_name),
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    return exa_circuit_breaker.call(_do_request)
 
 
 def exa_search_people(
