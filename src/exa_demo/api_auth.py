@@ -289,6 +289,26 @@ def clamp_num_results(num_results: int) -> int:
     return min(num_results, _pilot_max_results())
 
 
+def validate_pagination(
+    limit: int,
+    offset: int,
+    *,
+    max_limit: int = 200,
+) -> tuple[int, int]:
+    """Raise 400 for invalid pagination and clamp large limits."""
+    if limit < 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid limit '{limit}'. Must be at least 1.",
+        )
+    if offset < 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid offset '{offset}'. Must be 0 or greater.",
+        )
+    return min(limit, max_limit), offset
+
+
 # ---------------------------------------------------------------------------
 # Request-logging middleware
 # ---------------------------------------------------------------------------

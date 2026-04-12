@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-04-12T01:47:49.355039+00:00_
+_Generated: 2026-04-12T01:58:27.133516+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -59,23 +59,24 @@ _Generated: 2026-04-12T01:47:49.355039+00:00_
 - Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-04-11b
-- Objective: Harden one more request-boundary gap inside `#22` by tightening saved-query creation without broadening the pilot surface.
+- Date: 2026-04-11c
+- Objective: Harden one more request-boundary gap inside `#22` by validating run-list pagination before repository queries execute.
 - Changes made:
-  - Inspected `POST /api/me/saved-queries` in `src/exa_demo/api.py` and confirmed the route persisted raw input with no saved-query-specific validation.
-  - Confirmed the existing pilot query-length guard already lived in `src/exa_demo/api_auth.py` and that the shipped frontend only offered saved-query creation for `search`, `answer`, and `research`.
-  - Added a saved-query workflow allowlist for the currently shipped pilot surfaces and reused `validate_query(...)` for saved-query writes.
-  - Added focused saved-query regression coverage in `tests/test_users.py` for invalid workflow and overlong query rejections.
+  - Inspected `/api/me/runs` and `/api/runs` in `src/exa_demo/api.py` and confirmed both routes only capped large limits while still accepting negative pagination values.
+  - Confirmed `src/exa_demo/persistence.py` used the incoming pagination values directly in SQL `LIMIT` and `OFFSET` clauses across the repository adapters.
+  - Added `validate_pagination(...)` in `src/exa_demo/api_auth.py` to reject non-positive limits and negative offsets while preserving the existing 200-item cap.
+  - Applied the shared pagination validator to both run-list routes in `src/exa_demo/api.py`.
+  - Added focused regression coverage in `tests/test_persistence.py` and `tests/test_users.py` for invalid ops/global and per-user pagination inputs.
   - Synced the security doc and tracker/session pointers for this slice.
 - Validation:
-  - Ran `python -m pytest -q tests/test_users.py` and confirmed `26 passed`.
-  - Ran `python -m ruff check src/exa_demo/api.py tests/test_users.py` and confirmed all checks passed.
+  - Ran `python -m pytest -q tests/test_persistence.py tests/test_users.py` and confirmed `66 passed`.
+  - Ran `python -m ruff check src/exa_demo/api.py src/exa_demo/api_auth.py tests/test_persistence.py tests/test_users.py` and confirmed all checks passed.
 - Open issues:
-  - This slice intentionally did not add label bounds because the repo does not yet have a documented or shipped label contract for saved queries.
-  - Run-list pagination and other request-boundary tightening under `#22` are still open.
+  - This slice intentionally preserved the existing oversized-limit cap semantics instead of redesigning pagination or response metadata.
+  - The repo still has no concrete shipped contract for saved-query label bounds, so that remains a weak candidate for more `#22` work.
 - Decisions proposed:
-  - Keep `#22` moving via one inspected route or helper at a time, with regression coverage attached to each narrow fix.
-  - Treat saved-query workflow acceptance as a pilot-surface boundary, not as a generic storage field that should accept every backend workflow by default.
+  - Continue to centralize request-boundary helpers in `api_auth.py` when they apply across multiple FastAPI routes.
+  - Treat future `#22` slices as complete only when they map to one inspected route or helper plus focused regression coverage.
 
 ## Next thin slice
-- Add narrow pagination bounds for `/api/me/runs` and `/api/runs` so negative or pathological values cannot create odd behavior.
+- Reassess whether another evidence-backed `#22` gap still exists; if not, move to the first thin `#23` persistence baseline slice.

@@ -215,6 +215,27 @@ class TestRunOwnership:
         )
         assert resp.status_code == 403
 
+    def test_my_runs_rejects_negative_pagination(self, multi_user_client):
+        multi_user_client.post(
+            "/api/search",
+            json={"query": "alice query", "mode": "smoke"},
+            headers={"Authorization": "Bearer key-alice"},
+        )
+
+        resp = multi_user_client.get(
+            "/api/me/runs?limit=-1&offset=0",
+            headers={"Authorization": "Bearer key-alice"},
+        )
+        assert resp.status_code == 400
+        assert "Invalid limit" in resp.json()["detail"]
+
+        resp = multi_user_client.get(
+            "/api/me/runs?limit=5&offset=-1",
+            headers={"Authorization": "Bearer key-alice"},
+        )
+        assert resp.status_code == 400
+        assert "Invalid offset" in resp.json()["detail"]
+
     def test_non_ops_user_cannot_access_ops_summary(self, multi_user_client):
         resp = multi_user_client.get(
             "/api/ops/summary",

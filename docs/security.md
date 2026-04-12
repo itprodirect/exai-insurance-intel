@@ -55,6 +55,7 @@ Install with: `pre-commit install`
 - Query length bounded (`PILOT_MAX_QUERY_LENGTH`, default 1000 chars), including saved-query writes
 - Result count clamped (`PILOT_MAX_RESULTS`, default 25)
 - Saved-query workflows limited to the currently shipped pilot surfaces (`search`, `answer`, `research`)
+- Run-list pagination rejects negative offsets and non-positive limits, while still capping oversized limits at 200
 - Pydantic model validation on all API request bodies
 - Request ID tracking via `X-Request-ID` header
 
