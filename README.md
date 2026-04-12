@@ -10,7 +10,9 @@ This repo is a **backend workflow engine, API, and pilot web UI** for insurance 
 - Complete CLI with 8 commands covering all Exa API endpoints
 - FastAPI server wrapping all workflows as JSON endpoints
 - Next.js frontend with search, answer, and research workflow UIs
+- Pilot auth and request-boundary controls for bearer auth, per-user scoping, and bounded usage
 - SQLite caching with budget enforcement and cost ledger
+- Additive persistence adapters for local SQLite plus pilot S3/Postgres backends
 - Evaluation taxonomy with benchmark suites (55+ insurance queries)
 - Artifact export system (JSON/JSONL/CSV/Markdown)
 - Smoke + live execution modes with CI on every push
@@ -18,8 +20,8 @@ This repo is a **backend workflow engine, API, and pilot web UI** for insurance 
 
 **What does not exist yet:**
 - Container or cloud deployment (no Docker, no Terraform)
-- Production database (SQLite cache only)
-- Authentication or multi-user support
+- Deployed cloud persistence/infrastructure baseline for S3/Postgres-backed pilot environments
+- Production-hardened external access model
 
 **Near-term direction:** Build a controlled pilot web product layer on top of the existing workflow engine. See [docs/roadmap.md](docs/roadmap.md) for phased tracks and [docs/pilot-architecture-decision.md](docs/pilot-architecture-decision.md) for architectural defaults.
 
@@ -459,7 +461,7 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - GitHub issue tracker mapping: [docs/issue-tracker.md](docs/issue-tracker.md)
 - ADR index: [docs/adr/README.md](docs/adr/README.md)
 - Session note template: [docs/sessions/README.md](docs/sessions/README.md)
-- Latest implementation session: [docs/sessions/2026-03-20-phase4-refactor-decomposition.md](docs/sessions/2026-03-20-phase4-refactor-decomposition.md)
+- Latest implementation session: [docs/sessions/2026-04-12-issue-17-docs-truth-sync.md](docs/sessions/2026-04-12-issue-17-docs-truth-sync.md)
 
 ## Guardrails
 
@@ -468,5 +470,4 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - No contact harvesting
 - Redaction stays enabled in notebook output
 - Human review required before operational use
-
 
