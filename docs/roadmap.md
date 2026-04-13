@@ -67,19 +67,19 @@ This phase governs how roadmap work is tracked and how delivery history is prese
 | Governance and delivery tracking | Maintain roadmap, issue tracker, ADRs, and session notes as durable project history | Preserves why decisions were made and what changed each session | `In progress` | None | Docs and GitHub stay in sync for roadmap items and active work | [#17](https://github.com/itprodirect/exai-insurance-intel/issues/17) |
 | README alignment and top-level navigation | Keep the README synchronized with the actual repo baseline, roadmap, and governance docs | Makes the repo entry point accurate for future sessions and contributors | `Done` | Governance conventions | README links, feature framing, and architecture context stay aligned with the roadmap | [#18](https://github.com/itprodirect/exai-insurance-intel/issues/18) |
 
-## Planned Interfaces and Contracts
+## Interfaces and Contracts
 
-These interfaces are intentionally documented now so future implementation work has a stable target.
+These interfaces are implemented and documented here so future work has a stable current reference point.
 
 ### CLI contract
 
-Planned commands:
+Current commands:
 
 ```powershell
 python -m exa_demo search "public adjuster Florida hurricane"
 python -m exa_demo answer "What is the Florida appraisal clause dispute process?"
 python -m exa_demo research "Summarize the Florida CAT market outlook."
-python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file .\path\to\structured-schema.json
+python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file path/to/structured-schema.json
 python -m exa_demo find-similar "https://example.com/florida-appraisal-decision"
 python -m exa_demo eval --suite insurance
 python -m exa_demo compare-search-types --suite forensic_and_damage_engineering --baseline-type deep --candidate-type deep-reasoning
@@ -88,13 +88,13 @@ python -m exa_demo budget --run-id demo-2026-03
 
 ### Model contract
 
-Planned module:
+Current module:
 
 ```text
 src/exa_demo/models.py
 ```
 
-Planned responsibilities:
+Current responsibilities:
 
 - normalized Exa result records
 - cost breakdown and ledger records
@@ -103,7 +103,7 @@ Planned responsibilities:
 
 ### Experiment artifact contract
 
-Planned run layout:
+Current run layout:
 
 ```text
 experiments/<run-id>/config.json
@@ -131,12 +131,14 @@ See [pilot-architecture-decision.md](./pilot-architecture-decision.md) for the l
 
 Goal: a working web UI that internal users can use to run existing workflows through a browser instead of the CLI.
 
+Current local validation remains smoke/local only. Live Exa mode and S3/Postgres-backed runtime validation are still future work under the persistence baseline row below.
+
 | Roadmap item | Goal | Why it matters | Current status | Dependencies | Success criteria | GitHub issue |
 | --- | --- | --- | --- | --- | --- | --- |
 | Thin API wrapper | Expose existing workflows as FastAPI endpoints | Decouples frontend from Python CLI; enables web product path | `Done` | Phase 1-4 baseline | FastAPI app serves search, answer, research, find-similar, structured-search over HTTP with JSON responses | TBD |
 | Frontend app shell | Next.js + TypeScript + Tailwind + shadcn/ui scaffold with App Router | Establishes the frontend stack and deploy target | `Done` | Thin API wrapper | App shell renders, routes work, can call API endpoints | TBD |
 | Pilot auth + request boundary | Internal-only auth, request validation, rate limiting, budget guardrails, request logging | Prevents uncontrolled usage before the product is hardened | `Done` | Thin API wrapper | Only authenticated internal users can make requests; spend is bounded and logged | TBD |
-| Persistence baseline | Artifacts in S3, relational state/usage in Postgres, existing SQLite cache kept for local dev | Moves beyond local-only SQLite for pilot durability | `Current` | Thin API wrapper | Pilot runs persist artifacts to S3 and track usage in Postgres | TBD |
+| Persistence baseline | Artifacts in S3, relational state/usage in Postgres, existing SQLite cache kept for local dev | Moves beyond local-only SQLite for pilot durability | `In progress` | Thin API wrapper | Target state: pilot runs persist artifacts to S3 and track usage in Postgres after explicit end-to-end validation | TBD |
 
 ### Level 2 - Limited External Beta
 
@@ -174,5 +176,3 @@ These are preserved as future exploration themes, but they are not committed bac
 - [Improvement roadmap](./exai-insurance-intel-improvements.md)
 - [docs/rebuild_review.md](./rebuild_review.md)
 - Current repository code, tests, CI, and README baseline observed on March 10, 2026
-
-

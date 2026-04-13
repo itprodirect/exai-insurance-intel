@@ -4,12 +4,12 @@ Exa-powered **insurance intelligence toolkit** for CAT-loss, claims, expert, con
 
 ## What This Repo Is Today
 
-This repo is a **backend workflow engine, API, and pilot web UI** for insurance intelligence. All core intelligence workflows (ranked search, cited answers, research reports, structured extraction, seed-URL discovery, benchmark evaluation) are fully implemented, tested, and runnable from the CLI, Jupyter notebook, FastAPI server, and Next.js frontend.
+This repo is an **installable Python package and CLI workflow engine** with a thin FastAPI backend and a pilot Next.js web UI for insurance intelligence.
 
 **What exists:**
-- Complete CLI with 8 commands covering all Exa API endpoints
-- FastAPI server wrapping all workflows as JSON endpoints
-- Next.js frontend with search, answer, and research workflow UIs
+- Python package + CLI workflows for search, answer, research, structured extraction, find-similar, evaluation, comparison, and budget inspection
+- FastAPI backend wrapping the shipped workflows as JSON endpoints
+- Next.js frontend with Search, Answer, Research, and My Work surfaces
 - Pilot auth and request-boundary controls for bearer auth, per-user scoping, and bounded usage
 - SQLite caching with budget enforcement and cost ledger
 - Additive persistence adapters for local SQLite plus pilot S3/Postgres backends
@@ -27,6 +27,28 @@ This repo is a **backend workflow engine, API, and pilot web UI** for insurance 
 
 This repo stays intentionally lean while supporting repeatable notebook and CLI workflows for insurance research, cited answers, structured extraction, and report generation.
 
+## Current Local Status (Validated 2026-04-12)
+
+This session revalidated the **local smoke/mock path** end to end.
+
+Validated now:
+- Isolated virtual environment rebuild
+- `python -m pip install --no-user -e '.[dev,api]'`
+- `python -m pytest -q`
+- `python -m ruff check .`
+- `python scripts/run_live_validation.py --mode smoke`
+- Local FastAPI startup with `uvicorn exa_demo.api:app --reload`
+- Local backend checks at `http://127.0.0.1:8000/health` and `http://127.0.0.1:8000/docs`
+- Local frontend startup from `frontend/` with `npm install` and `npm run dev`
+- Browser validation for Search, Answer, Research, and My Work against the local backend
+
+Still not validated in this session:
+- `--mode live` or real Exa API traffic
+- S3 artifact storage or Postgres-backed usage/run persistence
+- Production readiness or deployed environments
+
+Use [docs/local-validation.md](docs/local-validation.md) for the exact reproduction steps.
+
 Core local resources:
 - one core notebook: `exa_people_search_eval.ipynb`
 - one local env file: `.env` (not committed)
@@ -37,10 +59,12 @@ Core local resources:
 - [What this repo evaluates](#what-this-repo-evaluates)
 - [Feature matrix](#feature-matrix)
 - [Architecture](#architecture)
-- [Windows 11 setup](#windows-11-setup-python-310)
+- [Current local status](#current-local-status-validated-2026-04-12)
+- [Local setup](#local-setup-powershell-or-git-bash-python-310)
 - [CLI commands](#cli-commands)
 - [API server](#api-server)
 - [Frontend](#frontend)
+- [Local validation runbook](#local-validation-runbook)
 - [Experiment artifacts](#experiment-artifacts)
 - [Demo gallery](#demo-gallery)
 - [Integration boundaries](#integration-boundaries)
@@ -61,7 +85,7 @@ Core local resources:
 | Seed-URL discovery | Done | `python -m exa_demo find-similar` | `find_similar.json` | Separate `/findSimilar` workflow and normalization path |
 | Cache and budget ledger | Done | Notebook + CLI | `exa_cache.sqlite`, `summary.json` | Prevents re-billing on cache hits |
 | API server | Done | `uvicorn exa_demo.api:app` | JSON responses | Thin FastAPI wrapper over CLI workflows; smoke mode first-class |
-| Frontend UI | Done | `npm run dev` in `frontend/` | Browser UI | Next.js + TypeScript + Tailwind + shadcn/ui; search, answer, research |
+| Frontend UI | Done | `npm run dev` in `frontend/` | Browser UI | Next.js + TypeScript + Tailwind + shadcn/ui; search, answer, research, My Work |
 | Smoke CI and local tests | Done | GitHub Actions + `pytest -q` | CI runs and local test suite | Default workflow runs `pytest` and notebook smoke |
 
 ## Architecture
@@ -116,54 +140,57 @@ Optional for before/after reporting in notebook Cell 9:
 - `CONFIG["compare_to_run_id"] = "<baseline-run-id>"`
 - `CONFIG["compare_base_dir"] = "experiments"`
 
-## Windows 11 Setup (Python 3.10+)
+## Local Setup (PowerShell or Git Bash, Python 3.10+)
 
-1. Open PowerShell in this repo.
-2. Create venv:
+1. Create the virtual environment:
 
 ```powershell
-py -3.10 -m venv .venv
+python -m venv .venv
 ```
 
-3. Activate:
+2. Activate it.
+
+PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-4. Install dependencies:
+Git Bash:
+
+```bash
+source .venv/Scripts/activate
+```
+
+3. Install the package, CLI, API extra, and dev tooling:
 
 ```powershell
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install --no-user -e '.[dev,api]'
 ```
 
-
-## Installable Package and CLI
-
-For an editable install with the CLI and dev tools available:
-
-```powershell
-pip install -e ".[dev]"
-```
-
-If your environment blocks build-dependency downloads, use:
-
-```powershell
-pip install -e ".[dev]" --no-build-isolation
-```
-
-Optional local hooks:
+4. Optional local hooks:
 
 ```powershell
 pre-commit install
 ```
+
+If package installation or editable installs land outside `.venv`, reactivate the environment and prefer `python -m pip ...` over bare `pip ...`. The safest quick check is `python -c "import sys; print(sys.executable)"`, which should point at `.venv`.
+
 ## Configure Environment
 
 Create `.env` from template:
 
+PowerShell:
+
 ```powershell
 Copy-Item .env.example .env
+```
+
+Git Bash:
+
+```bash
+cp .env.example .env
 ```
 
 Edit `.env`:
@@ -177,7 +204,8 @@ EXA_SMOKE_NO_NETWORK=0
 
 Notes:
 - `.env` is ignored by git.
-- If you want no-network testing, use smoke mode (`EXA_SMOKE_NO_NETWORK=1` or runner `--mode smoke`).
+- The validated local path in this README stays on `--mode smoke`, so a real API key is not required unless you intentionally switch to live mode.
+- `EXA_SMOKE_NO_NETWORK=1` is the safest env-level default if you want no-network behavior even when a command omits `--mode smoke`.
 
 ## Run Notebook
 
@@ -201,7 +229,7 @@ Notebook flow is intentionally fixed to 9 cells:
 python -m exa_demo search "forensic engineer insurance expert witness" --mode smoke --json
 python -m exa_demo answer "What is the Florida appraisal clause dispute process?" --mode smoke --json
 python -m exa_demo research "Summarize the Florida CAT market outlook." --mode smoke --json
-python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file .\path\to\structured-schema.json --mode smoke --json
+python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file path/to/structured-schema.json --mode smoke --json
 python -m exa_demo find-similar "https://example.com/florida-appraisal-decision" --mode smoke --json
 python -m exa_demo search "Florida property insurance appraisal clause" --type deep --additional-query "Florida appraisal dispute statute" --start-published-date 2025-01-01 --livecrawl --json
 python -m exa_demo eval --mode smoke --suite forensic_and_damage_engineering --limit 5 --json
@@ -230,11 +258,7 @@ When comparison is enabled, the run also writes a human-readable `experiments/<R
 
 ## API Server
 
-The API is a thin FastAPI wrapper over the same workflow functions the CLI uses. Install with the `api` extra:
-
-```powershell
-pip install -e ".[api]"
-```
+The API is a thin FastAPI wrapper over the same workflow functions the CLI uses. If you followed the local setup above, the `api` extra is already installed.
 
 Start the server:
 
@@ -242,7 +266,11 @@ Start the server:
 uvicorn exa_demo.api:app --reload
 ```
 
-The server runs on `http://127.0.0.1:8000` by default. Interactive docs are at `/docs`.
+The server runs on `http://127.0.0.1:8000` by default.
+
+Useful local URLs:
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/docs`
 
 ### Endpoints
 
@@ -272,6 +300,19 @@ The frontend is a Next.js app in `frontend/` that calls the FastAPI backend thro
 ```powershell
 cd frontend
 npm install
+```
+
+Copy the frontend env file:
+
+PowerShell:
+
+```powershell
+Copy-Item .env.local.example .env.local
+```
+
+Git Bash:
+
+```bash
 cp .env.local.example .env.local
 ```
 
@@ -296,12 +337,17 @@ Open `http://localhost:3000`. The frontend proxies API calls to the backend at `
 
 - Health indicator showing backend connection status
 - Tab-based workflow selector (Search, Answer, Research)
+- My Work view showing newly created runs
 - Search: query input, result count, taxonomy scores, result cards with highlights
 - Answer: question input, cited answer display with source links
 - Research: topic input, report display with sources
 - Loading spinners and error handling on all workflows
 
-All workflows default to smoke mode — no API key or network needed for frontend development.
+The local UI validation in this session stayed on the smoke/mock path. Live Exa mode, S3 artifact storage, and Postgres-backed persistence were not exercised through the frontend.
+
+## Local Validation Runbook
+
+Follow [docs/local-validation.md](docs/local-validation.md) for the exact smoke-path reproduction flow used in this session.
 
 ## Benchmark Fixture
 
@@ -358,14 +404,15 @@ Use [docs/integration-boundaries.md](docs/integration-boundaries.md) for the cur
 
 Use the manual GitHub Actions workflow in [.github/workflows/live-validation.yml](.github/workflows/live-validation.yml) when you want a deliberate real-API validation pass against the shipped CLI workflows.
 
-Local dry run:
+Local smoke dry run:
 
 ```powershell
-python .\scripts\run_live_validation.py --mode smoke
+python scripts/run_live_validation.py --mode smoke
 ```
 
 Guidance:
 - default to `--mode smoke` locally unless you are intentionally validating live API behavior
+- the current local validation captured in this README did **not** exercise live mode
 - the manual workflow is bounded by design and uploads runtime artifacts for review
 - `--include-comparison` is optional because it is materially more expensive than the default endpoint checks
 
@@ -379,27 +426,34 @@ Guidance:
 Reset cache safely:
 
 ```powershell
-python .\scripts\reset_cache.py
+python scripts/reset_cache.py
 ```
 
 Skip prompt:
 
 ```powershell
-python .\scripts\reset_cache.py --yes
+python scripts/reset_cache.py --yes
 ```
 
 ## Smoke Runner (nbclient)
 
 ```powershell
-python .\scripts\run_notebook_smoke.py --mode smoke
+python scripts/run_notebook_smoke.py --mode smoke
 ```
+
+This notebook smoke runner remains available, but it was not part of the local frontend/backend validation path rechecked on 2026-04-12.
 
 ## Local Quality Gate
 
+Validated in this session:
 - `python -m ruff check .`
 - `python -m pytest -q`
-- `pre-commit run --all-files`
 - `python scripts/run_live_validation.py --mode smoke`
+- `uvicorn exa_demo.api:app --reload`
+- `npm install` and `npm run dev` in `frontend/`
+
+Optional extra check:
+- `pre-commit run --all-files`
 
 Modes:
 - `--mode smoke`: forced no-network run (default)
@@ -413,7 +467,7 @@ Recommended boundary:
 Optional timeout override:
 
 ```powershell
-python .\scripts\run_notebook_smoke.py --mode smoke --timeout 180
+python scripts/run_notebook_smoke.py --mode smoke --timeout 180
 ```
 
 ## Safe Cost Tuning
@@ -461,7 +515,7 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - GitHub issue tracker mapping: [docs/issue-tracker.md](docs/issue-tracker.md)
 - ADR index: [docs/adr/README.md](docs/adr/README.md)
 - Session note template: [docs/sessions/README.md](docs/sessions/README.md)
-- Latest implementation session: [docs/sessions/2026-04-12-issue-17-docs-truth-sync.md](docs/sessions/2026-04-12-issue-17-docs-truth-sync.md)
+- Latest implementation session: [docs/sessions/2026-04-12-local-smoke-validation-doc-sync.md](docs/sessions/2026-04-12-local-smoke-validation-doc-sync.md)
 
 ## Guardrails
 
@@ -470,4 +524,3 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - No contact harvesting
 - Redaction stays enabled in notebook output
 - Human review required before operational use
-
