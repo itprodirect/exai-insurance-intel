@@ -14,6 +14,14 @@ This repo is designed to stay safe-by-default while still supporting deliberate 
 - Use `live` only for explicit manual validation when you want to inspect real API behavior.
 - Keep human review in the loop for any operational interpretation of results, even in `live`.
 
+## Current Locally Validated Path (2026-04-12)
+
+- Rebuilt an isolated virtual environment and installed with `python -m pip install --no-user -e '.[dev,api]'`
+- Passed `python -m pytest -q`, `python -m ruff check .`, and `python scripts/run_live_validation.py --mode smoke`
+- Booted the FastAPI app locally and verified `/health` and `/docs`
+- Booted the Next.js frontend locally and verified Search, Answer, Research, and My Work against the local backend
+- Did **not** revalidate `live` mode, S3 artifact storage, or Postgres-backed usage/run persistence
+
 ## Artifact Expectations
 
 - Smoke runs preserve the same artifact shape as live runs whenever possible.
@@ -52,8 +60,8 @@ This section clarifies what belongs in the repo now versus what should be deferr
 | CLI + notebook interfaces | Existing user surfaces |
 | SQLite cache + budget ledger | Local dev and smoke mode persistence |
 | Benchmark fixtures and evaluation | Domain-specific; tightly coupled to workflows |
-| Thin FastAPI wrapper (next) | Thin adapter over existing workflows; belongs with the code it wraps |
-| Frontend app (next) | Product UI; lives in-repo as `frontend/` or similar until scale demands separation |
+| Thin FastAPI wrapper | Thin adapter over existing workflows; belongs with the code it wraps |
+| Frontend app | Product UI; lives in-repo as `frontend/` until scale demands separation |
 
 ### Deferred to platform / infra layers
 
@@ -69,6 +77,7 @@ This section clarifies what belongs in the repo now versus what should be deferr
 ### Boundary rules
 
 - Do not add infrastructure-as-code to the repo until the pilot architecture is validated with real users.
-- Keep the API wrapper thin — it should delegate to existing workflow functions, not duplicate logic.
+- Keep the API wrapper thin - it should delegate to existing workflow functions, not duplicate logic.
 - Frontend and backend can share a monorepo during pilot. Separation is a Level 3 concern.
 - Auth should start as simple middleware in the API layer, not as a separate service.
+- Do not blur additive S3/Postgres code paths with the current validated local smoke path unless they have been explicitly revalidated end to end.

@@ -39,7 +39,7 @@ python -m exa_demo research "Summarize the Florida CAT market outlook." --mode s
 `structured-search` is the schema-driven extraction workflow. Use it when you want Exa to return a typed payload that can be normalized into downstream tables, graphs, or datasets.
 
 ```powershell
-python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file .\path\to\structured-schema.json --mode smoke --json
+python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file path/to/structured-schema.json --mode smoke --json
 ```
 
 ## Comparison

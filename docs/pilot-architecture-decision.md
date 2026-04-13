@@ -7,7 +7,7 @@ This document records the near-term architectural defaults for the pilot web pro
 ## Current State
 
 The repo is a fully implemented **backend workflow engine plus Phase 5 Level 1 pilot surface** with:
-- 8 CLI commands covering all Exa API endpoints
+- 8 CLI commands covering the shipped repo workflows
 - FastAPI API layer wrapping the shipped workflows
 - Next.js frontend for search, answer, and research flows
 - Pilot auth and request-boundary controls for bearer auth, per-user scoping, and bounded usage
@@ -19,6 +19,10 @@ The repo is a fully implemented **backend workflow engine plus Phase 5 Level 1 p
 - Comprehensive test suite
 
 There is still no container or cloud deployment, no infrastructure automation baseline, and no production-hardened external access model.
+
+## Current Local Validation Note
+
+As of 2026-04-12, the repo has been revalidated locally on the smoke/mock path: isolated venv install, `pytest`, `ruff`, `python scripts/run_live_validation.py --mode smoke`, local FastAPI boot (`/health`, `/docs`), and local frontend Search/Answer/Research/My Work. Live Exa mode and S3/Postgres-backed persistence were not revalidated in that session.
 
 ## Target: Private Internal Pilot
 
@@ -44,9 +48,9 @@ A working web product that internal users can use to run insurance intelligence 
 | Framework | FastAPI | Lightweight; async-capable; good OpenAPI generation |
 | Pattern | Thin wrapper over existing workflow functions | No logic duplication; one endpoint per CLI command |
 | Response format | JSON matching existing artifact schemas | Frontend consumes the same shapes the CLI produces |
-| Smoke mode | Supported via query param or config | Frontend dev works without Exa API key |
+| Smoke mode | Supported via request mode plus config | Frontend dev works without Exa API key |
 | Deploy direction | AWS-compatible service path (ECS/Lambda) | Standard; team-familiar; can start with single instance |
-| Repo location | `api/` directory or extend `src/exa_demo/` | Keep close to workflow code it wraps |
+| Repo location | `src/exa_demo/` | Keep the API close to the workflow code it wraps |
 
 ### Persistence
 
@@ -55,7 +59,7 @@ A working web product that internal users can use to run insurance intelligence 
 | Artifact storage | S3 (or S3-compatible) | Durable; cheap; existing artifact shapes map directly |
 | Relational state | Postgres | Usage tracking, user state, run metadata |
 | Local dev cache | Keep existing SQLite | Works; no reason to change for local/smoke mode |
-| Migration approach | Additive — S3 and Postgres supplement SQLite, not replace it | SQLite stays for CLI/notebook; pilot adds cloud persistence |
+| Migration approach | Additive - S3 and Postgres supplement SQLite, not replace it | SQLite stays for CLI/notebook; pilot adds cloud persistence |
 
 ### Auth and Controls
 
