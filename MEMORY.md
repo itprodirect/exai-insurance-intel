@@ -32,7 +32,7 @@ Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contrac
 Workflow engine plus controlled pilot web-product base for internal insurance-intelligence validation.
 
 ## Current milestone
-Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is now the active next bounded slice.
+Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters plus API health self-reporting for selected persistence backends.
 
 ## Durable decisions
 - Markdown docs under `docs/` remain the canonical backlog, architecture, ADR, and session-history surface for this repo.
@@ -45,12 +45,12 @@ Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell,
 Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI app in the same package, and a Next.js frontend in `frontend/`. SQLite cache, budget controls, benchmark fixtures, exported artifacts, and smoke/live execution modes are already in place. Manual live validation is script-backed, but the inspected docs only verify smoke validation runs so far.
 
 ## Top blockers
-- Phase 5 Level 1 is not complete because the persistence baseline is still missing; local SQLite is present, but the planned S3/Postgres pilot path is not yet implemented.
+- Phase 5 Level 1 is not complete because the persistence baseline still lacks end-to-end S3/Postgres-backed pilot validation and deployment posture; local defaults, pilot adapters, and backend self-reporting are present.
 - GitHub issue numbering has drifted from the local Phase 5 roadmap IDs, so the tracker still has `TBD` GitHub URLs for those items until dedicated issues are created.
-- Docs freshness is mixed because `docs/pilot-architecture-decision.md` and `docs/sessions/2026-03-22-pilot-alignment.md` still describe a pre-slice state with no frontend/API layer, while README and later slice notes show both shipped.
+- Live Exa mode, S3/Postgres-backed runtime behavior, and deployed pilot environments remain unvalidated; the documented validated path is still local smoke mode.
 
 ## Docs freshness
-Mixed but workable. `README.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and the 2026-03-22 implementation session notes reflect the current repo direction; the pilot architecture doc's current-state section and the pilot-alignment note lag behind the shipped API/frontend reality.
+Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local and persistence-in-progress posture; older March session notes remain historical and may describe pre-slice state.
 
 ## Setup friction
 Moderate. Python setup is straightforward, but full local work spans Python deps, optional `[api]` extras, a separate `frontend/` npm install and env file, and deliberate handling of smoke versus live mode with `EXA_API_KEY` only for bounded manual validation.
@@ -64,6 +64,7 @@ Moderate. Python setup is straightforward, but full local work spans Python deps
 
 ## Key files / commands
 - `README.md`
+- `docs/local-validation.md`
 - `docs/roadmap.md`
 - `docs/issue-tracker.md`
 - `docs/integration-boundaries.md`
@@ -83,7 +84,7 @@ Moderate. Python setup is straightforward, but full local work spans Python deps
 ## Wait until later
 - Any automatic promotion of generated heartbeat output into durable memory or strategy docs.
 - Scheduled or automatic live validation runs, dashboards, or cross-repo telemetry.
-- Scope beyond this scaffold into auth redesign, persistence implementation, async jobs, deployment, infra, or broader docs refactors.
+- Scope beyond this scaffold into auth redesign, persistence redesign, async jobs, deployment, infra, or broader docs refactors.
 
 ## Update policy
 `MEMORY.md` stays curated and human-reviewed. `memory/YYYY-MM-DD.md` stays append-only. `HEARTBEAT.md` and `heartbeat.json` are reproducible generated outputs and are never the durable source of truth.

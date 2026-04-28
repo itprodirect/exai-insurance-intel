@@ -276,7 +276,7 @@ Useful local URLs:
 
 | Method | Path | Request body | Description |
 | --- | --- | --- | --- |
-| `GET` | `/health` | — | Health check |
+| `GET` | `/health` | — | Health check with configured run/artifact backend labels |
 | `POST` | `/api/search` | `{"query": "...", "mode": "smoke"}` | Ranked search with evaluation |
 | `POST` | `/api/answer` | `{"query": "...", "mode": "smoke"}` | Cited-answer workflow |
 | `POST` | `/api/research` | `{"query": "...", "mode": "smoke"}` | Research report workflow |
