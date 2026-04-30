@@ -48,7 +48,11 @@ from .endpoint_workflows import (
 )
 from .jobs import submit_job
 from .persistence import (
+    LocalArtifactStore,
+    LocalRunRepository,
     SavedQuery,
+    S3ArtifactStore,
+    PostgresRunRepository,
     create_artifact_store,
     create_run_repository,
     persist_workflow_run,
@@ -125,6 +129,8 @@ class StructuredSearchRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+    run_store: str
+    artifact_store: str
 
 
 class SearchResponse(BaseModel):
@@ -347,10 +353,30 @@ def _persist(
 # ---------------------------------------------------------------------------
 
 
+def _run_store_label() -> str:
+    if isinstance(run_repo, PostgresRunRepository):
+        return "postgres"
+    if isinstance(run_repo, LocalRunRepository):
+        return "local"
+    return "local"
+
+
+def _artifact_store_label() -> str:
+    if isinstance(artifact_store, S3ArtifactStore):
+        return "s3"
+    if isinstance(artifact_store, LocalArtifactStore):
+        return "local"
+    return "local"
+
+
 @app.get("/health", response_model=HealthResponse)
 @app.get("/api/health", response_model=HealthResponse, include_in_schema=False)
 def health() -> Dict[str, str]:
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "run_store": _run_store_label(),
+        "artifact_store": _artifact_store_label(),
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -46,7 +46,11 @@ def _make_prepare_context_with_sqlite(sqlite_path):
 def test_health(client):
     resp = client.get("/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    assert resp.json() == {
+        "status": "ok",
+        "run_store": "local",
+        "artifact_store": "local",
+    }
 
 
 # ---------------------------------------------------------------------------

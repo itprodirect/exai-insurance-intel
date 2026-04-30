@@ -917,8 +917,10 @@ def create_artifact_store() -> ArtifactStore:
                 "PILOT_S3_BUCKET is required when PILOT_ARTIFACT_STORE=s3"
             )
         prefix = os.environ.get("PILOT_S3_PREFIX", "artifacts/").strip()
+        logger.info("Using s3 artifact store backend")
         return S3ArtifactStore(bucket=bucket, prefix=prefix)
 
+    logger.info("Using local artifact store backend")
     return LocalArtifactStore()
 
 
@@ -932,9 +934,11 @@ def create_run_repository() -> RunRepository:
             raise RuntimeError(
                 "PILOT_POSTGRES_URL is required when PILOT_RUN_STORE=postgres"
             )
+        logger.info("Using postgres run repository backend")
         return PostgresRunRepository(dsn=dsn)
 
     db_path = os.environ.get("PILOT_RUN_STORE_PATH", "pilot_runs.sqlite").strip()
+    logger.info("Using local run repository backend")
     return LocalRunRepository(db_path=db_path)
 
 

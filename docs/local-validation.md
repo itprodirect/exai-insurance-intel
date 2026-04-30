@@ -81,6 +81,8 @@ Check:
 - `http://127.0.0.1:8000/health`
 - `http://127.0.0.1:8000/docs`
 
+The health response should include `status`, `run_store`, and `artifact_store` so local checks can confirm which persistence backends the API process selected.
+
 6. Start the frontend in a second terminal.
 
 ```powershell

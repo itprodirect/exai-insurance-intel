@@ -81,13 +81,22 @@ def test_health_no_auth_required(auth_client):
     """Health endpoint must remain open even when auth is enabled."""
     resp = auth_client.get("/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    assert resp.json() == {
+        "status": "ok",
+        "run_store": "local",
+        "artifact_store": "local",
+    }
 
 
 def test_api_health_no_auth_required(auth_client):
     """The /api/health alias must also remain open."""
     resp = auth_client.get("/api/health")
     assert resp.status_code == 200
+    assert resp.json() == {
+        "status": "ok",
+        "run_store": "local",
+        "artifact_store": "local",
+    }
 
 
 def test_auth_missing_header(auth_client):
