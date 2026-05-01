@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .api_auth import (
     RequestLoggingMiddleware,
@@ -37,6 +37,7 @@ from .api_auth import (
     validate_mode,
     validate_pagination,
     validate_query,
+    validate_seed_url,
 )
 from .cli_runtime import resolve_runtime, runtime_metadata
 from .config import default_config, default_pricing
@@ -85,7 +86,11 @@ artifact_store = create_artifact_store()
 # ---------------------------------------------------------------------------
 
 
-class SearchRequest(BaseModel):
+class ApiRequestModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class SearchRequest(ApiRequestModel):
     query: str
     mode: str = Field(
         default="smoke",
@@ -98,23 +103,23 @@ class SearchRequest(BaseModel):
     num_results: int = Field(default=5, ge=1, le=100)
 
 
-class AnswerRequest(BaseModel):
+class AnswerRequest(ApiRequestModel):
     query: str
     mode: str = Field(default="smoke")
 
 
-class ResearchRequest(BaseModel):
+class ResearchRequest(ApiRequestModel):
     query: str
     mode: str = Field(default="smoke")
 
 
-class FindSimilarRequest(BaseModel):
+class FindSimilarRequest(ApiRequestModel):
     url: str
     mode: str = Field(default="smoke")
     num_results: int = Field(default=5, ge=1, le=100)
 
 
-class StructuredSearchRequest(BaseModel):
+class StructuredSearchRequest(ApiRequestModel):
     query: str
     output_schema: Dict[str, Any] = Field(
         description="JSON Schema for structured extraction",
@@ -245,7 +250,7 @@ class OpsSummaryResponse(BaseModel):
     by_mode: List[ModeBreakdown] = Field(default_factory=list)
 
 
-class SavedQueryRequest(BaseModel):
+class SavedQueryRequest(ApiRequestModel):
     workflow: str
     query: str
     label: Optional[str] = None
@@ -585,6 +590,7 @@ def api_get_research_job(job_id: str, request: Request) -> Dict[str, Any]:
 @api_router.post("/find-similar", response_model=FindSimilarResponse)
 def api_find_similar(req: FindSimilarRequest, request: Request) -> Dict[str, Any]:
     validate_mode(req.mode)
+    seed_url = validate_seed_url(req.url)
     clamped = clamp_num_results(req.num_results)
     overrides: Dict[str, Any] = {"num_results": clamped}
     config, pricing, runtime, meta = _prepare_context(req.mode, overrides)
@@ -594,7 +600,7 @@ def api_find_similar(req: FindSimilarRequest, request: Request) -> Dict[str, Any
     t0 = time.monotonic()
     try:
         payload = run_find_similar_workflow(
-            seed_url=req.url,
+            seed_url=seed_url,
             artifact_dir=ARTIFACT_DIR,
             config=config,
             pricing=pricing,
@@ -607,7 +613,7 @@ def api_find_similar(req: FindSimilarRequest, request: Request) -> Dict[str, Any
             mode=req.mode,
             request_id=rid,
             payload=payload,
-            query_preview=req.url,
+            query_preview=seed_url,
             started_at=started_at,
             duration_ms=duration_ms,
             user_id=uid,
@@ -620,7 +626,7 @@ def api_find_similar(req: FindSimilarRequest, request: Request) -> Dict[str, Any
             mode=req.mode,
             request_id=rid,
             payload={},
-            query_preview=req.url,
+            query_preview=seed_url,
             started_at=started_at,
             duration_ms=duration_ms,
             status="failed",
