@@ -232,6 +232,14 @@ def test_query_too_long_rejected(open_client, monkeypatch):
     assert "Query too long" in resp.json()["detail"]
 
 
+def test_blank_query_rejected(open_client):
+    resp = open_client.post(
+        "/api/search", json={"query": "   ", "mode": "smoke"}
+    )
+    assert resp.status_code == 400
+    assert "Query must not be empty" in resp.json()["detail"]
+
+
 def test_num_results_clamped(open_client, monkeypatch):
     """Requesting more than PILOT_MAX_RESULTS should be silently clamped."""
     monkeypatch.setenv("PILOT_MAX_RESULTS", "3")
@@ -242,6 +250,32 @@ def test_num_results_clamped(open_client, monkeypatch):
     assert resp.status_code == 200
     data = resp.json()
     assert data["record"]["result_count"] == 3
+
+
+def test_unexpected_payload_fields_rejected(open_client):
+    resp = open_client.post(
+        "/api/search",
+        json={"query": "test", "mode": "smoke", "user_id": "ops"},
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "seed_url",
+    [
+        "",
+        "not-a-url",
+        "ftp://example.com/file",
+        "https://example.com/raw space",
+    ],
+)
+def test_find_similar_invalid_seed_url_rejected(open_client, seed_url):
+    resp = open_client.post(
+        "/api/find-similar",
+        json={"url": seed_url, "mode": "smoke"},
+    )
+    assert resp.status_code == 400
+    assert "URL" in resp.json()["detail"]
 
 
 # ---------------------------------------------------------------------------

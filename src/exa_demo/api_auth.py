@@ -23,6 +23,8 @@ import os
 import time
 import uuid
 from collections import defaultdict
+from urllib.parse import urlparse
+
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -274,14 +276,42 @@ def validate_mode(mode: str) -> str:
 
 
 def validate_query(query: str) -> str:
-    """Raise 400 for queries that exceed pilot length limits."""
+    """Raise 400 for queries that are blank or exceed pilot length limits."""
     max_len = _pilot_max_query_length()
+    if not query.strip():
+        raise HTTPException(status_code=400, detail="Query must not be empty.")
     if len(query) > max_len:
         raise HTTPException(
             status_code=400,
             detail=f"Query too long ({len(query)} chars). Maximum: {max_len}.",
         )
     return query
+
+
+def validate_seed_url(url: str) -> str:
+    """Raise 400 for invalid find-similar seed URLs."""
+    candidate = url.strip()
+    max_len = _pilot_max_query_length()
+    if not candidate:
+        raise HTTPException(status_code=400, detail="URL must not be empty.")
+    if len(candidate) > max_len:
+        raise HTTPException(
+            status_code=400,
+            detail=f"URL too long ({len(candidate)} chars). Maximum: {max_len}.",
+        )
+    if any(char.isspace() for char in candidate):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Use an absolute http(s) URL.",
+        )
+
+    parsed = urlparse(candidate)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Use an absolute http(s) URL.",
+        )
+    return candidate
 
 
 def clamp_num_results(num_results: int) -> int:
