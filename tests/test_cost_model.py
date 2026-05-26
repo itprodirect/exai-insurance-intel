@@ -19,7 +19,7 @@ def test_estimate_cost_accounts_for_search_and_contents() -> None:
     payload = {
         "contents": {
             "text": True,
-            "highlights": {"highlightsPerUrl": 1, "numSentences": 2},
+            "highlights": {"maxCharacters": 2666},
         }
     }
 

@@ -8,6 +8,19 @@ from exa_demo.cache import SqliteCacheStore
 from exa_demo.cli import _apply_search_overrides, build_parser, main
 
 
+DEPRECATED_REQUEST_FIELDS = {'livecrawl', 'highlightsPerUrl', 'numSentences'}
+
+
+def assert_no_deprecated_request_fields(value) -> None:
+    if isinstance(value, dict):
+        assert DEPRECATED_REQUEST_FIELDS.isdisjoint(value)
+        for item in value.values():
+            assert_no_deprecated_request_fields(item)
+    elif isinstance(value, list):
+        for item in value:
+            assert_no_deprecated_request_fields(item)
+
+
 def test_search_command_smoke_emits_json_and_artifacts(tmp_path, capsys) -> None:
     sqlite_path = tmp_path / 'cache.sqlite'
     artifact_dir = tmp_path / 'artifacts'
@@ -33,6 +46,8 @@ def test_search_command_smoke_emits_json_and_artifacts(tmp_path, capsys) -> None
     assert output['run_id'] == 'cli-search'
     assert output['record']['result_count'] == 5
     assert 'taxonomy' in output
+    assert output['record']['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}
+    assert_no_deprecated_request_fields(output['record']['request_payload'])
     assert (artifact_dir / 'cli-search' / 'summary.json').exists()
 
 
@@ -65,6 +80,9 @@ def test_eval_command_smoke_writes_artifacts(tmp_path, capsys) -> None:
     summary_payload = json.loads((artifact_dir / 'cli-eval' / 'summary.json').read_text(encoding='utf-8'))
     assert summary_payload['extra']['run_context']['query_suite'] == 'all'
     assert summary_payload['extra']['runtime']['execution_mode'] == 'smoke'
+    query_payload = json.loads((artifact_dir / 'cli-eval' / 'queries.jsonl').read_text(encoding='utf-8').splitlines()[0])
+    assert query_payload['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}
+    assert_no_deprecated_request_fields(query_payload['request_payload'])
     assert (artifact_dir / 'cli-eval' / 'queries.jsonl').exists()
     assert (artifact_dir / 'cli-eval' / 'results.jsonl').exists()
     assert (artifact_dir / 'cli-eval' / 'results.csv').exists()
@@ -268,8 +286,27 @@ def test_search_parser_accepts_additive_deep_controls() -> None:
     assert args.start_published_date == '2026-01-01'
     assert args.end_published_date == '2026-03-01'
     assert args.livecrawl is True
+    assert args.freshness == 'default'
+    assert args.max_age_hours is None
     assert args.deep_search_cost_1_25 == 0.012
     assert args.deep_reasoning_search_cost_1_25 == 0.015
+
+
+def test_search_parser_accepts_freshness_controls() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            'search',
+            'forensic engineer insurance expert witness',
+            '--freshness',
+            'near-real-time',
+            '--max-age-hours',
+            '6',
+        ]
+    )
+
+    assert args.freshness == 'near-real-time'
+    assert args.max_age_hours == 6
 
 
 def test_structured_search_parser_accepts_schema_file() -> None:
@@ -354,12 +391,64 @@ def test_apply_search_overrides_maps_additive_controls_and_pricing() -> None:
     ]
     assert config['start_published_date'] == '2026-01-01'
     assert config['end_published_date'] == '2026-03-01'
-    assert config['livecrawl'] is True
+    assert config['max_age_hours'] == 0
     assert pricing['search_1_25'] == 0.006
     assert pricing['deep_search_1_25'] == 0.012
     assert pricing['deep_search_26_100'] == 0.03
     assert pricing['deep_reasoning_search_1_25'] == 0.015
     assert pricing['deep_reasoning_search_26_100'] == 0.04
+
+
+@pytest.mark.parametrize(
+    ('freshness', 'expected_max_age_hours'),
+    [
+        ('default', None),
+        ('cache-only', -1),
+        ('daily', 24),
+        ('near-real-time', 1),
+        ('always-live', 0),
+    ],
+)
+def test_apply_search_overrides_maps_freshness_choices(
+    freshness: str, expected_max_age_hours: int | None
+) -> None:
+    from exa_demo.config import default_config, default_pricing
+
+    config = default_config()
+    pricing = default_pricing()
+    args = build_parser().parse_args(
+        [
+            'search',
+            'forensic engineer insurance expert witness',
+            '--freshness',
+            freshness,
+        ]
+    )
+
+    _apply_search_overrides(config, pricing, args)
+
+    assert config['max_age_hours'] == expected_max_age_hours
+
+
+def test_apply_search_overrides_prefers_explicit_max_age_hours() -> None:
+    from exa_demo.config import default_config, default_pricing
+
+    pricing = default_pricing()
+    config = default_config()
+    args = build_parser().parse_args(
+        [
+            'search',
+            'forensic engineer insurance expert witness',
+            '--freshness',
+            'near-real-time',
+            '--max-age-hours',
+            '6',
+        ]
+    )
+
+    _apply_search_overrides(config, pricing, args)
+
+    assert config['max_age_hours'] == 6
 
 
 def test_eval_parser_accepts_named_benchmark_suite() -> None:
@@ -582,6 +671,8 @@ def test_structured_search_command_smoke_emits_json_and_artifact(tmp_path, capsy
     structured_payload = json.loads((artifact_dir / 'structured-run' / 'structured_output.json').read_text(encoding='utf-8'))
     assert structured_payload['structured_output']['record_count'] == 1
     assert structured_payload['structured_output_keys'] == ['field_names', 'query', 'record_count', 'records', 'schema_title']
+    assert structured_payload['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}
+    assert_no_deprecated_request_fields(structured_payload['request_payload'])
 
 
 def test_structured_search_command_live_requires_api_key(tmp_path, monkeypatch) -> None:

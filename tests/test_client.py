@@ -39,6 +39,19 @@ class FakeCacheStore:
         return result, False
 
 
+DEPRECATED_REQUEST_FIELDS = {"livecrawl", "highlightsPerUrl", "numSentences"}
+
+
+def assert_no_deprecated_request_fields(value) -> None:
+    if isinstance(value, dict):
+        assert DEPRECATED_REQUEST_FIELDS.isdisjoint(value)
+        for item in value.values():
+            assert_no_deprecated_request_fields(item)
+    elif isinstance(value, list):
+        for item in value:
+            assert_no_deprecated_request_fields(item)
+
+
 def test_build_exa_payload_includes_additive_deep_search_fields() -> None:
     config = default_config()
     config.update(
@@ -50,7 +63,7 @@ def test_build_exa_payload_includes_additive_deep_search_fields() -> None:
             ],
             "start_published_date": "2026-01-01",
             "end_published_date": "2026-03-01",
-            "livecrawl": True,
+            "max_age_hours": 0,
         }
     )
 
@@ -64,7 +77,9 @@ def test_build_exa_payload_includes_additive_deep_search_fields() -> None:
     ]
     assert payload["startPublishedDate"] == "2026-01-01"
     assert payload["endPublishedDate"] == "2026-03-01"
-    assert payload["livecrawl"] is True
+    assert payload["contents"]["maxAgeHours"] == 0
+    assert payload["contents"]["highlights"] == {"maxCharacters": 2666}
+    assert_no_deprecated_request_fields(payload)
     assert "results" not in payload
 
 
@@ -77,6 +92,9 @@ def test_build_exa_payload_leaves_additive_fields_out_by_default() -> None:
     assert "startPublishedDate" not in payload
     assert "endPublishedDate" not in payload
     assert "livecrawl" not in payload
+    assert "maxAgeHours" not in payload["contents"]
+    assert payload["contents"]["highlights"] == {"maxCharacters": 2666}
+    assert_no_deprecated_request_fields(payload)
 
 
 def test_mock_exa_response_preserves_search_result_shape_with_additive_controls() -> None:
@@ -87,7 +105,7 @@ def test_mock_exa_response_preserves_search_result_shape_with_additive_controls(
             "additional_queries": ["licensed public adjuster Florida"],
             "start_published_date": "2026-01-01",
             "end_published_date": "2026-03-01",
-            "livecrawl": True,
+            "max_age_hours": 0,
         },
     )
 
@@ -133,9 +151,10 @@ def test_build_find_similar_payload_includes_similarity_controls() -> None:
     assert payload["endPublishedDate"] == "2026-03-15"
     assert payload["excludeSourceDomain"] is True
     assert payload["moderation"] is False
-    assert payload["text"] is True
-    assert payload["highlights"] == {"highlightsPerUrl": 2, "numSentences": 1}
-    assert payload["context"] is True
+    assert payload["contents"]["text"] is True
+    assert payload["contents"]["highlights"] == {"maxCharacters": 1333}
+    assert payload["contents"]["context"] is True
+    assert_no_deprecated_request_fields(payload)
 
 
 def test_mock_exa_find_similar_response_returns_context_and_text() -> None:
@@ -163,7 +182,7 @@ def test_build_structured_search_payload_adds_output_schema() -> None:
     config.update(
         {
             "additional_queries": ["licensed public adjuster Florida"],
-            "livecrawl": True,
+            "max_age_hours": 0,
         }
     )
     output_schema = {
@@ -193,8 +212,10 @@ def test_build_structured_search_payload_adds_output_schema() -> None:
     assert payload["query"] == "insurance expert witness"
     assert payload["numResults"] == 2
     assert payload["additionalQueries"] == ["licensed public adjuster Florida"]
-    assert payload["livecrawl"] is True
+    assert payload["contents"]["maxAgeHours"] == 0
+    assert payload["contents"]["highlights"] == {"maxCharacters": 2666}
     assert payload["outputSchema"] == output_schema
+    assert_no_deprecated_request_fields(payload)
 
 
 def test_mock_exa_structured_search_response_returns_structured_output() -> None:
@@ -373,6 +394,9 @@ def test_exa_find_similar_uses_smoke_similar_shape() -> None:
     assert meta.cache_hit is False
     assert meta.request_payload["url"] == "https://example.com/article"
     assert meta.request_payload["excludeSourceDomain"] is True
-    assert meta.request_payload["text"] is True
+    assert meta.request_payload["contents"]["text"] is True
+    assert meta.request_payload["contents"]["highlights"] == {"maxCharacters": 2666}
+    assert meta.request_payload["contents"]["context"] is True
     assert meta.estimated_cost_usd == cache_store.calls[0]["estimated_cost"]
     assert cache_store.calls[0]["run_id"] == "similar-run"
+    assert_no_deprecated_request_fields(meta.request_payload)
