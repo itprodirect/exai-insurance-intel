@@ -122,7 +122,8 @@ Open `http://localhost:3000`.
 ## Boundary Notes
 
 - The validated path above is still **local + smoke/mock only**.
-- Do not treat the current docs as evidence that live Exa mode was revalidated.
+- Do not treat this local UI smoke runbook as evidence that live Exa mode was revalidated.
+- A separate bounded live CLI grounding rerun on 2026-05-27 validated only `research` and `structured-search`; see [2026-05-27-live-grounding-validation.md](sessions/2026-05-27-live-grounding-validation.md).
 - Do not treat the current docs as evidence that S3 or Postgres-backed persistence was exercised end to end.
 - Treat deployment and production hardening as future work, not current state.
 

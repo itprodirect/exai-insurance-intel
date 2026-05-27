@@ -30,6 +30,16 @@ This repo is designed to stay safe-by-default while still supporting deliberate 
 - Booted the Next.js frontend locally and verified Search, Answer, Research, and My Work against the local backend
 - Did **not** revalidate `live` mode, S3 artifact storage, or Postgres-backed usage/run persistence
 
+## Bounded Live Grounding Validation (2026-05-27)
+
+After replacing the placeholder Exa API key, a narrow live CLI rerun validated only `research` and `structured-search` grounding behavior:
+
+- Live `research` completed against `https://api.exa.ai/search` with `request_id=7f2b06e5b419f4ca182d1144c0c9e4d9`, `actual_cost_usd=0.015`, and 5 results, but the response did not include `output.content` or `output.grounding`.
+- Live `structured-search` completed with `request_id=c4e750dd01ad3bb1ce78621663609d59`, `actual_cost_usd=0.012`, `output.content`, `output.grounding`, and `grounding_count=26`.
+- The structured-search `report.md` rendered `Grounding / Source Review`, confirming the current Markdown path surfaces preserved grounding metadata.
+
+This was not a frontend, S3, Postgres, deployment, monitoring, or broad production validation.
+
 ## Artifact Expectations
 
 - Smoke runs preserve the same artifact shape as live runs whenever possible.
