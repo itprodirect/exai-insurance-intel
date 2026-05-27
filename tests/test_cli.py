@@ -677,10 +677,15 @@ def test_research_command_smoke_emits_json_and_artifact(tmp_path, capsys) -> Non
     research_payload = json.loads((artifact_dir / 'research-run' / 'research.json').read_text(encoding='utf-8'))
     assert research_payload['citation_count'] == 5
     assert research_payload['citations'][0]['title'] == 'Mock Research Source 1'
+    assert research_payload['grounding_count'] == 5
+    assert research_payload['grounding'][0]['title'] == 'Mock Research Source 1'
+    assert research_payload['output_content'].startswith('Search-backed research report.')
     assert research_payload['request_payload']['type'] == 'deep-reasoning'
     assert research_payload['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}
     assert_no_deprecated_request_fields(research_payload['request_payload'])
-    assert '# Research Report' in (artifact_dir / 'research-run' / 'research.md').read_text(encoding='utf-8')
+    research_markdown = (artifact_dir / 'research-run' / 'research.md').read_text(encoding='utf-8')
+    assert '# Research Report' in research_markdown
+    assert '## Grounding / Source Review' in research_markdown
     summary_payload = json.loads((artifact_dir / 'research-run' / 'summary.json').read_text(encoding='utf-8'))
     assert summary_payload['extra']['runtime']['execution_mode'] == 'smoke'
 
@@ -759,6 +764,10 @@ def test_structured_search_command_smoke_emits_json_and_artifact(tmp_path, capsy
     structured_payload = json.loads((artifact_dir / 'structured-run' / 'structured_output.json').read_text(encoding='utf-8'))
     assert structured_payload['structured_output']['record_count'] == 1
     assert structured_payload['structured_output_keys'] == ['field_names', 'query', 'record_count', 'records', 'schema_title']
+    assert structured_payload['grounding_count'] == 5
+    assert structured_payload['grounding'][0]['url'].startswith('https://www.linkedin.com/')
+    assert 'grounding' not in structured_payload['output_content']
+    assert 'citations' not in structured_payload['output_content']
     assert structured_payload['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}
     assert_no_deprecated_request_fields(structured_payload['request_payload'])
 

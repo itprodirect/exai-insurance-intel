@@ -25,7 +25,7 @@ The important boundary is that `research` is a product/workflow name in this rep
 - README and docs should describe `research` as search-backed rather than as an Exa `/research` endpoint.
 - Freshness docs should prefer `--freshness always-live` or `--max-age-hours 0`; older `--livecrawl` examples should not be used.
 - Pricing assumptions should stay centralized in `DEFAULT_PRICING`, remain overrideable from the CLI, and avoid exact live-billing claims unless live Exa `costDollars` fields validate the run.
-- Grounding metadata handling remains a separate follow-up from request modernization and cost estimation.
+- Grounding metadata handling is additive to request modernization: keep `output.content` as workflow content and preserve `output.grounding` as separate artifact metadata when present.
 
 ## Related Roadmap Items or Issues
 

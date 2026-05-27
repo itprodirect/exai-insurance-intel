@@ -167,8 +167,9 @@ def run_research_workflow(
         "research.md",
         render_research_markdown(
             query=query,
-            report_text=record.report_text or "",
-            citations=[citation.to_dict() for citation in record.citations],
+            report_text=research_payload["report_text"],
+            citations=research_payload["citations"],
+            grounding=research_payload.get("grounding"),
         ),
         kind="markdown",
     )

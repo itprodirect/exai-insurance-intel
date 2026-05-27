@@ -198,6 +198,8 @@ def test_run_research_workflow_smoke_writes_markdown_and_summary_context(tmp_pat
     assert 'Search-backed research report' in (payload['report'] or '')
     assert '# Research Report' in markdown
     assert '# Research Workflow Report' in report_markdown
+    assert '## Grounding / Source Review' in markdown
+    assert '## Grounding / Source Review' in report_markdown
     assert 'Mock Research Source 1' in report_markdown
     assert summary_payload['extra']['workflow'] == 'research'
     assert summary_payload['extra']['research']['citation_count'] == 5
@@ -321,6 +323,7 @@ def test_run_structured_search_workflow_smoke_writes_schema_context(tmp_path) ->
     assert payload['structured_output']['schema_title'] == 'Structured Professionals'
     assert '# Structured Search Workflow Report' in report_markdown
     assert 'Structured Professionals' in report_markdown
+    assert '## Grounding / Source Review' in report_markdown
     assert summary_payload['extra']['workflow'] == 'structured-search'
     assert summary_payload['extra']['structured_search']['schema_file'] == str(schema_file)
     assert summary_payload['extra']['structured_search']['structured_keys'] == [

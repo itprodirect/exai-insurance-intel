@@ -159,6 +159,15 @@ def test_research_smoke(client):
     assert artifact_payload["request_payload"]["contents"]["highlights"] == {
         "maxCharacters": 2666
     }
+    assert artifact_payload["output_content"].startswith("Search-backed research report.")
+    assert artifact_payload["grounding_count"] == 5
+    assert artifact_payload["grounding"][0]["title"] == "Mock Research Source 1"
+    assert artifact_payload["grounding"][0]["url"].startswith("https://example.com/mock-research/")
+    assert "grounding" not in artifact_payload["output_content"]
+    report_markdown = (Path(data["artifact_dir"]) / "report.md").read_text(encoding="utf-8")
+    research_markdown = (Path(data["artifact_dir"]) / "research.md").read_text(encoding="utf-8")
+    assert "## Grounding / Source Review" in report_markdown
+    assert "## Grounding / Source Review" in research_markdown
     assert_no_deprecated_request_fields(artifact_payload["request_payload"])
 
 
@@ -214,6 +223,20 @@ def test_structured_search_smoke(client):
     assert data["workflow"] == "structured-search"
     assert "run_id" in data
     assert "summary" in data
+    artifact_payload = json.loads(
+        (Path(data["artifact_dir"]) / "structured_output.json").read_text(encoding="utf-8")
+    )
+    assert artifact_payload["grounding_count"] == 5
+    assert artifact_payload["grounding"][0]["url"].startswith("https://www.linkedin.com/")
+    assert artifact_payload["output_content"]["name"].startswith("Mock name for query:")
+    assert "grounding" not in artifact_payload["output_content"]
+    assert "citations" not in artifact_payload["output_content"]
+    assert "confidence" not in artifact_payload["output_content"]
+    assert "grounding" not in artifact_payload["request_payload"]["outputSchema"]["properties"]
+    assert "citations" not in artifact_payload["request_payload"]["outputSchema"]["properties"]
+    assert "confidence" not in artifact_payload["request_payload"]["outputSchema"]["properties"]
+    report_markdown = (Path(data["artifact_dir"]) / "report.md").read_text(encoding="utf-8")
+    assert "## Grounding / Source Review" in report_markdown
 
 
 # ---------------------------------------------------------------------------

@@ -80,8 +80,8 @@ Core local resources:
 | Benchmark evaluation | Done | `python -m exa_demo eval` | `queries.jsonl`, `results.jsonl`, `summary.json` | Includes taxonomy scoring and grouped comparison context |
 | Search-type comparison | Done | `python -m exa_demo compare-search-types` | `comparison.md` plus paired run artifacts | Compares `deep` vs `deep-reasoning` end to end |
 | Cited answers | Done | `python -m exa_demo answer` | `answer.json` | Separate workflow from ranked-search evaluation |
-| Research reports | Done | `python -m exa_demo research` | `research.json` | Report-style workflow backed by `/search` with `type="deep-reasoning"` |
-| Structured extraction | Done | `python -m exa_demo structured-search` | `structured_output.json` | Uses `outputSchema` for schema-driven extraction |
+| Research reports | Done | `python -m exa_demo research` | `research.json` | Report-style workflow backed by `/search` with `type="deep-reasoning"`; preserves `output.content` and `output.grounding` when returned |
+| Structured extraction | Done | `python -m exa_demo structured-search` | `structured_output.json` | Uses `outputSchema` for schema-driven extraction; preserves `output.content` and `output.grounding` outside the schema payload |
 | Seed-URL discovery | Done | `python -m exa_demo find-similar` | `find_similar.json` | Separate `/findSimilar` workflow and normalization path |
 | Cache and budget ledger | Done | Notebook + CLI | `exa_cache.sqlite`, `summary.json` | Prevents re-billing on cache hits |
 | API server | Done | `uvicorn exa_demo.api:app` | JSON responses | Thin FastAPI wrapper over CLI workflows; smoke mode first-class |
@@ -242,6 +242,7 @@ The search and eval commands write the same `experiments/<RUN_ID>/` artifact bun
 The `answer` command writes the same run directory and adds an `answer.json` artifact containing the cited-answer payload.
 The `research` command writes the same run directory and adds `research.json` plus `research.md` artifacts for a `/search` `type="deep-reasoning"` research-report payload.
 The `structured-search` command runs a schema-driven deep search and writes a `structured_output.json` artifact containing the extracted structured payload.
+When Exa returns `output.grounding`, research and structured-search artifacts preserve it as separate `grounding` metadata beside `output_content`; Markdown reports add a compact `Grounding / Source Review` section.
 The `find-similar` command runs a seed-URL discovery workflow and writes a `find_similar.json` artifact containing the similar-result payload.
 The endpoint-style workflows (`answer`, `research`, `structured-search`, and `find-similar`) also emit a reusable `report.md` companion artifact for human review.
 Eval workflows also emit additive export companions such as `results.csv`, `comparison.json`, `grouped_query_outcomes.csv`, and `manifest.json` without changing the existing JSON/JSONL contracts.
