@@ -205,6 +205,13 @@ def _resolve_base_plus_additional_cost(
     fallbacks: tuple[str, ...] = (),
     legacy_type: str | None = None,
 ) -> float:
+    if legacy_type is not None:
+        legacy_cost = _resolve_explicit_legacy_high_result_cost(
+            legacy_type, num_results, pricing
+        )
+        if legacy_cost is not None:
+            return legacy_cost
+
     base_key = f"{prefix}_1_10"
     additional_key = f"{prefix}_additional_result"
     if base_key in pricing and additional_key in pricing:
@@ -229,12 +236,47 @@ def _resolve_base_plus_additional_cost(
     raise KeyError(f"Missing pricing for result tier. Tried: {', '.join(tried)}")
 
 
+def _resolve_explicit_legacy_high_result_cost(
+    search_type: str,
+    num_results: int,
+    pricing: Mapping[str, float],
+) -> float | None:
+    if int(num_results) <= 25:
+        return None
+
+    for key in _explicit_legacy_high_result_cost_keys(search_type):
+        if key in pricing:
+            return float(pricing[key])
+    return None
+
+
+def _explicit_legacy_high_result_cost_keys(search_type: str) -> list[str]:
+    if search_type == "deep_reasoning":
+        return ["deep_reasoning_search_26_100", "deep_reasoning_26_100"]
+    if search_type == "deep":
+        return ["deep_search_26_100"]
+    return ["search_26_100"]
+
+
 def _resolve_legacy_search_cost(
     search_type: str,
     num_results: int,
     pricing: Mapping[str, float],
 ) -> float:
     tier_suffix = "1_25" if num_results <= 25 else "26_100"
+    candidate_keys = _legacy_search_cost_keys(search_type, tier_suffix)
+
+    for key in candidate_keys:
+        if key in pricing:
+            return float(pricing[key])
+
+    raise KeyError(
+        f"Missing pricing for search type '{search_type}' at tier '{tier_suffix}'. "
+        f"Tried: {', '.join(candidate_keys)}"
+    )
+
+
+def _legacy_search_cost_keys(search_type: str, tier_suffix: str) -> list[str]:
     candidate_keys: list[str] = []
     if search_type == "deep_reasoning":
         candidate_keys.extend(
@@ -246,15 +288,7 @@ def _resolve_legacy_search_cost(
     if search_type in {"deep", "deep_reasoning"}:
         candidate_keys.append(f"deep_search_{tier_suffix}")
     candidate_keys.append(f"search_{tier_suffix}")
-
-    for key in candidate_keys:
-        if key in pricing:
-            return float(pricing[key])
-
-    raise KeyError(
-        f"Missing pricing for search type '{search_type}' at tier '{tier_suffix}'. "
-        f"Tried: {', '.join(candidate_keys)}"
-    )
+    return candidate_keys
 
 
 def _estimate_search_backed_contents_cost(

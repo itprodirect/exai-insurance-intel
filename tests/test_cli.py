@@ -439,6 +439,52 @@ def test_apply_search_overrides_maps_additive_controls_and_pricing() -> None:
 
 
 @pytest.mark.parametrize(
+    ('search_type', 'flag', 'legacy_key', 'override_cost'),
+    [
+        ('auto', '--search-cost-26-100', 'search_26_100', 0.123),
+        ('deep', '--deep-search-cost-26-100', 'deep_search_26_100', 0.234),
+        (
+            'deep-reasoning',
+            '--deep-reasoning-search-cost-26-100',
+            'deep_reasoning_search_26_100',
+            0.345,
+        ),
+    ],
+)
+def test_cli_legacy_26_100_pricing_overrides_affect_high_result_estimates(
+    search_type: str, flag: str, legacy_key: str, override_cost: float
+) -> None:
+    from exa_demo.config import default_config, default_pricing
+    from exa_demo.cost_model import estimate_unit_cost_for_config
+
+    baseline_config = default_config()
+    baseline_config['num_results'] = 30
+    baseline_config['search_type'] = search_type
+    baseline = estimate_unit_cost_for_config(baseline_config, default_pricing())
+
+    config = default_config()
+    pricing = default_pricing()
+    args = build_parser().parse_args(
+        [
+            'search',
+            'forensic engineer insurance expert witness',
+            '--num-results',
+            '30',
+            '--type',
+            search_type,
+            flag,
+            str(override_cost),
+        ]
+    )
+
+    _apply_search_overrides(config, pricing, args)
+
+    assert pricing[legacy_key] == override_cost
+    assert estimate_unit_cost_for_config(config, pricing) == override_cost
+    assert override_cost != baseline
+
+
+@pytest.mark.parametrize(
     ('freshness', 'expected_max_age_hours'),
     [
         ('default', None),

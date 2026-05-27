@@ -137,6 +137,25 @@ def test_estimate_cost_respects_pricing_overrides() -> None:
     assert estimate_cost_from_pricing(payload, 12, pricing, 100) == 0.074
 
 
+@pytest.mark.parametrize(
+    ("search_type", "legacy_key", "override_cost"),
+    [
+        ("auto", "search_26_100", 0.123),
+        ("deep", "deep_search_26_100", 0.234),
+        ("deep-reasoning", "deep_reasoning_search_26_100", 0.345),
+    ],
+)
+def test_high_result_estimate_prefers_explicit_legacy_26_100_override(
+    search_type: str, legacy_key: str, override_cost: float
+) -> None:
+    pricing = default_pricing()
+    baseline = estimate_cost_from_pricing({"type": search_type}, 30, pricing, 100)
+    pricing[legacy_key] = override_cost
+
+    assert estimate_cost_from_pricing({"type": search_type}, 30, pricing, 100) == override_cost
+    assert override_cost != baseline
+
+
 def test_enforce_budget_blocks_projected_overspend() -> None:
     with pytest.raises(RuntimeError, match="Budget cap exceeded"):
         enforce_budget(0.02, spent_usd=0.04, budget_cap_usd=0.05, run_id="demo-run")
