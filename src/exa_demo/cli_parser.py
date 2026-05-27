@@ -6,6 +6,14 @@ from typing import Any, Callable, Dict, Mapping
 from .config import default_config
 from .ranked_workflows import LEGACY_DEFAULT_SUITE_ALIAS, benchmark_suite_choices
 
+FRESHNESS_MAX_AGE_HOURS = {
+    "default": None,
+    "cache-only": -1,
+    "daily": 24,
+    "near-real-time": 1,
+    "always-live": 0,
+}
+
 
 def build_parser(*, handlers: Mapping[str, Callable[..., int]]) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -208,8 +216,7 @@ def apply_search_overrides(
         config["start_published_date"] = str(args.start_published_date).strip()
     if getattr(args, "end_published_date", None):
         config["end_published_date"] = str(args.end_published_date).strip()
-    if getattr(args, "livecrawl", None):
-        config["livecrawl"] = True
+    _apply_freshness_override(config, args)
     if hasattr(args, "use_text") and args.use_text:
         config["use_text"] = True
     if hasattr(args, "use_summary") and args.use_summary:
@@ -309,7 +316,22 @@ def _add_common_search_args(
         "--end-published-date",
         help="Optional upper bound for published date filtering (YYYY-MM-DD).",
     )
-    parser.add_argument("--livecrawl", action="store_true", help="Force live crawl for the request.")
+    parser.add_argument(
+        "--max-age-hours",
+        type=int,
+        help="Maximum cached content age in hours; 0 always livecrawls, -1 uses cache only.",
+    )
+    parser.add_argument(
+        "--freshness",
+        choices=list(FRESHNESS_MAX_AGE_HOURS),
+        default="default",
+        help="Named freshness policy for contents.maxAgeHours.",
+    )
+    parser.add_argument(
+        "--livecrawl",
+        action="store_true",
+        help="Deprecated alias for --max-age-hours 0.",
+    )
     parser.add_argument(
         "--search-cost-1-25",
         type=float,
@@ -360,6 +382,21 @@ def _apply_pricing_overrides(pricing: Dict[str, float], args: argparse.Namespace
         value = getattr(args, arg_name, None)
         if value is not None:
             pricing[key] = float(value)
+
+
+def _apply_freshness_override(config: Dict[str, Any], args: argparse.Namespace) -> None:
+    max_age_hours = getattr(args, "max_age_hours", None)
+    if max_age_hours is not None:
+        config["max_age_hours"] = int(max_age_hours)
+        return
+
+    freshness = getattr(args, "freshness", "default")
+    if freshness != "default":
+        config["max_age_hours"] = FRESHNESS_MAX_AGE_HOURS[freshness]
+        return
+
+    if getattr(args, "livecrawl", None):
+        config["max_age_hours"] = 0
 
 
 def _clean_string_list(values: list[Any]) -> list[str]:

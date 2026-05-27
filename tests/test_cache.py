@@ -11,10 +11,10 @@ def test_request_hash_is_deterministic_across_key_order() -> None:
     payload_a = {
         "query": "forensic engineer",
         "numResults": 5,
-        "contents": {"highlights": {"numSentences": 2, "highlightsPerUrl": 1}},
+        "contents": {"highlights": {"maxCharacters": 2666}},
     }
     payload_b = {
-        "contents": {"highlights": {"highlightsPerUrl": 1, "numSentences": 2}},
+        "contents": {"highlights": {"maxCharacters": 2666}},
         "numResults": 5,
         "query": "forensic engineer",
     }

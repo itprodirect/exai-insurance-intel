@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Iterable, Mapping
 
+from .config import DEFAULT_HIGHLIGHT_MAX_CHARACTERS
+
 
 def estimate_cost_from_pricing(
     payload: Mapping[str, Any],
@@ -42,8 +44,10 @@ def estimate_unit_cost_for_config(
         contents["text"] = True
     if config.get("use_highlights"):
         contents["highlights"] = {
-            "highlightsPerUrl": int(config["highlights_per_url"]),
-            "numSentences": int(config["highlight_num_sentences"]),
+            "maxCharacters": int(
+                config.get("highlight_max_characters")
+                or DEFAULT_HIGHLIGHT_MAX_CHARACTERS
+            ),
         }
     if config.get("use_summary"):
         contents["summary"] = {

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping, Optional, Sequence
 
+from .config import DEFAULT_HIGHLIGHT_MAX_CHARACTERS
+
 
 def build_exa_payload(
     query: str,
@@ -28,21 +30,18 @@ def build_exa_payload(
         payload["additionalQueries"] = additional_queries
     _assign_text_field(payload, "startPublishedDate", config.get("start_published_date"))
     _assign_text_field(payload, "endPublishedDate", config.get("end_published_date"))
-    if config.get("livecrawl"):
-        payload["livecrawl"] = True
 
     contents: Dict[str, Any] = {}
     if config["use_text"]:
         contents["text"] = True
     if config["use_highlights"]:
-        contents["highlights"] = {
-            "highlightsPerUrl": config["highlights_per_url"],
-            "numSentences": config["highlight_num_sentences"],
-        }
+        contents["highlights"] = _highlight_options(config)
     if config["use_summary"]:
         contents["summary"] = {
             "query": "Summarize the person's professional background and insurance/CAT relevance."
         }
+    _assign_int_field(contents, "maxAgeHours", config.get("max_age_hours"))
+    _assign_int_field(contents, "livecrawlTimeout", config.get("livecrawl_timeout"))
 
     if contents:
         payload["contents"] = contents
@@ -114,14 +113,19 @@ def build_find_similar_payload(
     _assign_text_field(payload, "endPublishedDate", end_published_date)
     if exclude_source_domain is not None:
         payload["excludeSourceDomain"] = bool(exclude_source_domain)
-    if context is not None:
-        payload["context"] = context
 
+    contents: Dict[str, Any] = {}
     resolved_text = True if text is None else text
     if resolved_text is not None:
-        payload["text"] = resolved_text
+        contents["text"] = resolved_text
     if highlights is not None:
-        payload["highlights"] = highlights
+        contents["highlights"] = _normalize_highlights(highlights, config)
+    if context is not None:
+        contents["context"] = context
+    _assign_int_field(contents, "maxAgeHours", config.get("max_age_hours"))
+    _assign_int_field(contents, "livecrawlTimeout", config.get("livecrawl_timeout"))
+    if contents:
+        payload["contents"] = contents
 
     return payload
 
@@ -143,3 +147,43 @@ def _assign_text_field(payload: Dict[str, Any], field_name: str, value: Any) -> 
     text = str(value).strip()
     if text:
         payload[field_name] = text
+
+
+def _assign_int_field(payload: Dict[str, Any], field_name: str, value: Any) -> None:
+    if value is None:
+        return
+    if isinstance(value, str) and not value.strip():
+        return
+    payload[field_name] = int(value)
+
+
+def _highlight_options(config: Mapping[str, Any]) -> Dict[str, int]:
+    return {
+        "maxCharacters": int(
+            config.get("highlight_max_characters") or DEFAULT_HIGHLIGHT_MAX_CHARACTERS
+        )
+    }
+
+
+def _normalize_highlights(highlights: Any, config: Mapping[str, Any]) -> Any:
+    if highlights is True:
+        return _highlight_options(config)
+    if not isinstance(highlights, Mapping):
+        return highlights
+
+    if "maxCharacters" in highlights:
+        value = highlights["maxCharacters"]
+    elif "max_characters" in highlights:
+        value = highlights["max_characters"]
+    elif "numSentences" in highlights:
+        value = int(highlights["numSentences"]) * 1333
+    else:
+        value = config.get("highlight_max_characters") or DEFAULT_HIGHLIGHT_MAX_CHARACTERS
+
+    normalized = {
+        str(key): item
+        for key, item in highlights.items()
+        if str(key) not in {"highlightsPerUrl", "numSentences", "max_characters"}
+    }
+    normalized["maxCharacters"] = int(value)
+    return normalized

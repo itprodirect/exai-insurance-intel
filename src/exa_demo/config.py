@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Mapping
 
 
+DEFAULT_HIGHLIGHT_MAX_CHARACTERS = 2666
+
 DEFAULT_CONFIG: Dict[str, Any] = {
     "exa_endpoint": "https://api.exa.ai/search",
     "search_type": "auto",
@@ -15,15 +17,15 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "user_location": "US",
     "use_text": False,
     "use_highlights": True,
-    "highlights_per_url": 1,
-    "highlight_num_sentences": 2,
+    "highlight_max_characters": DEFAULT_HIGHLIGHT_MAX_CHARACTERS,
     "use_summary": False,
     "include_domains": [],
     "exclude_domains": [],
     "additional_queries": [],
     "start_published_date": None,
     "end_published_date": None,
-    "livecrawl": False,
+    "max_age_hours": None,
+    "livecrawl_timeout": None,
     "moderation": True,
     "redact_emails_phones": True,
     "budget_cap_usd": 7.50,

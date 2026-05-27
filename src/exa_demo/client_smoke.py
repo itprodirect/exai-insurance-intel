@@ -60,12 +60,15 @@ def mock_exa_find_similar_response(payload: Mapping[str, Any]) -> Dict[str, Any]
     url = str(payload.get("url") or "")
     slug = sha256_hex(url)[:8]
     num_results = int(payload.get("numResults") or 5)
-    wants_text = payload.get("text") is not False
+    contents = payload.get("contents") if isinstance(payload.get("contents"), Mapping) else {}
+    wants_text = contents.get("text", payload.get("text")) is not False
+    highlights = contents.get("highlights", payload.get("highlights"))
     wants_highlights = (
-        payload.get("highlights") is not None and payload.get("highlights") is not False
+        highlights is not None and highlights is not False
     )
+    context = contents.get("context", payload.get("context"))
     wants_context = (
-        payload.get("context") is not None and payload.get("context") is not False
+        context is not None and context is not False
     )
 
     source_domain = _domain_from_url(url)

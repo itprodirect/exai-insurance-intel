@@ -21,6 +21,7 @@ from .client_smoke import (
     mock_exa_response,
     mock_exa_structured_search_response,
 )
+from .config import DEFAULT_HIGHLIGHT_MAX_CHARACTERS
 from .cost_model import estimate_cost_from_pricing
 from .resilience import CircuitBreaker
 from .safety import redact_response
@@ -371,14 +372,21 @@ def _resolve_exa_endpoint(base_url: str, *, endpoint_name: str) -> str:
 
 def _find_similar_cost_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
     cost_payload: Dict[str, Any] = {"type": "auto"}
+    request_contents = (
+        payload.get("contents")
+        if isinstance(payload.get("contents"), Mapping)
+        else {}
+    )
     contents: Dict[str, Any] = {}
-    if payload.get("text") is not False:
+    text = request_contents.get("text", payload.get("text"))
+    if text is not False:
         contents["text"] = True
-    if payload.get("highlights") is not None and payload.get("highlights") is not False:
+    highlights = request_contents.get("highlights", payload.get("highlights"))
+    if highlights is not None and highlights is not False:
         contents["highlights"] = (
-            payload.get("highlights")
-            if isinstance(payload.get("highlights"), Mapping)
-            else {"highlightsPerUrl": 1, "numSentences": 2}
+            highlights
+            if isinstance(highlights, Mapping)
+            else {"maxCharacters": DEFAULT_HIGHLIGHT_MAX_CHARACTERS}
         )
     if contents:
         cost_payload["contents"] = contents

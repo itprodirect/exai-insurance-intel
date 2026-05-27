@@ -27,6 +27,10 @@ def test_build_exa_payload_trims_additional_queries_and_dates() -> None:
     assert payload['additionalQueries'] == ['licensed public adjuster Florida']
     assert payload['startPublishedDate'] == '2026-01-01'
     assert 'endPublishedDate' not in payload
+    assert payload['contents']['highlights'] == {'maxCharacters': 2666}
+    assert 'livecrawl' not in payload
+    assert 'highlightsPerUrl' not in payload['contents']['highlights']
+    assert 'numSentences' not in payload['contents']['highlights']
 
 
 def test_build_find_similar_payload_trims_optional_date_filters() -> None:
@@ -43,6 +47,7 @@ def test_build_find_similar_payload_trims_optional_date_filters() -> None:
     assert payload['startPublishedDate'] == '2026-01-15'
     assert 'endCrawlDate' not in payload
     assert 'endPublishedDate' not in payload
+    assert payload['contents']['text'] is True
 
 
 def test_build_answer_artifact_normalizes_base_fields() -> None:
