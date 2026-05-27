@@ -12,6 +12,8 @@ class ExaResult:
     published_date: Optional[str] = None
     author: Optional[str] = None
     highlights: List[str] = field(default_factory=list)
+    # Preserved for serialization/backward compatibility; Exa 2026 responses
+    # no longer populate this field.
     highlight_scores: List[float] = field(default_factory=list)
     summary: Optional[str] = None
     text: Optional[str] = None

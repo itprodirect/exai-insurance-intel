@@ -352,6 +352,7 @@ def _build_call_meta(
 
 
 def _search_type_for_meta(*, payload: Mapping[str, Any], response_json: Any) -> Optional[str]:
+    """Prefer response.searchType and fall back to the requested payload type."""
     if isinstance(response_json, Mapping):
         response_search_type = _clean_meta_string(response_json.get("searchType"))
         if response_search_type is not None:
