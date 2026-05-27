@@ -331,10 +331,28 @@ def _normalize_grounding(value: Any) -> list[Dict[str, Any]]:
 
     grounding: list[Dict[str, Any]] = []
     for item in raw_items:
-        normalized = _normalize_grounding_item(item)
-        if normalized:
-            grounding.append(normalized)
+        grounding.extend(_normalize_grounding_items(item))
     return grounding
+
+
+def _normalize_grounding_items(value: Any) -> list[Dict[str, Any]]:
+    normalized = _normalize_grounding_item(value)
+    if isinstance(value, Mapping):
+        citations = value.get("citations")
+        if isinstance(citations, list):
+            normalized_citations = [
+                normalized_citation
+                for citation in citations
+                if (normalized_citation := _normalize_grounding_item(citation))
+            ]
+            if normalized_citations:
+                if normalized:
+                    return [normalized, *normalized_citations]
+                return normalized_citations
+
+    if normalized:
+        return [normalized]
+    return []
 
 
 def _normalize_grounding_item(value: Any) -> Dict[str, Any]:
