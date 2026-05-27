@@ -28,7 +28,7 @@ python -m exa_demo find-similar "https://example.com/florida-appraisal-decision"
 python -m exa_demo answer "What is the Florida appraisal clause dispute process?" --mode smoke --json
 ```
 
-`research` is the report-style workflow. Use it for broader market or regulatory summaries where a longer narrative output is more useful than a single answer.
+`research` is the report-style workflow backed by `/search` with `type="deep-reasoning"`. Use it for broader market or regulatory summaries where a longer narrative output is more useful than a single answer.
 
 ```powershell
 python -m exa_demo research "Summarize the Florida CAT market outlook." --mode smoke --json

@@ -194,13 +194,13 @@ def test_run_research_workflow_smoke_writes_markdown_and_summary_context(tmp_pat
     report_markdown = (run_dir / 'report.md').read_text(encoding='utf-8')
 
     assert payload['workflow'] == 'research'
-    assert payload['citation_count'] == 3
-    assert 'Mock research report' in (payload['report'] or '')
+    assert payload['citation_count'] == 5
+    assert 'Search-backed research report' in (payload['report'] or '')
     assert '# Research Report' in markdown
     assert '# Research Workflow Report' in report_markdown
     assert 'Mock Research Source 1' in report_markdown
     assert summary_payload['extra']['workflow'] == 'research'
-    assert summary_payload['extra']['research']['citation_count'] == 3
+    assert summary_payload['extra']['research']['citation_count'] == 5
     assert summary_payload['qualitative_notes'] == [
         'Research workflow active: the response payload is stored in research.json.',
         'Smoke mode active: research reports are mocked and costs are zero.',

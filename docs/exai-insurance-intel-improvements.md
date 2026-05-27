@@ -181,30 +181,20 @@ results = exa.find_similar(
 )
 ```
 
-### 2.5 — `/research` Endpoint (Agentic Research)
+### 2.5 — Research Reports via `/search`
 
-This is Exa's most advanced endpoint — it runs multi-step agentic search and returns structured reports. Perfect for:
+The user-facing `research` workflow now preserves report-style output while routing through `/search` with `type="deep-reasoning"` instead of the deprecated Exa `/research` endpoint. It is still useful for:
 
 - Deep dives into specific loss events (e.g., "Hurricane Ian insurance claim litigation outcomes")
 - Market research on competitors in the PA space
 - Regulatory landscape analysis across states
 
 ```python
-research = exa.research.create(
-    instructions="Research the current state of CAT loss litigation in Florida, "
-                 "including major pending cases, key law firms representing "
-                 "policyholders, and recent legislative changes affecting "
-                 "property insurance claims.",
-    output_schema={
-        "type": "object",
-        "properties": {
-            "summary": {"type": "string"},
-            "key_firms": {"type": "array", "items": {"type": "string"}},
-            "pending_cases": {"type": "array", "items": {"type": "string"}},
-            "legislative_changes": {"type": "array", "items": {"type": "string"}}
-        }
-    }
-)
+payload = {
+    "query": "Research the current state of CAT loss litigation in Florida.",
+    "type": "deep-reasoning",
+    "contents": {"highlights": {"maxCharacters": 2666}},
+}
 ```
 
 ### 2.6 — Websets (Large-Scale Continuous Search)
@@ -389,10 +379,10 @@ The structured output from deep search and websets can populate your Life Graph 
 
 ### 5.2 — Feed into CAT Loss Case War Room
 
-The `/answer` endpoint and `/research` endpoint are natural upgrades to the War Room notebook:
+The `/answer` endpoint and the Research workflow are natural upgrades to the War Room notebook:
 
 - Use `/answer` for quick case law lookups during demand letter drafting
-- Use `/research` for comprehensive carrier playbook analysis
+- Use Research via `/search` with `type="deep-reasoning"` for comprehensive carrier playbook analysis
 - Use `/findSimilar` starting from a known favorable ruling to find analogous cases
 
 ### 5.3 — Feed into Lead Gen Workflow
@@ -431,7 +421,7 @@ Exa has an official MCP server. Connect it to Claude Code / Claude Desktop for l
 | 4 | Build out industry query suites (Part 3) | Medium | High — demonstrates deep domain knowledge |
 | 5 | Add `/findSimilar` demo | Low | Medium — great for competitor/expert discovery |
 | 6 | Modularize into Python package | Medium | Medium — pays off over time |
-| 7 | Add `/research` endpoint demo | Medium | High — most impressive capability |
+| 7 | Add Research report workflow | Medium | High — most impressive capability |
 | 8 | Integrate with Neo4j pipeline | High | Very High — connects to Life Graph vision |
 | 9 | Explore Websets for persistent monitoring | High | Very High — production-grade intelligence |
 | 10 | Add Streamlit dashboard | Medium | Medium — nice demo, not critical |

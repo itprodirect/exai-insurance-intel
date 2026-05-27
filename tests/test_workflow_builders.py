@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from exa_demo.client_payloads import build_exa_payload, build_find_similar_payload
+from exa_demo.client_payloads import (
+    build_exa_payload,
+    build_find_similar_payload,
+    build_research_payload,
+)
 from exa_demo.config import default_config
 from exa_demo.workflows import (
     build_answer_artifact,
@@ -50,6 +54,20 @@ def test_build_find_similar_payload_trims_optional_date_filters() -> None:
     assert payload['contents']['text'] is True
 
 
+def test_build_research_payload_uses_modern_search_controls() -> None:
+    config = default_config()
+    config['max_age_hours'] = 1
+
+    payload = build_research_payload('Summarize the Florida CAT market outlook.', config)
+
+    assert payload['type'] == 'deep-reasoning'
+    assert payload['contents']['highlights'] == {'maxCharacters': 2666}
+    assert payload['contents']['maxAgeHours'] == 1
+    assert 'livecrawl' not in payload
+    assert 'highlightsPerUrl' not in payload['contents']['highlights']
+    assert 'numSentences' not in payload['contents']['highlights']
+
+
 def test_build_answer_artifact_normalizes_base_fields() -> None:
     payload = build_answer_artifact(
         'What is the Florida appraisal clause dispute process?',
@@ -90,6 +108,36 @@ def test_build_research_artifact_prefers_sources_when_citations_missing() -> Non
     assert payload['citation_count'] == 1
     assert payload['citations'][0]['title'] == 'Florida Market Bulletin'
     assert payload['report_preview'] == 'Mock report'
+
+
+def test_build_research_artifact_synthesizes_report_from_search_results() -> None:
+    payload = build_research_artifact(
+        'Summarize the Florida CAT market outlook.',
+        request_payload={
+            'query': 'Summarize the Florida CAT market outlook.',
+            'type': 'deep-reasoning',
+        },
+        response_json={
+            'requestId': 'req-research-search',
+            'resolvedSearchType': 'deep-reasoning',
+            'results': [
+                {
+                    'title': 'Florida Market Bulletin',
+                    'url': 'https://example.com/bulletin',
+                    'snippet': 'Market conditions remain dynamic.',
+                }
+            ],
+            'costDollars': {'total': 0.0},
+        },
+        cache_hit=False,
+        estimated_cost_usd=0.01,
+    )
+
+    assert payload['request_id'] == 'req-research-search'
+    assert payload['citation_count'] == 1
+    assert payload['citations'][0]['title'] == 'Florida Market Bulletin'
+    assert payload['report_text'].startswith('Search-backed research report.')
+    assert 'Market conditions remain dynamic.' in payload['report_text']
 
 
 def test_build_find_similar_artifact_sets_top_result_and_score() -> None:

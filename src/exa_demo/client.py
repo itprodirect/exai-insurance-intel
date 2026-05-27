@@ -49,16 +49,18 @@ def exa_http_call(
     exa_api_key: str,
     smoke_no_network: bool,
     endpoint_name: str = "search",
+    smoke_response_kind: Optional[str] = None,
     timeout: int = 60,
 ) -> Dict[str, Any]:
     if smoke_no_network:
-        if endpoint_name == "findSimilar":
+        response_kind = smoke_response_kind or endpoint_name
+        if response_kind == "findSimilar":
             return mock_exa_find_similar_response(payload)
         if isinstance(payload.get("outputSchema"), Mapping):
             return mock_exa_structured_search_response(payload)
-        if endpoint_name == "answer":
+        if response_kind == "answer":
             return mock_exa_answer_response(payload)
-        if endpoint_name == "research":
+        if response_kind == "research":
             return mock_exa_research_response(payload)
         return mock_exa_response(payload)
 
@@ -287,7 +289,7 @@ def exa_research(
     run_id: str,
     cache_store: SqliteCacheStore,
 ) -> Tuple[Dict[str, Any], ExaCallMeta]:
-    payload = build_research_payload(query)
+    payload = build_research_payload(query, config)
     estimated_cost = _estimate_research_cost_from_pricing(pricing)
 
     _redact = _make_response_filter(config)
@@ -301,7 +303,8 @@ def exa_research(
             config=config,
             exa_api_key=exa_api_key,
             smoke_no_network=smoke_no_network,
-            endpoint_name="research",
+            endpoint_name="search",
+            smoke_response_kind="research",
         ),
         response_filter=_redact,
     )
@@ -311,7 +314,6 @@ def exa_research(
         response_json=response_json,
         cache_hit=cache_hit,
         estimated_cost=estimated_cost,
-        resolved_search_type=None,
     )
 
 

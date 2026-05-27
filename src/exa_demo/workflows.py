@@ -45,6 +45,8 @@ def build_research_artifact(
         response_json.get("citations")
         if isinstance(response_json.get("citations"), list)
         else response_json.get("sources")
+        if isinstance(response_json.get("sources"), list)
+        else response_json.get("results")
     )
     payload = {
         "query": query,
@@ -133,7 +135,7 @@ def _normalize_citations(value: Any) -> list[Dict[str, Any]]:
             {
                 "title": str(item.get("title") or item.get("name") or "").strip(),
                 "url": str(item.get("url") or item.get("sourceUrl") or "").strip(),
-                "snippet": str(item.get("snippet") or item.get("text") or item.get("passage") or "").strip(),
+                "snippet": _citation_snippet(item),
             }
         )
     return citations
@@ -214,6 +216,52 @@ def _extract_research_report_text(response_json: Mapping[str, Any]) -> str:
         value = response_json.get(key)
         if value is not None:
             return str(value).strip()
+    return _render_research_report_from_results(response_json.get("results"))
+
+
+def _render_research_report_from_results(value: Any) -> str:
+    if not isinstance(value, list):
+        return ""
+
+    source_lines: list[str] = []
+    for index, item in enumerate(value[:5], start=1):
+        if not isinstance(item, Mapping):
+            continue
+        title = str(item.get("title") or f"Source {index}").strip()
+        snippet = _citation_snippet(item)
+        if snippet:
+            source_lines.append(f"{index}. {title}: {snippet}")
+        else:
+            source_lines.append(f"{index}. {title}")
+
+    if not source_lines:
+        return ""
+
+    return "\n".join(
+        [
+            "Search-backed research report.",
+            "",
+            "Key source signals:",
+            *source_lines,
+            "",
+            "Human review is required before operational use.",
+        ]
+    )
+
+
+def _citation_snippet(item: Mapping[str, Any]) -> str:
+    for key in ("snippet", "summary", "text", "passage"):
+        value = item.get(key)
+        if value is not None:
+            text = str(value).strip()
+            if text:
+                return text
+    highlights = item.get("highlights")
+    if isinstance(highlights, list):
+        for highlight in highlights:
+            text = str(highlight).strip()
+            if text:
+                return text
     return ""
 
 

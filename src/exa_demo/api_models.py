@@ -131,9 +131,7 @@ class AnswerCitation:
         return cls(
             title=optional_str(citation.get("title") or citation.get("name")),
             url=optional_str(citation.get("url") or citation.get("sourceUrl")),
-            snippet=optional_str(
-                citation.get("snippet") or citation.get("text") or citation.get("passage")
-            ),
+            snippet=optional_str(citation_snippet(citation)),
             published_date=optional_str(
                 citation.get("publishedDate") or citation.get("published_date")
             ),
@@ -241,17 +239,7 @@ class ResearchRecord:
         meta: Any,
     ) -> "ResearchRecord":
         citations = _citation_mappings(response_json)
-        report_text = None
-        if isinstance(response_json, Mapping):
-            report_text = optional_str(
-                response_json.get("report")
-                or response_json.get("reportText")
-                or response_json.get("markdown")
-                or response_json.get("summary")
-                or response_json.get("text")
-                or response_json.get("response")
-                or response_json.get("content")
-            )
+        report_text = research_report_text(response_json)
 
         parsed_citations = [AnswerCitation.from_api_citation(item) for item in citations]
         top_citation = parsed_citations[0] if parsed_citations else None
@@ -562,6 +550,55 @@ def preview_json(value: Any, *, max_chars: int = 220) -> str:
 def preview_text(value: Any, *, max_chars: int = 220) -> str:
     text = optional_str(value) or ""
     return text[:max_chars]
+
+
+def research_report_text(response_json: Mapping[str, Any] | None) -> Optional[str]:
+    if not isinstance(response_json, Mapping):
+        return None
+
+    for key in ("report", "reportText", "markdown", "summary", "text", "response", "content"):
+        text = optional_str(response_json.get(key))
+        if text is not None:
+            return text
+
+    results = _result_mappings(response_json)
+    source_lines: List[str] = []
+    for index, item in enumerate(results[:5], start=1):
+        title = optional_str(item.get("title")) or f"Source {index}"
+        snippet = citation_snippet(item)
+        if snippet:
+            source_lines.append(f"{index}. {title}: {snippet}")
+        else:
+            source_lines.append(f"{index}. {title}")
+
+    if not source_lines:
+        return None
+
+    return "\n".join(
+        [
+            "Search-backed research report.",
+            "",
+            "Key source signals:",
+            *source_lines,
+            "",
+            "Human review is required before operational use.",
+        ]
+    )
+
+
+def citation_snippet(item: Mapping[str, Any]) -> Optional[str]:
+    for key in ("snippet", "summary", "text", "passage"):
+        text = optional_str(item.get(key))
+        if text is not None:
+            return text
+
+    highlights = item.get("highlights")
+    if isinstance(highlights, list):
+        for highlight in highlights:
+            text = optional_str(highlight)
+            if text is not None:
+                return text
+    return None
 
 
 def _citation_mappings(response_json: Mapping[str, Any] | None) -> List[Mapping[str, Any]]:

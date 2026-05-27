@@ -215,7 +215,13 @@ def mock_exa_answer_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
 def mock_exa_research_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
     query = str(payload.get("query") or "")
     slug = sha256_hex(query)[:8]
-    citations = [
+    num_results = int(payload.get("numResults") or 5)
+    contents = payload.get("contents") if isinstance(payload.get("contents"), Mapping) else {}
+    wants_highlights = contents.get("highlights") is not None and contents.get("highlights") is not False
+    wants_text = contents.get("text") is True
+    wants_summary = isinstance(contents.get("summary"), Mapping)
+
+    results = [
         {
             "title": f"Mock Research Source {index + 1}",
             "url": f"https://example.com/mock-research/{slug}/{index + 1}",
@@ -226,18 +232,22 @@ def mock_exa_research_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
             "publishedDate": "2026-03-19",
             "author": "Mock Analyst",
         }
-        for index in range(3)
+        for index in range(num_results)
     ]
+    for item in results:
+        snippet = str(item["snippet"])
+        if wants_highlights:
+            item["highlights"] = [snippet]
+            item["highlightScores"] = [0.99]
+        if wants_text:
+            item["text"] = f"Mock research source text for query: {query}."
+        if wants_summary:
+            item["summary"] = f"Mock research source summary for query: {query}."
+
     return {
         "requestId": f"smoke-{slug}",
-        "report": (
-            f"Mock research report for query: {query}.\n\n"
-            "Key takeaways:\n"
-            "- Market conditions remain dynamic.\n"
-            "- Regulatory and litigation monitoring should continue.\n"
-            "- Human review is required before operational use."
-        ),
-        "citations": citations,
+        "resolvedSearchType": str(payload.get("type") or "deep-reasoning"),
+        "results": results,
         "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
         "_smokeMode": True,
     }
