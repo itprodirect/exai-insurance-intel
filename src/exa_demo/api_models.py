@@ -12,6 +12,8 @@ class ExaResult:
     published_date: Optional[str] = None
     author: Optional[str] = None
     highlights: List[str] = field(default_factory=list)
+    # Preserved for serialization/backward compatibility; Exa 2026 responses
+    # no longer populate this field.
     highlight_scores: List[float] = field(default_factory=list)
     summary: Optional[str] = None
     text: Optional[str] = None
@@ -24,7 +26,6 @@ class ExaResult:
             published_date=optional_str(result.get("publishedDate")),
             author=optional_str(result.get("author")),
             highlights=[str(item) for item in result.get("highlights", []) if str(item).strip()],
-            highlight_scores=float_list(result.get("highlightScores", [])),
             summary=optional_str(result.get("summary")),
             text=optional_str(result.get("text")),
         )
@@ -500,6 +501,8 @@ def structured_output_from_response(response_json: Mapping[str, Any] | None) -> 
 
     for key in ("structuredOutput", "structured_output", "output", "structured", "data"):
         value = response_json.get(key)
+        if key == "output" and isinstance(value, Mapping) and "content" in value:
+            value = value.get("content")
         if isinstance(value, Mapping):
             return json_value_to_python(value)
         if isinstance(value, list):
@@ -561,6 +564,10 @@ def research_report_text(response_json: Mapping[str, Any] | None) -> Optional[st
         if text is not None:
             return text
 
+    output_text = output_content_text(response_json)
+    if output_text is not None:
+        return output_text
+
     results = _result_mappings(response_json)
     source_lines: List[str] = []
     for index, item in enumerate(results[:5], start=1):
@@ -584,6 +591,16 @@ def research_report_text(response_json: Mapping[str, Any] | None) -> Optional[st
             "Human review is required before operational use.",
         ]
     )
+
+
+def output_content_text(response_json: Mapping[str, Any]) -> Optional[str]:
+    output = response_json.get("output")
+    if not isinstance(output, Mapping):
+        return None
+    content = output.get("content")
+    if isinstance(content, (str, int, float, bool)):
+        return optional_str(content)
+    return None
 
 
 def citation_snippet(item: Mapping[str, Any]) -> Optional[str]:

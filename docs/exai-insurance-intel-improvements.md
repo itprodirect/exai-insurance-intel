@@ -40,7 +40,7 @@ class ExaResult(BaseModel):
     published_date: Optional[str]
     author: Optional[str]
     highlights: list[str] = []
-    highlight_scores: list[float] = []
+    highlight_scores: list[float] = []  # Deprecated compatibility field; always empty.
     summary: Optional[str] = None
     text: Optional[str] = None
 

@@ -40,7 +40,6 @@ def mock_exa_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
             item["highlights"] = [
                 f"Mock highlight for query: {query}. Public professional profile for insurance litigation and expert witness context."
             ]
-            item["highlightScores"] = [0.99]
         if wants_text:
             item["text"] = f"Mock text body for query: {query}. Public/professional info only."
         if wants_summary:
@@ -49,7 +48,7 @@ def mock_exa_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
 
     return {
         "requestId": f"smoke-{slug}",
-        "resolvedSearchType": str(payload.get("type") or "auto"),
+        "searchType": str(payload.get("type") or "auto"),
         "results": results,
         "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
         "_smokeMode": True,
@@ -117,11 +116,11 @@ def mock_exa_find_similar_response(payload: Mapping[str, Any]) -> Dict[str, Any]
             item["highlights"] = [
                 f"Mock highlight for seed URL: {url}. Public professional profile for insurance litigation and expert witness context."
             ]
-            item["highlightScores"] = [0.99]
         results.append(item)
 
     response: Dict[str, Any] = {
         "requestId": f"smoke-{slug}",
+        "searchType": str(payload.get("type") or "auto"),
         "results": results,
         "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
         "_smokeMode": True,
@@ -175,10 +174,14 @@ def mock_exa_structured_search_response(payload: Mapping[str, Any]) -> Dict[str,
 
     return {
         "requestId": f"smoke-{slug}",
-        "resolvedSearchType": str(payload.get("type") or "auto"),
+        "searchType": str(payload.get("type") or "auto"),
         "results": results,
         "structuredData": structured_data,
         "structuredOutput": structured_output,
+        "output": {
+            "content": structured_output,
+            "grounding": _grounding_from_results(results),
+        },
         "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
         "_smokeMode": True,
     }
@@ -238,7 +241,6 @@ def mock_exa_research_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
         snippet = str(item["snippet"])
         if wants_highlights:
             item["highlights"] = [snippet]
-            item["highlightScores"] = [0.99]
         if wants_text:
             item["text"] = f"Mock research source text for query: {query}."
         if wants_summary:
@@ -246,8 +248,12 @@ def mock_exa_research_response(payload: Mapping[str, Any]) -> Dict[str, Any]:
 
     return {
         "requestId": f"smoke-{slug}",
-        "resolvedSearchType": str(payload.get("type") or "deep-reasoning"),
+        "searchType": str(payload.get("type") or "deep-reasoning"),
         "results": results,
+        "output": {
+            "content": _mock_research_report_from_results(query, results),
+            "grounding": _grounding_from_results(results),
+        },
         "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
         "_smokeMode": True,
     }
@@ -286,3 +292,47 @@ def _domain_from_url(value: str) -> str:
     if parsed.netloc:
         return parsed.netloc
     return "example.com"
+
+
+def _grounding_from_results(results: list[Mapping[str, Any]]) -> list[Dict[str, str]]:
+    grounding: list[Dict[str, str]] = []
+    for item in results:
+        title = str(item.get("title") or "").strip()
+        url = str(item.get("url") or "").strip()
+        snippet = str(item.get("snippet") or item.get("summary") or "").strip()
+        source: Dict[str, str] = {}
+        if title:
+            source["title"] = title
+        if url:
+            source["url"] = url
+        if snippet:
+            source["snippet"] = snippet
+        if source:
+            grounding.append(source)
+    return grounding
+
+
+def _mock_research_report_from_results(
+    query: str, results: list[Mapping[str, Any]]
+) -> str:
+    source_lines: list[str] = []
+    for index, item in enumerate(results[:5], start=1):
+        title = str(item.get("title") or f"Source {index}").strip()
+        snippet = str(item.get("snippet") or "").strip()
+        if snippet:
+            source_lines.append(f"{index}. {title}: {snippet}")
+        else:
+            source_lines.append(f"{index}. {title}")
+
+    return "\n".join(
+        [
+            "Search-backed research report.",
+            "",
+            f"Query: {query}",
+            "",
+            "Key source signals:",
+            *source_lines,
+            "",
+            "Human review is required before operational use.",
+        ]
+    )
