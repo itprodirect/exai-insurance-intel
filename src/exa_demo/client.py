@@ -28,6 +28,7 @@ from .safety import redact_response
 
 # Module-level circuit breaker shared across all Exa API calls.
 exa_circuit_breaker = CircuitBreaker()
+_SEARCH_TYPE_UNSET = object()
 
 
 @dataclass
@@ -331,13 +332,12 @@ def _build_call_meta(
     response_json: Any,
     cache_hit: bool,
     estimated_cost: float,
-    resolved_search_type: Optional[str] = ...,
+    resolved_search_type: Any = _SEARCH_TYPE_UNSET,
 ) -> ExaCallMeta:
-    if resolved_search_type is ...:
-        resolved_search_type = (
-            response_json.get("resolvedSearchType")
-            if isinstance(response_json, dict)
-            else None
+    if resolved_search_type is _SEARCH_TYPE_UNSET:
+        resolved_search_type = _search_type_for_meta(
+            payload=payload,
+            response_json=response_json,
         )
     return ExaCallMeta(
         cache_hit=cache_hit,
@@ -349,6 +349,21 @@ def _build_call_meta(
         resolved_search_type=resolved_search_type,
         created_at_utc=datetime.now(timezone.utc).isoformat(),
     )
+
+
+def _search_type_for_meta(*, payload: Mapping[str, Any], response_json: Any) -> Optional[str]:
+    if isinstance(response_json, Mapping):
+        response_search_type = _clean_meta_string(response_json.get("searchType"))
+        if response_search_type is not None:
+            return response_search_type
+    return _clean_meta_string(payload.get("type"))
+
+
+def _clean_meta_string(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _estimate_answer_cost_from_pricing(pricing: Mapping[str, float]) -> float:

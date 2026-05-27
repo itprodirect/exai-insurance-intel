@@ -32,14 +32,13 @@ def test_exa_result_normalizes_api_fields() -> None:
             'publishedDate': '2026-03-01',
             'author': 'Analyst',
             'highlights': ['one', 'two'],
-            'highlightScores': ['0.5', 0.75],
             'summary': 'Summary',
             'text': 'Body',
         }
     )
 
     assert result.title == 'Example Title'
-    assert result.highlight_scores == [0.5, 0.75]
+    assert result.highlight_scores == []
     assert result.to_dict()['published_date'] == '2026-03-01'
 
 
@@ -184,6 +183,44 @@ def test_research_record_builds_flat_row() -> None:
     assert flat['citation_count'] == 1
     assert flat['top_citation_url'] == 'https://example.com/bulletin'
     assert record.report_text.startswith('Mock research report for query:')
+    assert record.citations[0].title == 'Florida Market Bulletin'
+
+
+def test_research_record_reads_modern_output_content() -> None:
+    class ResearchMeta:
+        cache_hit = False
+        request_hash = 'hash-research'
+        request_payload = {'query': 'Summarize the Florida CAT market outlook.'}
+        request_id = 'research-output'
+        created_at_utc = '2026-03-19T00:00:00+00:00'
+        estimated_cost_usd = 0.005
+        actual_cost_usd = 0.0
+
+    record = ResearchRecord.from_runtime(
+        'Summarize the Florida CAT market outlook.',
+        {
+            'output': {
+                'content': 'Modern research report from output content.',
+                'grounding': [
+                    {
+                        'title': 'Florida Market Bulletin',
+                        'url': 'https://example.com/bulletin',
+                    }
+                ],
+            },
+            'results': [
+                {
+                    'title': 'Florida Market Bulletin',
+                    'url': 'https://example.com/bulletin',
+                    'snippet': 'Market bulletin summary',
+                }
+            ],
+        },
+        ResearchMeta(),
+    )
+
+    assert record.report_text == 'Modern research report from output content.'
+    assert record.citation_count == 1
     assert record.citations[0].title == 'Florida Market Bulletin'
 
 

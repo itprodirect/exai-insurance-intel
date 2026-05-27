@@ -9,6 +9,7 @@ from exa_demo.client import (
     exa_answer,
     exa_find_similar,
     exa_research,
+    exa_search_people,
     exa_structured_search,
     mock_exa_answer_response,
     mock_exa_find_similar_response,
@@ -111,7 +112,9 @@ def test_mock_exa_response_preserves_search_result_shape_with_additive_controls(
 
     response = mock_exa_response(payload)
 
-    assert response["resolvedSearchType"] == "auto"
+    assert response["searchType"] == "auto"
+    assert response["requestId"].startswith("smoke-")
+    assert response["costDollars"]["total"] == 0.0
     assert isinstance(response["results"], list)
     assert len(response["results"]) == payload["numResults"]
     assert response["results"][0]["title"].startswith("Mock Professional Result")
@@ -242,9 +245,11 @@ def test_mock_exa_structured_search_response_returns_structured_output() -> None
 
     response = mock_exa_structured_search_response(payload)
 
-    assert response["resolvedSearchType"] == "auto"
+    assert response["searchType"] == "auto"
     assert response["structuredOutput"]["summary"].startswith("Mock summary for query:")
     assert response["structuredOutput"]["professionals"][0]["name"].startswith("Mock name for query:")
+    assert response["output"]["content"] == response["structuredOutput"]
+    assert response["output"]["grounding"][0]["url"].startswith("https://www.linkedin.com/")
     assert len(response["results"]) == payload["numResults"]
 
 
@@ -286,10 +291,12 @@ def test_mock_exa_research_response_returns_search_results() -> None:
 
     response = mock_exa_research_response(payload)
 
-    assert response["resolvedSearchType"] == "deep-reasoning"
+    assert response["searchType"] == "deep-reasoning"
     assert isinstance(response["results"], list)
     assert len(response["results"]) == 5
     assert response["results"][0]["url"].startswith("https://example.com/mock-research/")
+    assert response["output"]["content"].startswith("Search-backed research report.")
+    assert response["output"]["grounding"][0]["title"] == "Mock Research Source 1"
     assert "report" not in response
     assert "citations" not in response
 
@@ -317,6 +324,65 @@ def test_exa_answer_uses_smoke_cited_answer_shape() -> None:
     assert cache_store.calls[0]["run_id"] == "answer-run"
 
 
+def test_exa_search_people_meta_prefers_response_search_type(monkeypatch) -> None:
+    cache_store = FakeCacheStore()
+    config = default_config()
+    pricing = default_pricing()
+
+    def fake_http_call(payload, **_kwargs):
+        return {
+            "requestId": "req-modern-search-type",
+            "searchType": "neural",
+            "results": [],
+            "costDollars": {"total": 0.0},
+        }
+
+    monkeypatch.setattr("exa_demo.client.exa_http_call", fake_http_call)
+
+    _response_json, meta = exa_search_people(
+        "insurance expert witness",
+        config=config,
+        pricing=pricing,
+        exa_api_key="",
+        smoke_no_network=True,
+        run_id="search-type-run",
+        cache_store=cache_store,
+    )
+
+    assert meta.resolved_search_type == "neural"
+
+
+def test_exa_search_people_meta_falls_back_to_requested_type(monkeypatch) -> None:
+    cache_store = FakeCacheStore()
+    config = default_config()
+    config["search_type"] = "deep"
+    pricing = default_pricing()
+    legacy_search_type_key = "resolved" + "SearchType"
+
+    def fake_http_call(payload, **_kwargs):
+        return {
+            "requestId": "req-requested-search-type",
+            legacy_search_type_key: "deep-reasoning",
+            "results": [],
+            "costDollars": {"total": 0.0},
+        }
+
+    monkeypatch.setattr("exa_demo.client.exa_http_call", fake_http_call)
+
+    _response_json, meta = exa_search_people(
+        "insurance expert witness",
+        config=config,
+        pricing=pricing,
+        exa_api_key="",
+        smoke_no_network=True,
+        run_id="requested-type-run",
+        cache_store=cache_store,
+    )
+
+    assert meta.request_payload["type"] == "deep"
+    assert meta.resolved_search_type == "deep"
+
+
 def test_exa_research_uses_smoke_report_shape() -> None:
     cache_store = FakeCacheStore()
     config = default_config()
@@ -332,9 +398,10 @@ def test_exa_research_uses_smoke_report_shape() -> None:
         cache_store=cache_store,
     )
 
-    assert response_json["resolvedSearchType"] == "deep-reasoning"
+    assert response_json["searchType"] == "deep-reasoning"
     assert len(response_json["results"]) == 5
     assert response_json["results"][0]["title"] == "Mock Research Source 1"
+    assert response_json["output"]["grounding"][0]["url"].startswith("https://example.com/mock-research/")
     assert meta.cache_hit is False
     assert meta.request_payload["query"] == "Summarize the Florida CAT market outlook."
     assert meta.request_payload["type"] == "deep-reasoning"
@@ -358,7 +425,7 @@ def test_exa_research_posts_to_search_endpoint_for_live_transport(monkeypatch) -
         def json(self):
             return {
                 "requestId": "req-live-research",
-                "resolvedSearchType": "deep-reasoning",
+                "searchType": "deep-reasoning",
                 "results": [
                     {
                         "title": "Florida CAT market source",

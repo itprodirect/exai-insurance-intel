@@ -193,6 +193,8 @@ def _extract_structured_output(response_json: Mapping[str, Any]) -> Any:
 
     for key in ("structuredData", "structuredOutput", "output", "data"):
         value = response_json.get(key)
+        if key == "output" and isinstance(value, Mapping) and "content" in value:
+            value = value.get("content")
         if value is not None:
             return value
 
@@ -203,6 +205,8 @@ def _extract_structured_output(response_json: Mapping[str, Any]) -> Any:
                 continue
             for key in ("structuredData", "structuredOutput", "output", "data"):
                 value = item.get(key)
+                if key == "output" and isinstance(value, Mapping) and "content" in value:
+                    value = value.get("content")
                 if value is not None:
                     return value
     return None
@@ -216,6 +220,9 @@ def _extract_research_report_text(response_json: Mapping[str, Any]) -> str:
         value = response_json.get(key)
         if value is not None:
             return str(value).strip()
+    output_text = _output_content_text(response_json)
+    if output_text:
+        return output_text
     return _render_research_report_from_results(response_json.get("results"))
 
 
@@ -262,6 +269,16 @@ def _citation_snippet(item: Mapping[str, Any]) -> str:
             text = str(highlight).strip()
             if text:
                 return text
+    return ""
+
+
+def _output_content_text(response_json: Mapping[str, Any]) -> str:
+    output = response_json.get("output")
+    if not isinstance(output, Mapping):
+        return ""
+    content = output.get("content")
+    if isinstance(content, (str, int, float, bool)):
+        return str(content).strip()
     return ""
 
 

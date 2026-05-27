@@ -30,7 +30,7 @@ def test_extract_preview_prefers_highlights_and_redacts() -> None:
 def _sample_response() -> dict:
     return {
         "requestId": "req-123",
-        "resolvedSearchType": "neural",
+        "searchType": "neural",
         "results": [
             {
                 "id": "r1",
