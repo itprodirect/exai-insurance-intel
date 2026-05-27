@@ -254,8 +254,10 @@ def test_mock_exa_structured_search_response_returns_structured_output() -> None
     assert response["searchType"] == "auto"
     assert response["structuredOutput"]["summary"].startswith("Mock summary for query:")
     assert response["structuredOutput"]["professionals"][0]["name"].startswith("Mock name for query:")
+    assert response["structuredData"] == response["structuredOutput"]
     assert response["output"]["content"] == response["structuredOutput"]
     assert response["output"]["grounding"][0]["url"].startswith("https://www.linkedin.com/")
+    assert response["output"]["grounding"][0]["snippet"].startswith("Grounding basis - ")
     assert "grounding" not in response["output"]["content"]
     assert "citations" not in response["output"]["content"]
     assert "confidence" not in response["output"]["content"]
@@ -306,6 +308,8 @@ def test_mock_exa_research_response_returns_search_results() -> None:
     assert response["results"][0]["url"].startswith("https://example.com/mock-research/")
     assert response["output"]["content"].startswith("Search-backed research report.")
     assert response["output"]["grounding"][0]["title"] == "Mock Research Source 1"
+    assert response["output"]["grounding"][0]["snippet"].startswith("Grounding basis - ")
+    assert response["output"]["grounding"][0]["snippet"] != response["results"][0]["snippet"]
     assert "report" not in response
     assert "citations" not in response
 

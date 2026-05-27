@@ -679,6 +679,8 @@ def test_research_command_smoke_emits_json_and_artifact(tmp_path, capsys) -> Non
     assert research_payload['citations'][0]['title'] == 'Mock Research Source 1'
     assert research_payload['grounding_count'] == 5
     assert research_payload['grounding'][0]['title'] == 'Mock Research Source 1'
+    assert research_payload['grounding'][0]['snippet'].startswith('Grounding basis - ')
+    assert research_payload['grounding'][0]['snippet'] != research_payload['citations'][0]['snippet']
     assert research_payload['output_content'].startswith('Search-backed research report.')
     assert research_payload['request_payload']['type'] == 'deep-reasoning'
     assert research_payload['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}
@@ -756,16 +758,17 @@ def test_structured_search_command_smoke_emits_json_and_artifact(tmp_path, capsy
     assert output['workflow'] == 'structured-search'
     assert output['run_id'] == 'structured-run'
     assert output['schema_file'] == str(schema_file)
-    assert output['structured_output']['schema_title'] == 'Structured Professionals'
-    assert output['structured_output']['field_names'] == ['name', 'role']
+    assert output['structured_output']['name'].startswith('Mock name for query:')
+    assert output['structured_output']['role'].startswith('Mock role for query:')
     assert (artifact_dir / 'structured-run' / 'structured_output.json').exists()
     assert (artifact_dir / 'structured-run' / 'report.md').exists()
     assert (artifact_dir / 'structured-run' / 'summary.json').exists()
     structured_payload = json.loads((artifact_dir / 'structured-run' / 'structured_output.json').read_text(encoding='utf-8'))
-    assert structured_payload['structured_output']['record_count'] == 1
-    assert structured_payload['structured_output_keys'] == ['field_names', 'query', 'record_count', 'records', 'schema_title']
+    assert structured_payload['structured_output'] == structured_payload['output_content']
+    assert structured_payload['structured_output_keys'] == ['name', 'role']
     assert structured_payload['grounding_count'] == 5
     assert structured_payload['grounding'][0]['url'].startswith('https://www.linkedin.com/')
+    assert structured_payload['grounding'][0]['snippet'].startswith('Grounding basis - ')
     assert 'grounding' not in structured_payload['output_content']
     assert 'citations' not in structured_payload['output_content']
     assert structured_payload['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}

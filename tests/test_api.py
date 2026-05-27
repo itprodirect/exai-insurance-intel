@@ -163,11 +163,14 @@ def test_research_smoke(client):
     assert artifact_payload["grounding_count"] == 5
     assert artifact_payload["grounding"][0]["title"] == "Mock Research Source 1"
     assert artifact_payload["grounding"][0]["url"].startswith("https://example.com/mock-research/")
+    assert artifact_payload["grounding"][0]["snippet"].startswith("Grounding basis - ")
+    assert artifact_payload["grounding"][0]["snippet"] != artifact_payload["citations"][0]["snippet"]
     assert "grounding" not in artifact_payload["output_content"]
     report_markdown = (Path(data["artifact_dir"]) / "report.md").read_text(encoding="utf-8")
     research_markdown = (Path(data["artifact_dir"]) / "research.md").read_text(encoding="utf-8")
     assert "## Grounding / Source Review" in report_markdown
     assert "## Grounding / Source Review" in research_markdown
+    assert "Grounding note: Grounding basis - " in report_markdown
     assert_no_deprecated_request_fields(artifact_payload["request_payload"])
 
 
@@ -228,7 +231,9 @@ def test_structured_search_smoke(client):
     )
     assert artifact_payload["grounding_count"] == 5
     assert artifact_payload["grounding"][0]["url"].startswith("https://www.linkedin.com/")
+    assert artifact_payload["grounding"][0]["snippet"].startswith("Grounding basis - ")
     assert artifact_payload["output_content"]["name"].startswith("Mock name for query:")
+    assert artifact_payload["structured_output"] == artifact_payload["output_content"]
     assert "grounding" not in artifact_payload["output_content"]
     assert "citations" not in artifact_payload["output_content"]
     assert "confidence" not in artifact_payload["output_content"]
@@ -237,6 +242,7 @@ def test_structured_search_smoke(client):
     assert "confidence" not in artifact_payload["request_payload"]["outputSchema"]["properties"]
     report_markdown = (Path(data["artifact_dir"]) / "report.md").read_text(encoding="utf-8")
     assert "## Grounding / Source Review" in report_markdown
+    assert "Grounding note: Grounding basis - " in report_markdown
 
 
 # ---------------------------------------------------------------------------

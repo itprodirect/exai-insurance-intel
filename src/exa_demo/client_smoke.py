@@ -143,25 +143,6 @@ def mock_exa_structured_search_response(payload: Mapping[str, Any]) -> Dict[str,
         else {}
     )
     structured_output = _mock_structured_output(schema, query)
-    properties = (
-        schema.get("properties") if isinstance(schema.get("properties"), Mapping) else {}
-    )
-    structured_data = {
-        "query": query,
-        "schema_title": str(schema.get("title") or "structured-output"),
-        "field_names": sorted(str(key) for key in properties.keys()),
-        "record_count": 1,
-        "records": [
-            {
-                "name": "Mock Structured Record",
-                "role": "Insurance expert witness",
-                "firm": "Mock Advisory Group",
-                "state_licenses": ["FL"],
-                "specializations": ["catastrophe claims", "appraisal"],
-                "notable_cases_or_experience": "Mock structured output for smoke testing.",
-            }
-        ],
-    }
 
     results = []
     for index in range(num_results):
@@ -169,6 +150,10 @@ def mock_exa_structured_search_response(payload: Mapping[str, Any]) -> Dict[str,
             "id": f"mock-{slug}-{index + 1}",
             "title": f"Mock Structured Result {index + 1} - CAT loss / insurance expert",
             "url": f"https://www.linkedin.com/in/mock-structured-{slug}-{index + 1}",
+            "snippet": (
+                f"Mock structured source {index + 1} for query: {query}. "
+                "Used only as extraction provenance in smoke validation."
+            ),
         }
         results.append(item)
 
@@ -176,7 +161,7 @@ def mock_exa_structured_search_response(payload: Mapping[str, Any]) -> Dict[str,
         "requestId": f"smoke-{slug}",
         "searchType": str(payload.get("type") or "auto"),
         "results": results,
-        "structuredData": structured_data,
+        "structuredData": structured_output,
         "structuredOutput": structured_output,
         "output": {
             "content": structured_output,
@@ -306,7 +291,7 @@ def _grounding_from_results(results: list[Mapping[str, Any]]) -> list[Dict[str, 
         if url:
             source["url"] = url
         if snippet:
-            source["snippet"] = snippet
+            source["snippet"] = f"Grounding basis - {snippet}"
         if source:
             grounding.append(source)
     return grounding
