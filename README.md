@@ -42,10 +42,12 @@ Validated now:
 - Local frontend startup from `frontend/` with `npm install` and `npm run dev`
 - Browser validation for Search, Answer, Research, and My Work against the local backend
 
-Still not validated in this session:
+Not covered by that 2026-04-12 local UI smoke session:
 - `--mode live` or real Exa API traffic
 - S3 artifact storage or Postgres-backed usage/run persistence
 - Production readiness or deployed environments
+
+Later bounded live CLI validation on 2026-05-27 refreshed the Exa grounding evidence for `research` and `structured-search` only. That rerun is documented in [docs/sessions/2026-05-27-live-grounding-validation.md](docs/sessions/2026-05-27-live-grounding-validation.md): live `research` completed with results but no `output.grounding`, while live `structured-search` completed with `output.content`, `output.grounding`, `grounding_count=26`, and a rendered `Grounding / Source Review` section in `report.md`. It did not exercise the frontend, S3, Postgres, deployment, or broad production paths.
 
 Use [docs/local-validation.md](docs/local-validation.md) for the exact reproduction steps.
 
@@ -415,7 +417,7 @@ python scripts/run_live_validation.py --mode smoke
 
 Guidance:
 - default to `--mode smoke` locally unless you are intentionally validating live API behavior
-- the current local validation captured in this README did **not** exercise live mode
+- the 2026-04-12 local UI validation captured in this README did **not** exercise live mode; the separate 2026-05-27 bounded live grounding rerun covered only CLI `research` and `structured-search`
 - the manual workflow is bounded by design and uploads runtime artifacts for review
 - `--include-comparison` is optional because it is materially more expensive than the default endpoint checks
 
@@ -520,7 +522,7 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - GitHub issue tracker mapping: [docs/issue-tracker.md](docs/issue-tracker.md)
 - ADR index: [docs/adr/README.md](docs/adr/README.md)
 - Session note template: [docs/sessions/README.md](docs/sessions/README.md)
-- Latest implementation session: [docs/sessions/2026-05-26-exa-2026-modernization.md](docs/sessions/2026-05-26-exa-2026-modernization.md)
+- Latest implementation session: [docs/sessions/2026-05-27-live-grounding-validation.md](docs/sessions/2026-05-27-live-grounding-validation.md)
 
 ## Guardrails
 

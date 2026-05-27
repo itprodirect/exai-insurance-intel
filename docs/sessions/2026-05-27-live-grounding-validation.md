@@ -1,7 +1,8 @@
-# Session: Live Exa grounding validation attempt
+# Session: Live Exa grounding validation
 
 - Date: 2026-05-27
-- Scope: bounded live validation attempt for `research` and `structured-search` grounding normalization
+- Scope: bounded live validation for `research` and `structured-search` grounding normalization
+- Related issues: [#51](https://github.com/itprodirect/exai-insurance-intel/issues/51), [#56](https://github.com/itprodirect/exai-insurance-intel/issues/56)
 
 ## Goal
 
@@ -13,6 +14,7 @@ Validate real Exa `output.grounding` variants against the current artifact norma
 - Clean status before validation: yes
 - Based on latest `origin/main`: yes, `git rev-list --left-right --count origin/main...HEAD` returned `0 0` after `git fetch origin main`
 - `EXA_API_KEY`: present through the CLI dotenv loading path
+- GitHub issue recheck during docs sync: `#51` was closed at `2026-05-27T19:50:56Z`; `#56` was closed at `2026-05-27T20:02:35Z`
 
 ## Commands Attempted
 
@@ -36,7 +38,7 @@ Live structured-search attempt:
 python -m exa_demo structured-search "Florida independent adjuster catastrophe claims firms" --schema-file assets\live_validation_schema.json --mode live --run-id grounding-live-structured-20260527T1930Z --artifact-dir live-validation-artifacts --sqlite-path live-validation-artifacts\grounding-live-20260527T1930Z.sqlite --num-results 1 --budget-cap-usd 0.02 --json
 ```
 
-## Live Result
+## Initial Live Result
 
 Both live commands reached `https://api.exa.ai/search` and failed with:
 
@@ -46,9 +48,41 @@ Both live commands reached `https://api.exa.ai/search` and failed with:
 
 No live `research.json`, `structured_output.json`, `research.md`, or `report.md` artifacts were written for the attempted live run ids.
 
+## Successful Live Rerun After API Key Refresh
+
+After the placeholder Exa API key was replaced, the bounded live rerun completed for the two targeted workflows:
+
+```powershell
+python -m exa_demo research "Summarize recent Florida CAT insurance market signals for claims leaders." --mode live --run-id grounding-live-20260527T155447-research --artifact-dir live-validation-artifacts --sqlite-path live-validation-artifacts\grounding-live-20260527T155447.sqlite --budget-cap-usd 0.03 --json
+python -m exa_demo structured-search "Florida independent adjuster catastrophe claims firms" --schema-file assets\live_validation_schema.json --mode live --run-id grounding-live-20260527T155447-structured --artifact-dir live-validation-artifacts --sqlite-path live-validation-artifacts\grounding-live-20260527T155447.sqlite --num-results 1 --budget-cap-usd 0.02 --json
+```
+
+Observed live artifacts:
+
+- `live-validation-artifacts/grounding-live-20260527T155447-research/research.json`
+- `live-validation-artifacts/grounding-live-20260527T155447-research/research.md`
+- `live-validation-artifacts/grounding-live-20260527T155447-research/report.md`
+- `live-validation-artifacts/grounding-live-20260527T155447-structured/structured_output.json`
+- `live-validation-artifacts/grounding-live-20260527T155447-structured/report.md`
+
+Live research outcome:
+
+- `request_id=7f2b06e5b419f4ca182d1144c0c9e4d9`
+- `actual_cost_usd=0.015`
+- Response included `results` with 5 items.
+- Response did not include `output.content` or `output.grounding`, so `grounding_count=0` and no live grounding shape was available from the research response.
+
+Live structured-search outcome:
+
+- `request_id=c4e750dd01ad3bb1ce78621663609d59`
+- `actual_cost_usd=0.012`
+- Response included `output.content` and `output.grounding`.
+- `structured_output.json` preserved normalized `grounding` metadata with `grounding_count=26`.
+- Structured `report.md` rendered `## Grounding / Source Review`.
+
 ## Artifact Inspection
 
-Because Exa returned `401 Unauthorized` before a response body was available, there were no real live `output.grounding` shapes to inspect.
+The initial failed attempt produced no live artifacts because Exa returned `401 Unauthorized` before a response body was available.
 
 The required smoke baseline artifacts from `python scripts/run_live_validation.py --mode smoke` were inspected as a contract check:
 
@@ -66,8 +100,12 @@ Smoke artifact observations:
 
 ## Real Grounding Shape Observations
 
-No real Exa `output.grounding` shape was observed in this session. The live blocker is authorization, not a normalizer mismatch.
+Real Exa `output.grounding` was observed only in the structured-search response. The normalizer preserved the grounding records as a separate top-level artifact field and did not add grounding fields to the requested schema payload.
+
+The live research response did not include `output.grounding`; this is an observed response-shape result, not a normalizer failure.
 
 ## Follow-Up
 
-Refresh or replace the configured Exa API key, then rerun only the two bounded live commands above. If real responses expose a normalizer mismatch, keep the fix in `src/exa_demo/workflows.py` with focused tests in `tests/test_workflow_builders.py`.
+- Roadmap and tracker docs should now treat `#51` and `#56` as closed/completed.
+- Continue to distinguish smoke validation from the bounded live CLI rerun.
+- Do not claim S3, Postgres, frontend, deployment, monitor, MCP, agent, or broad production validation from this evidence.

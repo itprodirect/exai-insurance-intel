@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-05-27T02:17:01.818213+00:00_
+_Generated: 2026-05-27T20:11:07.891614+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -10,7 +10,7 @@ _Generated: 2026-05-27T02:17:01.818213+00:00_
 - Current milestone: Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters plus API health self-reporting for selected persistence backends.
 
 ## Operating posture
-- Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI app in the same package, and a Next.js frontend in `frontend/`. SQLite cache, budget controls, benchmark fixtures, exported artifacts, and smoke/live execution modes are already in place. Manual live validation is script-backed, but the inspected docs only verify smoke validation runs so far.
+- Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI app in the same package, and a Next.js frontend in `frontend/`. SQLite cache, budget controls, benchmark fixtures, exported artifacts, and smoke/live execution modes are already in place. Manual live validation is script-backed. The latest bounded live evidence covers only CLI `research` and `structured-search` grounding behavior; the broader local UI path remains smoke/mock.
 
 ## Durable decisions
 - Markdown docs under `docs/` remain the canonical backlog, architecture, ADR, and session-history surface for this repo.
@@ -22,10 +22,10 @@ _Generated: 2026-05-27T02:17:01.818213+00:00_
 ## Top blockers
 - Phase 5 Level 1 is not complete because the persistence baseline still lacks end-to-end S3/Postgres-backed pilot validation and deployment posture; local defaults, pilot adapters, and backend self-reporting are present.
 - GitHub issue numbering has drifted from the local Phase 5 roadmap IDs, so the tracker still has `TBD` GitHub URLs for those items until dedicated issues are created.
-- Live Exa mode, S3/Postgres-backed runtime behavior, and deployed pilot environments remain unvalidated; the documented validated path is still local smoke mode.
+- Broad live Exa behavior, S3/Postgres-backed runtime behavior, frontend live mode, and deployed pilot environments remain unvalidated. A bounded 2026-05-27 live CLI rerun did validate `research` and `structured-search` grounding behavior only.
 
 ## Docs + setup
-- Docs freshness: Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local and persistence-in-progress posture; older March session notes remain historical and may describe pre-slice state.
+- Docs freshness: Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local, bounded live grounding, and persistence-in-progress posture; older March session notes remain historical and may describe pre-slice state.
 - Setup friction: Moderate. Python setup is straightforward, but full local work spans Python deps, optional `[api]` extras, a separate `frontend/` npm install and env file, and deliberate handling of smoke versus live mode with `EXA_API_KEY` only for bounded manual validation.
 
 ## Validation path
@@ -60,29 +60,18 @@ _Generated: 2026-05-27T02:17:01.818213+00:00_
 - Scope beyond this scaffold into auth redesign, persistence redesign, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-05-26
-- Objective: Harden Exa 2026 request-shape drift before continuing with cost-model and grounding work.
+- Date: 2026-05-27
+- Objective: Sync repo docs/status after the Exa 2026 modernization, cost-model reconciliation, and bounded live grounding validation.
 - Changes made:
-  - Stopped emitting `startCrawlDate` and `endCrawlDate` from find-similar payloads while keeping the Python kwargs as deprecated no-ops.
-  - Expanded payload/API/CLI tests so request payloads reject `livecrawl`, `highlightsPerUrl`, `numSentences`, `startCrawlDate`, and `endCrawlDate`.
-  - Replaced README `--livecrawl` examples with `--freshness always-live` / `--max-age-hours 0` freshness language.
-  - Added ADR-0002 for the Exa 2026 request modernization boundary.
-  - Updated roadmap, issue tracker, demo gallery, integration boundaries, and session notes to describe user-facing `research` as `/search` with `type="deep-reasoning"`.
-  - Documented the next cost/grounding gap without claiming live pricing, S3, Postgres, frontend, or deployed validation.
+  - Updated the 2026-05-27 live grounding session note to record the successful rerun after the placeholder Exa API key was replaced.
+  - Reconciled roadmap and issue-tracker status so `#51` and `#56` are closed/completed instead of future follow-up work.
+  - Updated ADR-0002 and validation boundary docs to distinguish smoke validation from the bounded live CLI rerun.
+  - Kept the status sync docs-only; no app code, tests, frontend, persistence, deployment, or live Exa calls were changed or run during the sync.
 - Validation:
-  - `python -m pytest -q tests/test_client.py tests/test_workflow_builders.py tests/test_api.py tests/test_cli.py` -> passed (`65 passed`)
-  - `python -m ruff check .` -> passed
-  - `python -m pytest -q` -> passed (`277 passed`, one Jupyter path deprecation warning)
-  - `python scripts/run_live_validation.py --mode smoke` -> passed
-  - Current smoke-validation artifacts from `live-validation-20260527T021418Z-*` had no deprecated-field matches
-- Open issues:
-  - Cost-model estimates still need a dedicated follow-up against current Exa pricing for search-backed `research`, `/answer`, and `/findSimilar`.
-  - Modern grounding metadata should be normalized consistently across artifacts in the next grounding slice.
-  - Live Exa, S3, Postgres, frontend, and deployed validation were not run in this cleanup.
-- Decisions proposed:
-  - Keep public workflow names and artifact filenames stable while updating request payload shapes underneath.
-  - Keep find-similar crawl-date kwargs as compatibility no-ops rather than removing them abruptly.
-  - Treat `research` as a repo workflow name, not evidence of a current Exa `/research` transport endpoint.
+  - `python -m ruff check .` -> passed.
+  - `python -m pytest -q` -> passed (`299 passed`, one existing Jupyter path deprecation warning).
+  - `python scripts/run_live_validation.py --mode smoke` -> passed and wrote smoke artifacts under `live-validation-artifacts/`.
+  - `git diff --check` -> passed.
 
 ## Next thin slice
-- Reconcile the cost model against current Exa pricing and modern grounding metadata, with smoke tests first and live validation only as an explicit manual step.
+- Continue Phase 5 Level 1 persistence work without widening into deployment or broad infra redesign.
