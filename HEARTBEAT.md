@@ -2,7 +2,7 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-04-28T05:21:10.487271+00:00_
+_Generated: 2026-05-27T02:17:01.818213+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
@@ -60,25 +60,29 @@ _Generated: 2026-04-28T05:21:10.487271+00:00_
 - Scope beyond this scaffold into auth redesign, persistence redesign, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-04-28
-- Objective: Close the session with a final docs pass after a narrow Phase 5 persistence-baseline posture slice.
+- Date: 2026-05-26
+- Objective: Harden Exa 2026 request-shape drift before continuing with cost-model and grounding work.
 - Changes made:
-  - Added API health response fields for the selected run and artifact persistence backends.
-  - Kept `/health` and `/api/health` unauthenticated while expanding their response shape.
-  - Added backend-selection logging for local/Postgres run repositories and local/S3 artifact stores.
-  - Added optional `postgres`, `s3`, and aggregate `pilot` extras in `pyproject.toml`.
-  - Documented optional pilot persistence env vars in `.env.example`.
-  - Updated README/local-validation wording, tracker pointers, roadmap wording, durable memory, and the session log for the final closeout.
+  - Stopped emitting `startCrawlDate` and `endCrawlDate` from find-similar payloads while keeping the Python kwargs as deprecated no-ops.
+  - Expanded payload/API/CLI tests so request payloads reject `livecrawl`, `highlightsPerUrl`, `numSentences`, `startCrawlDate`, and `endCrawlDate`.
+  - Replaced README `--livecrawl` examples with `--freshness always-live` / `--max-age-hours 0` freshness language.
+  - Added ADR-0002 for the Exa 2026 request modernization boundary.
+  - Updated roadmap, issue tracker, demo gallery, integration boundaries, and session notes to describe user-facing `research` as `/search` with `type="deep-reasoning"`.
+  - Documented the next cost/grounding gap without claiming live pricing, S3, Postgres, frontend, or deployed validation.
 - Validation:
-  - `python -m ruff check src/exa_demo/api.py src/exa_demo/persistence.py tests/test_api.py tests/test_api_auth.py` -> passed
-  - `python -m pytest -q tests/test_api.py tests/test_api_auth.py` -> passed (`31 passed`)
-  - `python -m pytest -q tests/test_persistence.py` -> passed (`62 passed`)
+  - `python -m pytest -q tests/test_client.py tests/test_workflow_builders.py tests/test_api.py tests/test_cli.py` -> passed (`65 passed`)
+  - `python -m ruff check .` -> passed
+  - `python -m pytest -q` -> passed (`277 passed`, one Jupyter path deprecation warning)
+  - `python scripts/run_live_validation.py --mode smoke` -> passed
+  - Current smoke-validation artifacts from `live-validation-20260527T021418Z-*` had no deprecated-field matches
 - Open issues:
-  - Local Phase 5 `#23` remains in progress; S3/Postgres-backed pilot behavior still needs explicit end-to-end validation before durability is claimed.
-  - Dedicated GitHub issues still need to be created for the local Phase 5 tracker items if the repo wants live issue links instead of `TBD`.
+  - Cost-model estimates still need a dedicated follow-up against current Exa pricing for search-backed `research`, `/answer`, and `/findSimilar`.
+  - Modern grounding metadata should be normalized consistently across artifacts in the next grounding slice.
+  - Live Exa, S3, Postgres, frontend, and deployed validation were not run in this cleanup.
 - Decisions proposed:
-  - Keep backend labels on health responses limited to coarse backend names (`local`, `postgres`, `s3`) and avoid exposing connection details.
-  - Continue persistence-baseline work in thin slices rather than bundling deployment, migrations, or auth redesign into `#23`.
+  - Keep public workflow names and artifact filenames stable while updating request payload shapes underneath.
+  - Keep find-similar crawl-date kwargs as compatibility no-ops rather than removing them abruptly.
+  - Treat `research` as a repo workflow name, not evidence of a current Exa `/research` transport endpoint.
 
 ## Next thin slice
-- Add one focused `#23` validation seam for configured Postgres/S3 behavior, or stop here and merge this posture slice first.
+- Reconcile the cost model against current Exa pricing and modern grounding metadata, with smoke tests first and live validation only as an explicit manual step.

@@ -261,6 +261,7 @@ def _add_common_runtime_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--budget-cap-usd", type=float, help="Optional override for the run budget cap."
     )
+    _add_pricing_args(parser)
 
 
 def _add_common_search_args(
@@ -332,52 +333,124 @@ def _add_common_search_args(
         action="store_true",
         help="Deprecated alias for --max-age-hours 0.",
     )
+
+
+def _add_pricing_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
+        "--standard-search-cost-1-10",
         "--search-cost-1-25",
         type=float,
-        dest="search_cost_1_25",
-        help="Override the base search cost for 1-25 results.",
+        dest="standard_search_cost_1_10",
+        help="Override standard search base cost for up to 10 results.",
+    )
+    parser.add_argument(
+        "--standard-search-additional-result-cost",
+        type=float,
+        dest="standard_search_additional_result_cost",
+        help="Override standard search cost per result above 10.",
     )
     parser.add_argument(
         "--search-cost-26-100",
         type=float,
-        dest="search_cost_26_100",
-        help="Override the base search cost for 26-100 results.",
+        dest="legacy_search_cost_26_100",
+        help="Deprecated compatibility override for the old standard search 26-100 tier.",
     )
     parser.add_argument(
+        "--deep-search-cost-1-10",
         "--deep-search-cost-1-25",
         type=float,
-        dest="deep_search_cost_1_25",
-        help="Override deep search cost for 1-25 results.",
+        dest="deep_search_cost_1_10",
+        help="Override deep search base cost for up to 10 results.",
+    )
+    parser.add_argument(
+        "--deep-search-additional-result-cost",
+        type=float,
+        dest="deep_search_additional_result_cost",
+        help="Override deep search cost per result above 10.",
     )
     parser.add_argument(
         "--deep-search-cost-26-100",
         type=float,
-        dest="deep_search_cost_26_100",
-        help="Override deep search cost for 26-100 results.",
+        dest="legacy_deep_search_cost_26_100",
+        help="Deprecated compatibility override for the old deep search 26-100 tier.",
     )
     parser.add_argument(
+        "--deep-reasoning-search-cost-1-10",
         "--deep-reasoning-search-cost-1-25",
         type=float,
-        dest="deep_reasoning_search_cost_1_25",
-        help="Override deep-reasoning search cost for 1-25 results.",
+        dest="deep_reasoning_search_cost_1_10",
+        help="Override deep-reasoning search base cost for up to 10 results.",
+    )
+    parser.add_argument(
+        "--deep-reasoning-search-additional-result-cost",
+        type=float,
+        dest="deep_reasoning_search_additional_result_cost",
+        help="Override deep-reasoning search cost per result above 10.",
     )
     parser.add_argument(
         "--deep-reasoning-search-cost-26-100",
         type=float,
-        dest="deep_reasoning_search_cost_26_100",
-        help="Override deep-reasoning search cost for 26-100 results.",
+        dest="legacy_deep_reasoning_search_cost_26_100",
+        help="Deprecated compatibility override for the old deep-reasoning search 26-100 tier.",
+    )
+    parser.add_argument(
+        "--answer-cost",
+        type=float,
+        dest="answer_cost",
+        help="Override answer endpoint base cost.",
+    )
+    parser.add_argument(
+        "--find-similar-cost-1-10",
+        type=float,
+        dest="find_similar_cost_1_10",
+        help="Override find-similar base cost for up to 10 results.",
+    )
+    parser.add_argument(
+        "--find-similar-additional-result-cost",
+        type=float,
+        dest="find_similar_additional_result_cost",
+        help="Override find-similar cost per result above 10.",
+    )
+    parser.add_argument(
+        "--content-text-cost",
+        type=float,
+        dest="content_text_cost",
+        help="Override standalone content text cost per page.",
+    )
+    parser.add_argument(
+        "--content-highlights-cost",
+        type=float,
+        dest="content_highlights_cost",
+        help="Override standalone content highlights cost per page.",
+    )
+    parser.add_argument(
+        "--content-summary-cost",
+        type=float,
+        dest="content_summary_cost",
+        help="Override content summary cost per page/result.",
     )
 
 
 def _apply_pricing_overrides(pricing: Dict[str, float], args: argparse.Namespace) -> None:
     for arg_name, key in [
-        ("search_cost_1_25", "search_1_25"),
-        ("search_cost_26_100", "search_26_100"),
-        ("deep_search_cost_1_25", "deep_search_1_25"),
-        ("deep_search_cost_26_100", "deep_search_26_100"),
-        ("deep_reasoning_search_cost_1_25", "deep_reasoning_search_1_25"),
-        ("deep_reasoning_search_cost_26_100", "deep_reasoning_search_26_100"),
+        ("standard_search_cost_1_10", "standard_search_1_10"),
+        ("standard_search_additional_result_cost", "standard_search_additional_result"),
+        ("deep_search_cost_1_10", "deep_search_1_10"),
+        ("deep_search_additional_result_cost", "deep_search_additional_result"),
+        ("deep_reasoning_search_cost_1_10", "deep_reasoning_search_1_10"),
+        (
+            "deep_reasoning_search_additional_result_cost",
+            "deep_reasoning_search_additional_result",
+        ),
+        ("answer_cost", "answer"),
+        ("find_similar_cost_1_10", "find_similar_1_10"),
+        ("find_similar_additional_result_cost", "find_similar_additional_result"),
+        ("content_text_cost", "content_text_per_page"),
+        ("content_highlights_cost", "content_highlights_per_page"),
+        ("content_summary_cost", "content_summary_per_page"),
+        ("legacy_search_cost_26_100", "search_26_100"),
+        ("legacy_deep_search_cost_26_100", "deep_search_26_100"),
+        ("legacy_deep_reasoning_search_cost_26_100", "deep_reasoning_search_26_100"),
     ]:
         value = getattr(args, arg_name, None)
         if value is not None:

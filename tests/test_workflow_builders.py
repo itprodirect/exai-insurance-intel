@@ -37,7 +37,7 @@ def test_build_exa_payload_trims_additional_queries_and_dates() -> None:
     assert 'numSentences' not in payload['contents']['highlights']
 
 
-def test_build_find_similar_payload_trims_optional_date_filters() -> None:
+def test_build_find_similar_payload_ignores_deprecated_crawl_dates() -> None:
     payload = build_find_similar_payload(
         'https://example.com/article',
         default_config(),
@@ -47,9 +47,9 @@ def test_build_find_similar_payload_trims_optional_date_filters() -> None:
         end_published_date='   ',
     )
 
-    assert payload['startCrawlDate'] == '2026-01-01'
-    assert payload['startPublishedDate'] == '2026-01-15'
+    assert 'startCrawlDate' not in payload
     assert 'endCrawlDate' not in payload
+    assert payload['startPublishedDate'] == '2026-01-15'
     assert 'endPublishedDate' not in payload
     assert payload['contents']['text'] is True
 

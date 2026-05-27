@@ -8,7 +8,13 @@ from exa_demo.cache import SqliteCacheStore
 from exa_demo.cli import _apply_search_overrides, build_parser, main
 
 
-DEPRECATED_REQUEST_FIELDS = {'livecrawl', 'highlightsPerUrl', 'numSentences'}
+DEPRECATED_REQUEST_FIELDS = {
+    'livecrawl',
+    'highlightsPerUrl',
+    'numSentences',
+    'startCrawlDate',
+    'endCrawlDate',
+}
 
 
 def assert_no_deprecated_request_fields(value) -> None:
@@ -274,8 +280,10 @@ def test_search_parser_accepts_additive_deep_controls() -> None:
             '--livecrawl',
             '--deep-search-cost-1-25',
             '0.012',
-            '--deep-reasoning-search-cost-1-25',
+            '--deep-reasoning-search-cost-1-10',
             '0.015',
+            '--content-summary-cost',
+            '0.002',
         ]
     )
 
@@ -288,8 +296,9 @@ def test_search_parser_accepts_additive_deep_controls() -> None:
     assert args.livecrawl is True
     assert args.freshness == 'default'
     assert args.max_age_hours is None
-    assert args.deep_search_cost_1_25 == 0.012
-    assert args.deep_reasoning_search_cost_1_25 == 0.015
+    assert args.deep_search_cost_1_10 == 0.012
+    assert args.deep_reasoning_search_cost_1_10 == 0.015
+    assert args.content_summary_cost == 0.002
 
 
 def test_search_parser_accepts_freshness_controls() -> None:
@@ -352,6 +361,21 @@ def test_research_parser_accepts_query() -> None:
     assert args.query == 'Summarize the Florida CAT market outlook.'
 
 
+def test_answer_parser_accepts_pricing_overrides() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            'answer',
+            'What is the Florida appraisal clause dispute process?',
+            '--answer-cost',
+            '0.006',
+        ]
+    )
+
+    assert args.command == 'answer'
+    assert args.answer_cost == 0.006
+
+
 def test_apply_search_overrides_maps_additive_controls_and_pricing() -> None:
     from exa_demo.config import default_config, default_pricing
 
@@ -370,16 +394,26 @@ def test_apply_search_overrides_maps_additive_controls_and_pricing() -> None:
             '--end-published-date',
             '2026-03-01',
             '--livecrawl',
-            '--deep-search-cost-1-25',
-            '0.012',
-            '--deep-search-cost-26-100',
-            '0.03',
-            '--deep-reasoning-search-cost-1-25',
-            '0.015',
-            '--deep-reasoning-search-cost-26-100',
-            '0.04',
-            '--search-cost-1-25',
+            '--standard-search-cost-1-10',
             '0.006',
+            '--standard-search-additional-result-cost',
+            '0.002',
+            '--deep-search-cost-1-10',
+            '0.012',
+            '--deep-search-additional-result-cost',
+            '0.003',
+            '--deep-reasoning-search-cost-1-10',
+            '0.015',
+            '--deep-reasoning-search-additional-result-cost',
+            '0.004',
+            '--answer-cost',
+            '0.0055',
+            '--find-similar-cost-1-10',
+            '0.008',
+            '--find-similar-additional-result-cost',
+            '0.0025',
+            '--content-summary-cost',
+            '0.0045',
         ]
     )
 
@@ -392,11 +426,16 @@ def test_apply_search_overrides_maps_additive_controls_and_pricing() -> None:
     assert config['start_published_date'] == '2026-01-01'
     assert config['end_published_date'] == '2026-03-01'
     assert config['max_age_hours'] == 0
-    assert pricing['search_1_25'] == 0.006
-    assert pricing['deep_search_1_25'] == 0.012
-    assert pricing['deep_search_26_100'] == 0.03
-    assert pricing['deep_reasoning_search_1_25'] == 0.015
-    assert pricing['deep_reasoning_search_26_100'] == 0.04
+    assert pricing['standard_search_1_10'] == 0.006
+    assert pricing['standard_search_additional_result'] == 0.002
+    assert pricing['deep_search_1_10'] == 0.012
+    assert pricing['deep_search_additional_result'] == 0.003
+    assert pricing['deep_reasoning_search_1_10'] == 0.015
+    assert pricing['deep_reasoning_search_additional_result'] == 0.004
+    assert pricing['answer'] == 0.0055
+    assert pricing['find_similar_1_10'] == 0.008
+    assert pricing['find_similar_additional_result'] == 0.0025
+    assert pricing['content_summary_per_page'] == 0.0045
 
 
 @pytest.mark.parametrize(
@@ -741,6 +780,7 @@ def test_find_similar_command_smoke_emits_json_and_artifact(tmp_path, capsys) ->
     assert artifact_payload['seed_url'] == 'https://www.merlinlawgroup.com/'
     assert artifact_payload['result_count'] == 3
     assert artifact_payload['top_result']['title'] == 'Florida Insurance Litigation Firm'
+    assert_no_deprecated_request_fields(artifact_payload['request_payload'])
 
 
 def test_find_similar_command_live_requires_api_key(tmp_path, monkeypatch) -> None:

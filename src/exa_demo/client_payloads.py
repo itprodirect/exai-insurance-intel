@@ -114,8 +114,7 @@ def build_find_similar_payload(
     if resolved_exclude_domains:
         payload["excludeDomains"] = resolved_exclude_domains
 
-    _assign_text_field(payload, "startCrawlDate", start_crawl_date)
-    _assign_text_field(payload, "endCrawlDate", end_crawl_date)
+    # Deprecated crawl-date controls are accepted for compatibility but are no-ops.
     _assign_text_field(payload, "startPublishedDate", start_published_date)
     _assign_text_field(payload, "endPublishedDate", end_published_date)
     if exclude_source_domain is not None:

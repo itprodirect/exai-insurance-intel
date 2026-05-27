@@ -35,8 +35,15 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 DEFAULT_PRICING: Dict[str, float] = {
-    "search_1_25": 0.005,
-    "search_26_100": 0.025,
+    "standard_search_1_10": 0.007,
+    "standard_search_additional_result": 0.001,
+    "deep_search_1_10": 0.012,
+    "deep_search_additional_result": 0.001,
+    "deep_reasoning_search_1_10": 0.015,
+    "deep_reasoning_search_additional_result": 0.001,
+    "answer": 0.005,
+    "find_similar_1_10": 0.007,
+    "find_similar_additional_result": 0.001,
     "content_text_per_page": 0.001,
     "content_highlights_per_page": 0.001,
     "content_summary_per_page": 0.001,

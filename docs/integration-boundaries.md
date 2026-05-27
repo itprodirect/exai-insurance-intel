@@ -14,6 +14,14 @@ This repo is designed to stay safe-by-default while still supporting deliberate 
 - Use `live` only for explicit manual validation when you want to inspect real API behavior.
 - Keep human review in the loop for any operational interpretation of results, even in `live`.
 
+## Exa 2026 Request Boundary
+
+- User-facing `research` remains a shipped workflow name in the CLI, API, and frontend, but the Exa transport is `/search` with `type="deep-reasoning"`.
+- Do not describe or implement a live Exa `/research` endpoint for this repo unless the vendor surface changes and is explicitly revalidated.
+- Freshness controls should be expressed through `contents.maxAgeHours`, including `--freshness always-live` or `--max-age-hours 0` for always-live behavior.
+- Outgoing request payloads must not emit deprecated `livecrawl`, `highlightsPerUrl`, `numSentences`, `startCrawlDate`, or `endCrawlDate` fields.
+- Cost estimates use centralized, overrideable pricing assumptions and should not be described as exact live billing unless live Exa `costDollars` fields validate the run. Do not claim grounding quality, S3, Postgres, or deployed validation until those paths actually run.
+
 ## Current Locally Validated Path (2026-04-12)
 
 - Rebuilt an isolated virtual environment and installed with `python -m pip install --no-user -e '.[dev,api]'`

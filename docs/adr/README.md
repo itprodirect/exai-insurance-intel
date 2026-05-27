@@ -23,3 +23,4 @@ Each ADR should include:
 ## Current ADRs
 
 - [ADR-0001-roadmap-governance.md](./ADR-0001-roadmap-governance.md)
+- [ADR-0002-exa-2026-modernization.md](./ADR-0002-exa-2026-modernization.md)
