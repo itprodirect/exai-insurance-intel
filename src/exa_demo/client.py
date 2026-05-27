@@ -21,8 +21,11 @@ from .client_smoke import (
     mock_exa_response,
     mock_exa_structured_search_response,
 )
-from .config import DEFAULT_HIGHLIGHT_MAX_CHARACTERS
-from .cost_model import estimate_cost_from_pricing
+from .cost_model import (
+    estimate_answer_cost_from_pricing,
+    estimate_cost_from_pricing,
+    estimate_find_similar_cost_from_pricing,
+)
 from .resilience import CircuitBreaker
 from .safety import redact_response
 
@@ -211,8 +214,8 @@ def exa_find_similar(
         context=context,
         moderation=moderation,
     )
-    estimated_cost = estimate_cost_from_pricing(
-        _find_similar_cost_payload(payload),
+    estimated_cost = estimate_find_similar_cost_from_pricing(
+        payload,
         int(payload["numResults"]),
         pricing,
         int(config["max_supported_results_for_estimate"]),
@@ -253,7 +256,7 @@ def exa_answer(
     cache_store: SqliteCacheStore,
 ) -> Tuple[Dict[str, Any], ExaCallMeta]:
     payload = build_answer_payload(query)
-    estimated_cost = _estimate_answer_cost_from_pricing(pricing)
+    estimated_cost = estimate_answer_cost_from_pricing(pricing)
 
     _redact = _make_response_filter(config)
     response_json, cache_hit = cache_store.get_or_set(
@@ -291,7 +294,12 @@ def exa_research(
     cache_store: SqliteCacheStore,
 ) -> Tuple[Dict[str, Any], ExaCallMeta]:
     payload = build_research_payload(query, config)
-    estimated_cost = _estimate_research_cost_from_pricing(pricing)
+    estimated_cost = estimate_cost_from_pricing(
+        payload,
+        int(payload["numResults"]),
+        pricing,
+        int(config["max_supported_results_for_estimate"]),
+    )
 
     _redact = _make_response_filter(config)
     response_json, cache_hit = cache_store.get_or_set(
@@ -367,45 +375,8 @@ def _clean_meta_string(value: Any) -> Optional[str]:
     return text or None
 
 
-def _estimate_answer_cost_from_pricing(pricing: Mapping[str, float]) -> float:
-    for key in ("answer", "answer_1", "answer_1_25"):
-        if key in pricing:
-            return float(pricing[key])
-    return float(pricing.get("search_1_25", 0.0))
-
-
-def _estimate_research_cost_from_pricing(pricing: Mapping[str, float]) -> float:
-    for key in ("research", "research_1", "research_1_25"):
-        if key in pricing:
-            return float(pricing[key])
-    return float(pricing.get("search_1_25", 0.0))
-
-
 def _resolve_exa_endpoint(base_url: str, *, endpoint_name: str) -> str:
     trimmed = base_url.rstrip("/")
     if trimmed.endswith("/search"):
         return trimmed[: -len("/search")] + f"/{endpoint_name}"
     return f"{trimmed}/{endpoint_name}"
-
-
-def _find_similar_cost_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
-    cost_payload: Dict[str, Any] = {"type": "auto"}
-    request_contents = (
-        payload.get("contents")
-        if isinstance(payload.get("contents"), Mapping)
-        else {}
-    )
-    contents: Dict[str, Any] = {}
-    text = request_contents.get("text", payload.get("text"))
-    if text is not False:
-        contents["text"] = True
-    highlights = request_contents.get("highlights", payload.get("highlights"))
-    if highlights is not None and highlights is not False:
-        contents["highlights"] = (
-            highlights
-            if isinstance(highlights, Mapping)
-            else {"maxCharacters": DEFAULT_HIGHLIGHT_MAX_CHARACTERS}
-        )
-    if contents:
-        cost_payload["contents"] = contents
-    return cost_payload

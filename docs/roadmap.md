@@ -47,6 +47,11 @@ These items expand the repo from a people-search harness into a broader Exa capa
 | Structured output with `output_schema` | Extract structured entities directly from deep search responses | Enables downstream graph, analytics, and dataset workflows | `Done` | Typed models, deep-search support | Structured outputs are validated, stored, and demoed from a supported query set | [#9](https://github.com/itprodirect/exai-insurance-intel/issues/9) |
 | `/findSimilar` demo | Add seed-URL discovery for competitor, expert, and content expansion | Broadens discovery workflows beyond keyword search | `Done` | CLI or notebook demo conventions | Repo includes a reproducible `/findSimilar` workflow and evaluation framing | [#10](https://github.com/itprodirect/exai-insurance-intel/issues/10) |
 | Research report workflow | Add report-style output for market and regulatory reports using `/search` with `type="deep-reasoning"` | Preserves the research UX without depending on the deprecated Exa `/research` endpoint | `Done` | Typed models, artifact logging | Repo includes a documented research workflow and structured output/report handling | [#11](https://github.com/itprodirect/exai-insurance-intel/issues/11) |
+| Exa 2026 modernization drift cleanup | Remove deprecated request-payload fields and align docs around current Exa request shapes | Keeps the shipped workflows compatible with the current Exa surface before deeper cost and grounding work | `Done` | Phase 2 coverage | No outgoing request payload emits `livecrawl`, `highlightsPerUrl`, `numSentences`, `startCrawlDate`, or `endCrawlDate`; `research` remains user-facing but posts to `/search` with `type="deep-reasoning"` | TBD |
+
+Modernization note: the public workflow name stays `research`, but the Exa transport uses `/search` with `type="deep-reasoning"`. Historical issue wording that refers to an Exa `/research` demo should be read as the old planning label, not the current wire endpoint.
+
+Cost and grounding follow-up: cost estimates now use centralized, overrideable pricing assumptions for search-backed `research`, `/answer`, `/findSimilar`, structured search, and content options without claiming exact live billing. Modern grounding metadata normalization remains a separate follow-up.
 
 ## Phase 3 - Domain Coverage and Productization
 

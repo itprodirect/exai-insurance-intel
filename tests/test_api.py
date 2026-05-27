@@ -9,6 +9,14 @@ import exa_demo.api as api_module
 import pytest
 from fastapi.testclient import TestClient
 
+DEPRECATED_REQUEST_FIELDS = {
+    "livecrawl",
+    "highlightsPerUrl",
+    "numSentences",
+    "startCrawlDate",
+    "endCrawlDate",
+}
+
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
@@ -39,6 +47,16 @@ def _make_prepare_context_with_sqlite(sqlite_path):
         return config, pricing, runtime, meta
 
     return _prepare_context
+
+
+def assert_no_deprecated_request_fields(value) -> None:
+    if isinstance(value, dict):
+        assert DEPRECATED_REQUEST_FIELDS.isdisjoint(value)
+        for item in value.values():
+            assert_no_deprecated_request_fields(item)
+    elif isinstance(value, list):
+        for item in value:
+            assert_no_deprecated_request_fields(item)
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +159,7 @@ def test_research_smoke(client):
     assert artifact_payload["request_payload"]["contents"]["highlights"] == {
         "maxCharacters": 2666
     }
+    assert_no_deprecated_request_fields(artifact_payload["request_payload"])
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +182,10 @@ def test_find_similar_smoke(client):
     assert "seed_url" in data
     assert isinstance(data["result_count"], int)
     assert "summary" in data
+    artifact_payload = json.loads(
+        (Path(data["artifact_dir"]) / "find_similar.json").read_text(encoding="utf-8")
+    )
+    assert_no_deprecated_request_fields(artifact_payload["request_payload"])
 
 
 # ---------------------------------------------------------------------------

@@ -40,7 +40,13 @@ class FakeCacheStore:
         return result, False
 
 
-DEPRECATED_REQUEST_FIELDS = {"livecrawl", "highlightsPerUrl", "numSentences"}
+DEPRECATED_REQUEST_FIELDS = {
+    "livecrawl",
+    "highlightsPerUrl",
+    "numSentences",
+    "startCrawlDate",
+    "endCrawlDate",
+}
 
 
 def assert_no_deprecated_request_fields(value) -> None:
@@ -148,8 +154,8 @@ def test_build_find_similar_payload_includes_similarity_controls() -> None:
     assert payload["numResults"] == 3
     assert payload["includeDomains"] == ["example.com"]
     assert payload["excludeDomains"] == ["badexample.com"]
-    assert payload["startCrawlDate"] == "2026-01-01"
-    assert payload["endCrawlDate"] == "2026-03-01"
+    assert "startCrawlDate" not in payload
+    assert "endCrawlDate" not in payload
     assert payload["startPublishedDate"] == "2026-01-15"
     assert payload["endPublishedDate"] == "2026-03-15"
     assert payload["excludeSourceDomain"] is True
@@ -320,7 +326,7 @@ def test_exa_answer_uses_smoke_cited_answer_shape() -> None:
     assert len(response_json["citations"]) == 2
     assert meta.cache_hit is False
     assert meta.request_payload == {"query": "What is the Florida appraisal clause dispute process?", "text": True}
-    assert meta.estimated_cost_usd == pricing["search_1_25"]
+    assert meta.estimated_cost_usd == pricing["answer"]
     assert cache_store.calls[0]["run_id"] == "answer-run"
 
 
@@ -407,7 +413,7 @@ def test_exa_research_uses_smoke_report_shape() -> None:
     assert meta.request_payload["type"] == "deep-reasoning"
     assert meta.request_payload["contents"]["highlights"] == {"maxCharacters": 2666}
     assert meta.resolved_search_type == "deep-reasoning"
-    assert meta.estimated_cost_usd == pricing["search_1_25"]
+    assert meta.estimated_cost_usd == pricing["deep_reasoning_search_1_10"]
     assert cache_store.calls[0]["run_id"] == "research-run"
     assert_no_deprecated_request_fields(meta.request_payload)
 
@@ -533,6 +539,7 @@ def test_exa_find_similar_uses_smoke_similar_shape() -> None:
     assert meta.request_payload["contents"]["text"] is True
     assert meta.request_payload["contents"]["highlights"] == {"maxCharacters": 2666}
     assert meta.request_payload["contents"]["context"] is True
+    assert meta.estimated_cost_usd == pricing["find_similar_1_10"]
     assert meta.estimated_cost_usd == cache_store.calls[0]["estimated_cost"]
     assert cache_store.calls[0]["run_id"] == "similar-run"
     assert_no_deprecated_request_fields(meta.request_payload)

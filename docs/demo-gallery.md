@@ -20,6 +20,8 @@ python -m exa_demo search "forensic engineer insurance expert witness" --mode sm
 python -m exa_demo find-similar "https://example.com/florida-appraisal-decision" --mode smoke --json
 ```
 
+Freshness controls use `contents.maxAgeHours` through flags such as `--freshness always-live` or `--max-age-hours 0`; crawl-date request fields are not emitted.
+
 ## Research
 
 `answer` is the cited-answer workflow. Use it for direct lookup questions where a short answer plus citations is enough.

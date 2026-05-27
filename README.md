@@ -96,7 +96,7 @@ flowchart TD
     CLI --> CFG["Config + runtime state"]
     CLI --> CACHE["SQLite cache + budget ledger"]
     CLI --> CLIENT["Exa client adapters"]
-    CLIENT --> EXA["Exa endpoints\n/search, /answer, /findSimilar"]
+    CLIENT --> EXA["Exa endpoints\n/search (including research), /answer, /findSimilar"]
     CLIENT --> MOCK["Smoke-mode mocked responses"]
     CLIENT --> MODELS["Typed models + normalization"]
     MODELS --> EVAL["Evaluation + taxonomy + grouped comparison"]
@@ -231,7 +231,7 @@ python -m exa_demo answer "What is the Florida appraisal clause dispute process?
 python -m exa_demo research "Summarize the Florida CAT market outlook." --mode smoke --json
 python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file path/to/structured-schema.json --mode smoke --json
 python -m exa_demo find-similar "https://example.com/florida-appraisal-decision" --mode smoke --json
-python -m exa_demo search "Florida property insurance appraisal clause" --type deep --additional-query "Florida appraisal dispute statute" --start-published-date 2025-01-01 --livecrawl --json
+python -m exa_demo search "Florida property insurance appraisal clause" --type deep --additional-query "Florida appraisal dispute statute" --start-published-date 2025-01-01 --freshness always-live --json
 python -m exa_demo eval --mode smoke --suite forensic_and_damage_engineering --limit 5 --json
 python -m exa_demo compare-search-types --mode smoke --suite forensic_and_damage_engineering --baseline-type deep --candidate-type deep-reasoning --limit 5 --json
 python -m exa_demo eval --mode smoke --limit 5 --compare-to-run-id 20260310T033256Z --json
@@ -245,8 +245,10 @@ The `structured-search` command runs a schema-driven deep search and writes a `s
 The `find-similar` command runs a seed-URL discovery workflow and writes a `find_similar.json` artifact containing the similar-result payload.
 The endpoint-style workflows (`answer`, `research`, `structured-search`, and `find-similar`) also emit a reusable `report.md` companion artifact for human review.
 Eval workflows also emit additive export companions such as `results.csv`, `comparison.json`, `grouped_query_outcomes.csv`, and `manifest.json` without changing the existing JSON/JSONL contracts.
-Deep-search-oriented request shaping is now exposed directly in the CLI with additive flags such as `--additional-query`, `--start-published-date`, `--end-published-date`, and `--livecrawl`.
-Search cost estimation can also be overridden from the CLI for search-type experiments with flags such as `--deep-search-cost-1-25` and `--deep-reasoning-search-cost-1-25`.
+Deep-search-oriented request shaping is now exposed directly in the CLI with additive flags such as `--additional-query`, `--start-published-date`, `--end-published-date`, `--freshness always-live`, and `--max-age-hours 0`.
+Search cost estimation can also be overridden from the CLI for search-type experiments with flags such as `--standard-search-cost-1-10`, `--standard-search-additional-result-cost`, `--deep-search-cost-1-10`, `--deep-reasoning-search-cost-1-10`, `--answer-cost`, `--find-similar-cost-1-10`, and `--content-summary-cost`. Deprecated `*-1-25` flags are still accepted as compatibility aliases for the current up-to-10 base-cost overrides.
+
+Cost-estimator assumptions are centralized in `src/exa_demo/config.py` as `DEFAULT_PRICING`. The current model uses published Exa API pricing assumptions for standard search, deep search, deep-reasoning search, answer, find-similar, additional results above 10, and content summaries. Search-backed workflows treat text and highlights as included in the base search cost; the `content_text_per_page` and `content_highlights_per_page` keys remain explicit and overrideable for standalone content-price tracking and future `/contents` use. The repo-level `research` workflow is estimated as `/search` with `type="deep-reasoning"`, not as Exa's variable-usage `/research` agent endpoint. Do not treat these estimates as exact live billing unless a live Exa response `costDollars` field validates the run.
 
 Eval output now includes a taxonomy scorecard (relevance, credibility, actionability, confidence) and per-query failure reasons (`no_results`, `off_domain`, `low_confidence`).
 Use `--compare-to-run-id` for before/after deltas across quality and failure rates when both runs share query text.
@@ -445,10 +447,12 @@ This notebook smoke runner remains available, but it was not part of the local f
 
 ## Local Quality Gate
 
-Validated in this session:
+Current smoke gate:
 - `python -m ruff check .`
 - `python -m pytest -q`
 - `python scripts/run_live_validation.py --mode smoke`
+
+Previously validated on 2026-04-12, but not required for every payload/docs slice:
 - `uvicorn exa_demo.api:app --reload`
 - `npm install` and `npm run dev` in `frontend/`
 
@@ -481,7 +485,7 @@ In Cell 2 (`CONFIG`), adjust only these first:
 Guidance:
 - Keep `num_results` low for first pass
 - Keep text/summary off unless needed for second-pass review
-- Estimator intentionally rejects unsupported high `num_results` ranges until pricing tiers are updated
+- Estimator supports up to `max_supported_results_for_estimate` with a base cost for up to 10 results plus per-result additions above 10
 
 ## GitHub Sync
 
@@ -515,7 +519,7 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - GitHub issue tracker mapping: [docs/issue-tracker.md](docs/issue-tracker.md)
 - ADR index: [docs/adr/README.md](docs/adr/README.md)
 - Session note template: [docs/sessions/README.md](docs/sessions/README.md)
-- Latest implementation session: [docs/sessions/2026-04-12-local-smoke-validation-doc-sync.md](docs/sessions/2026-04-12-local-smoke-validation-doc-sync.md)
+- Latest implementation session: [docs/sessions/2026-05-26-exa-2026-modernization.md](docs/sessions/2026-05-26-exa-2026-modernization.md)
 
 ## Guardrails
 
