@@ -56,12 +56,12 @@ def build_research_artifact(
         "report_preview": report_text[:220],
         "citation_count": len(citations),
         "citations": citations,
+        "grounding_count": len(grounding),
     }
     if output_content is not None:
         payload["output_content"] = output_content
     if grounding:
         payload["grounding"] = grounding
-        payload["grounding_count"] = len(grounding)
     return {
         **_artifact_base(
             request_payload=request_payload,
@@ -119,12 +119,12 @@ def build_structured_search_artifact(
         "schema_file": str(schema_path),
         "structured_output": structured_output,
         "structured_output_keys": sorted(structured_output.keys()) if isinstance(structured_output, Mapping) else [],
+        "grounding_count": len(grounding),
     }
     if output_content is not None:
         payload["output_content"] = output_content
     if grounding:
         payload["grounding"] = grounding
-        payload["grounding_count"] = len(grounding)
     return {
         **_artifact_base(
             request_payload=request_payload,
@@ -331,26 +331,54 @@ def _normalize_grounding(value: Any) -> list[Dict[str, Any]]:
 
     grounding: list[Dict[str, Any]] = []
     for item in raw_items:
-        normalized = _normalize_grounding_item(item)
-        if normalized:
-            grounding.append(normalized)
+        grounding.extend(_normalize_grounding_items(item))
     return grounding
+
+
+def _normalize_grounding_items(value: Any) -> list[Dict[str, Any]]:
+    normalized = _normalize_grounding_item(value)
+    if isinstance(value, Mapping):
+        citations = value.get("citations")
+        if isinstance(citations, list):
+            normalized_citations = [
+                normalized_citation
+                for citation in citations
+                if (normalized_citation := _normalize_grounding_item(citation))
+            ]
+            if normalized_citations:
+                if normalized:
+                    return [normalized, *normalized_citations]
+                return normalized_citations
+
+    if normalized:
+        return [normalized]
+    return []
 
 
 def _normalize_grounding_item(value: Any) -> Dict[str, Any]:
     if isinstance(value, Mapping):
-        item = _jsonable_mapping(value)
-        title = _clean_string(
-            value.get("title") or value.get("name") or value.get("sourceTitle")
-        )
-        url = _clean_string(value.get("url") or value.get("sourceUrl") or value.get("uri"))
-        snippet = _clean_string(
-            value.get("snippet")
-            or value.get("summary")
-            or value.get("text")
-            or value.get("quote")
-            or value.get("passage")
-        )
+        source = value.get("source")
+        source_mapping = source if isinstance(source, Mapping) else {}
+        title = _first_clean_string(value, "title", "name", "sourceTitle")
+        if not title and source_mapping:
+            title = _first_clean_string(source_mapping, "title", "name", "sourceTitle")
+
+        url = _first_clean_string(value, "url", "sourceUrl", "uri")
+        if not url and source_mapping:
+            url = _first_clean_string(source_mapping, "url", "sourceUrl", "uri")
+
+        snippet = _first_clean_string(value, "snippet", "summary", "text", "quote", "passage")
+        if not snippet and source_mapping:
+            snippet = _first_clean_string(
+                source_mapping,
+                "snippet",
+                "summary",
+                "text",
+                "quote",
+                "passage",
+            )
+
+        item: Dict[str, Any] = {}
         if title:
             item["title"] = title
         if url:
@@ -423,3 +451,11 @@ def _clean_string(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _first_clean_string(mapping: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        text = _clean_string(mapping.get(key))
+        if text:
+            return text
+    return ""

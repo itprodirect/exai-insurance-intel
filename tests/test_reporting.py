@@ -289,7 +289,7 @@ def test_render_research_markdown_includes_report_and_citations() -> None:
     assert 'Mock research report body.' in markdown
     assert '[Florida market bulletin](https://example.com/bulletin)' in markdown
     assert '## Grounding / Source Review' in markdown
-    assert 'Source note: Grounded source summary' in markdown
+    assert 'Grounding note: Grounded source summary' in markdown
 
 
 def test_render_endpoint_report_markdown_for_answer_includes_summary_and_citations() -> None:
@@ -346,3 +346,4 @@ def test_render_endpoint_report_markdown_for_structured_search_includes_json_blo
     assert '```json' in markdown
     assert '## Grounding / Source Review' in markdown
     assert '[Jane Doe profile](https://example.com/jane-doe)' in markdown
+    assert 'Grounding note: Profile source used for extraction.' in markdown

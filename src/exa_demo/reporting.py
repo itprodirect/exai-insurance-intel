@@ -449,7 +449,7 @@ def _append_grounding_section(lines: List[str], grounding: Any) -> None:
         else:
             lines.append(f"{index}. {title}")
         if snippet:
-            lines.append(f"   Source note: {snippet}")
+            lines.append(f"   Grounding note: {snippet}")
     if len(items) > 5:
         lines.append(f"{len(items) - 5} additional grounding sources omitted.")
 

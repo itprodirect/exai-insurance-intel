@@ -9,6 +9,7 @@ from exa_demo.client_payloads import (
 )
 from exa_demo.config import default_config
 from exa_demo.workflows import (
+    _normalize_grounding,
     build_answer_artifact,
     build_find_similar_artifact,
     build_research_artifact,
@@ -140,6 +141,107 @@ def test_build_research_artifact_synthesizes_report_from_search_results() -> Non
     assert 'Market conditions remain dynamic.' in payload['report_text']
 
 
+def test_normalize_grounding_preserves_flat_stable_shape() -> None:
+    grounding = _normalize_grounding(
+        [
+            {
+                'title': 'Florida Market Bulletin',
+                'url': 'https://example.com/bulletin',
+                'snippet': 'Grounded market signal.',
+                'email': 'analyst@example.com',
+                'internal_id': 'private-123',
+                'unexpected': {'nested': 'value'},
+            }
+        ]
+    )
+
+    assert grounding == [
+        {
+            'title': 'Florida Market Bulletin',
+            'url': 'https://example.com/bulletin',
+            'snippet': 'Grounded market signal.',
+        }
+    ]
+    assert set(grounding[0]) == {'title', 'url', 'snippet'}
+
+
+def test_normalize_grounding_flattens_nested_citations_to_stable_shape() -> None:
+    grounding = _normalize_grounding(
+        [
+            {
+                'field': 'records[0].name',
+                'internal_id': 'grounding-wrapper-123',
+                'citations': [
+                    {
+                        'title': 'Jane Doe profile',
+                        'url': 'https://example.com/jane-doe',
+                        'snippet': 'Profile source used for extraction.',
+                        'email': 'jane@example.com',
+                        'internal_id': 'citation-123',
+                        'raw': {'debug': True},
+                    },
+                    {
+                        'title': 'CAT market note',
+                        'url': 'https://example.com/cat-market',
+                        'snippet': 'Market signal used for extraction.',
+                        'field': 'ignored citation field',
+                        'metadata': {'rank': 1},
+                    },
+                ],
+            }
+        ]
+    )
+
+    assert grounding == [
+        {
+            'title': 'Jane Doe profile',
+            'url': 'https://example.com/jane-doe',
+            'snippet': 'Profile source used for extraction.',
+        },
+        {
+            'title': 'CAT market note',
+            'url': 'https://example.com/cat-market',
+            'snippet': 'Market signal used for extraction.',
+        },
+    ]
+    assert all(set(item) <= {'title', 'url', 'snippet'} for item in grounding)
+
+
+def test_normalize_grounding_does_not_surface_unsafe_nested_fields() -> None:
+    grounding = _normalize_grounding(
+        [
+            {
+                'field': 'records[0].name',
+                'citations': [
+                    {
+                        'title': 'Jane Doe profile',
+                        'url': 'https://example.com/jane-doe',
+                        'snippet': 'Profile source used for extraction.',
+                        'email': 'jane@example.com',
+                        'internal_id': 'citation-private-123',
+                        'field': 'ignored citation field',
+                        'raw': {'debug': True},
+                        'metadata': {'rank': 1},
+                    }
+                ],
+                'email': 'wrapper@example.com',
+                'internal_id': 'wrapper-private-123',
+                'raw': {'wrapper': True},
+            }
+        ]
+    )
+
+    assert grounding == [
+        {
+            'title': 'Jane Doe profile',
+            'url': 'https://example.com/jane-doe',
+            'snippet': 'Profile source used for extraction.',
+        }
+    ]
+    unsafe_keys = {'citations', 'debug', 'email', 'field', 'internal_id', 'metadata', 'raw'}
+    assert all(unsafe_keys.isdisjoint(item) for item in grounding)
+
+
 def test_build_research_artifact_reads_modern_output_content() -> None:
     payload = build_research_artifact(
         'Summarize the Florida CAT market outlook.',
@@ -156,6 +258,14 @@ def test_build_research_artifact_reads_modern_output_content() -> None:
                     {
                         'title': 'Florida Market Bulletin',
                         'url': 'https://example.com/bulletin',
+                        'quote': 'Grounded market signal.',
+                        'email': 'analyst@example.com',
+                        'internal_id': 'private-123',
+                        'unexpected': {'nested': 'value'},
+                    },
+                    {
+                        'email': 'unsafe-only@example.com',
+                        'internal_id': 'private-456',
                     }
                 ],
             },
@@ -176,10 +286,79 @@ def test_build_research_artifact_reads_modern_output_content() -> None:
     assert payload['report_text'] == 'Modern research report from output content.'
     assert payload['output_content'] == 'Modern research report from output content.'
     assert payload['grounding_count'] == 1
-    assert payload['grounding'][0]['title'] == 'Florida Market Bulletin'
-    assert payload['grounding'][0]['url'] == 'https://example.com/bulletin'
+    assert payload['grounding'][0] == {
+        'title': 'Florida Market Bulletin',
+        'url': 'https://example.com/bulletin',
+        'snippet': 'Grounded market signal.',
+    }
     assert payload['citation_count'] == 1
     assert payload['response']['output']['grounding'][0]['title'] == 'Florida Market Bulletin'
+
+
+def test_build_research_artifact_counts_nested_grounding_citations() -> None:
+    payload = build_research_artifact(
+        'Summarize the Florida CAT market outlook.',
+        request_payload={
+            'query': 'Summarize the Florida CAT market outlook.',
+            'type': 'deep-reasoning',
+        },
+        response_json={
+            'requestId': 'req-research-nested-grounding',
+            'searchType': 'deep-reasoning',
+            'output': {
+                'content': 'Modern research report from output content.',
+                'grounding': [
+                    {
+                        'field': 'report.market_conditions',
+                        'internal_id': 'wrapper-private-123',
+                        'citations': [
+                            {
+                                'title': 'Florida Market Bulletin',
+                                'url': 'https://example.com/bulletin',
+                                'snippet': 'Grounded market signal.',
+                                'email': 'analyst@example.com',
+                                'internal_id': 'private-456',
+                                'raw': {'nested': 'value'},
+                            }
+                        ],
+                    }
+                ],
+            },
+            'costDollars': {'total': 0.0},
+        },
+        cache_hit=False,
+        estimated_cost_usd=0.01,
+    )
+
+    assert payload['grounding_count'] == 1
+    assert payload['grounding'] == [
+        {
+            'title': 'Florida Market Bulletin',
+            'url': 'https://example.com/bulletin',
+            'snippet': 'Grounded market signal.',
+        }
+    ]
+    assert set(payload['grounding'][0]) == {'title', 'url', 'snippet'}
+
+
+def test_build_research_artifact_sets_zero_grounding_count_when_empty() -> None:
+    payload = build_research_artifact(
+        'Summarize the Florida CAT market outlook.',
+        request_payload={'query': 'Summarize the Florida CAT market outlook.'},
+        response_json={
+            'requestId': 'req-research-no-grounding',
+            'output': {
+                'content': 'Modern research report without grounding.',
+                'grounding': [],
+            },
+            'costDollars': {'total': 0.0},
+        },
+        cache_hit=False,
+        estimated_cost_usd=0.01,
+    )
+
+    assert payload['grounding_count'] == 0
+    assert 'grounding' not in payload
 
 
 def test_build_find_similar_artifact_sets_top_result_and_score() -> None:
@@ -252,8 +431,14 @@ def test_build_structured_search_artifact_reads_modern_output_content(tmp_path: 
                 },
                 'grounding': [
                     {
-                        'title': 'Jane Doe',
-                        'url': 'https://example.com/profile',
+                        'source': {
+                            'title': 'Jane Doe',
+                            'sourceUrl': 'https://example.com/profile',
+                            'summary': 'Profile source used for extraction.',
+                        },
+                        'email': 'jane@example.com',
+                        'internal_id': 'profile-123',
+                        'debug': {'raw': True},
                     }
                 ],
             },
@@ -267,8 +452,88 @@ def test_build_structured_search_artifact_reads_modern_output_content(tmp_path: 
     assert payload['structured_output']['records'][0]['name'] == 'Jane Doe'
     assert payload['output_content']['records'][0]['name'] == 'Jane Doe'
     assert payload['grounding_count'] == 1
-    assert payload['grounding'][0]['url'] == 'https://example.com/profile'
+    assert payload['grounding'][0] == {
+        'title': 'Jane Doe',
+        'url': 'https://example.com/profile',
+        'snippet': 'Profile source used for extraction.',
+    }
     assert payload['structured_output_keys'] == ['records', 'schema_title']
     assert 'grounding' not in payload['structured_output']
     assert 'citations' not in payload['structured_output']
-    assert payload['response']['output']['grounding'][0]['url'] == 'https://example.com/profile'
+    assert payload['response']['output']['grounding'][0]['source']['sourceUrl'] == 'https://example.com/profile'
+
+
+def test_build_structured_search_artifact_counts_nested_grounding_citations(tmp_path: Path) -> None:
+    schema_file = tmp_path / 'schema.json'
+    schema_file.write_text('{"type":"object"}\n', encoding='utf-8')
+
+    payload = build_structured_search_artifact(
+        'insurance expert witness',
+        schema_path=schema_file,
+        request_payload={'query': 'insurance expert witness'},
+        response_json={
+            'requestId': 'req-structured-nested-grounding',
+            'searchType': 'auto',
+            'output': {
+                'content': {
+                    'records': [{'name': 'Jane Doe'}],
+                    'schema_title': 'Structured Professionals',
+                },
+                'grounding': [
+                    {
+                        'field': 'records[0].name',
+                        'internal_id': 'wrapper-private-123',
+                        'citations': [
+                            {
+                                'title': 'Jane Doe profile',
+                                'url': 'https://example.com/profile',
+                                'snippet': 'Profile source used for extraction.',
+                                'email': 'jane@example.com',
+                                'internal_id': 'profile-123',
+                                'debug': {'raw': True},
+                            }
+                        ],
+                    }
+                ],
+            },
+            'costDollars': {'total': 0.0},
+        },
+        cache_hit=False,
+        estimated_cost_usd=0.01,
+    )
+
+    assert payload['grounding_count'] == 1
+    assert payload['grounding'] == [
+        {
+            'title': 'Jane Doe profile',
+            'url': 'https://example.com/profile',
+            'snippet': 'Profile source used for extraction.',
+        }
+    ]
+    assert set(payload['grounding'][0]) == {'title', 'url', 'snippet'}
+    assert 'grounding' not in payload['structured_output']
+    assert 'citations' not in payload['structured_output']
+
+
+def test_build_structured_search_artifact_sets_zero_grounding_count_when_empty(tmp_path: Path) -> None:
+    schema_file = tmp_path / 'schema.json'
+    schema_file.write_text('{"type":"object"}\n', encoding='utf-8')
+
+    payload = build_structured_search_artifact(
+        'insurance expert witness',
+        schema_path=schema_file,
+        request_payload={'query': 'insurance expert witness'},
+        response_json={
+            'requestId': 'req-structured-no-grounding',
+            'output': {
+                'content': {'records': []},
+                'grounding': [],
+            },
+            'costDollars': {'total': 0.0},
+        },
+        cache_hit=False,
+        estimated_cost_usd=0.01,
+    )
+
+    assert payload['grounding_count'] == 0
+    assert 'grounding' not in payload
