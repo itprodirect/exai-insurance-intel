@@ -275,12 +275,21 @@ def test_render_research_markdown_includes_report_and_citations() -> None:
                 'snippet': 'Bulletin summary',
             }
         ],
+        grounding=[
+            {
+                'title': 'Florida market bulletin',
+                'url': 'https://example.com/bulletin',
+                'snippet': 'Grounded source summary',
+            }
+        ],
     )
 
     assert '# Research Report' in markdown
     assert 'Summarize the Florida CAT market outlook.' in markdown
     assert 'Mock research report body.' in markdown
     assert '[Florida market bulletin](https://example.com/bulletin)' in markdown
+    assert '## Grounding / Source Review' in markdown
+    assert 'Source note: Grounded source summary' in markdown
 
 
 def test_render_endpoint_report_markdown_for_answer_includes_summary_and_citations() -> None:
@@ -319,6 +328,13 @@ def test_render_endpoint_report_markdown_for_structured_search_includes_json_blo
             'schema_file': 'schema.json',
             'structured_output_keys': ['field_names', 'records'],
             'structured_output': {'field_names': ['name'], 'records': [{'name': 'Jane Doe'}]},
+            'grounding': [
+                {
+                    'title': 'Jane Doe profile',
+                    'url': 'https://example.com/jane-doe',
+                    'snippet': 'Profile source used for extraction.',
+                }
+            ],
             'cache_hit': True,
         },
         summary={'request_count': 1, 'spent_usd': 0.02},
@@ -328,4 +344,5 @@ def test_render_endpoint_report_markdown_for_structured_search_includes_json_blo
     assert '- Schema file: `schema.json`' in markdown
     assert '"name": "Jane Doe"' in markdown
     assert '```json' in markdown
-
+    assert '## Grounding / Source Review' in markdown
+    assert '[Jane Doe profile](https://example.com/jane-doe)' in markdown

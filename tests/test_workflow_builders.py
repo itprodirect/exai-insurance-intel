@@ -174,6 +174,10 @@ def test_build_research_artifact_reads_modern_output_content() -> None:
 
     assert payload['request_id'] == 'req-research-output'
     assert payload['report_text'] == 'Modern research report from output content.'
+    assert payload['output_content'] == 'Modern research report from output content.'
+    assert payload['grounding_count'] == 1
+    assert payload['grounding'][0]['title'] == 'Florida Market Bulletin'
+    assert payload['grounding'][0]['url'] == 'https://example.com/bulletin'
     assert payload['citation_count'] == 1
     assert payload['response']['output']['grounding'][0]['title'] == 'Florida Market Bulletin'
 
@@ -261,5 +265,10 @@ def test_build_structured_search_artifact_reads_modern_output_content(tmp_path: 
 
     assert payload['request_id'] == 'req-structured-output'
     assert payload['structured_output']['records'][0]['name'] == 'Jane Doe'
+    assert payload['output_content']['records'][0]['name'] == 'Jane Doe'
+    assert payload['grounding_count'] == 1
+    assert payload['grounding'][0]['url'] == 'https://example.com/profile'
     assert payload['structured_output_keys'] == ['records', 'schema_title']
+    assert 'grounding' not in payload['structured_output']
+    assert 'citations' not in payload['structured_output']
     assert payload['response']['output']['grounding'][0]['url'] == 'https://example.com/profile'

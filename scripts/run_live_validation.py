@@ -111,6 +111,7 @@ def build_validation_commands(
     include_comparison: bool,
 ) -> List[Dict[str, Any]]:
     schema_path = repo_root / "assets" / "live_validation_schema.json"
+    sqlite_path = artifact_dir / f"{run_id_prefix}.sqlite"
     base_command = [sys.executable, "-m", "exa_demo"]
 
     commands: List[Dict[str, Any]] = [
@@ -127,6 +128,8 @@ def build_validation_commands(
                 f"{run_id_prefix}-search",
                 "--artifact-dir",
                 str(artifact_dir),
+                "--sqlite-path",
+                str(sqlite_path),
                 "--json",
             ],
         },
@@ -143,6 +146,8 @@ def build_validation_commands(
                 f"{run_id_prefix}-answer",
                 "--artifact-dir",
                 str(artifact_dir),
+                "--sqlite-path",
+                str(sqlite_path),
                 "--json",
             ],
         },
@@ -159,6 +164,8 @@ def build_validation_commands(
                 f"{run_id_prefix}-research",
                 "--artifact-dir",
                 str(artifact_dir),
+                "--sqlite-path",
+                str(sqlite_path),
                 "--json",
             ],
         },
@@ -177,6 +184,8 @@ def build_validation_commands(
                 f"{run_id_prefix}-structured",
                 "--artifact-dir",
                 str(artifact_dir),
+                "--sqlite-path",
+                str(sqlite_path),
                 "--json",
             ],
         },
@@ -193,6 +202,8 @@ def build_validation_commands(
                 f"{run_id_prefix}-find-similar",
                 "--artifact-dir",
                 str(artifact_dir),
+                "--sqlite-path",
+                str(sqlite_path),
                 "--json",
             ],
         },
@@ -212,6 +223,8 @@ def build_validation_commands(
                     f"{run_id_prefix}-compare",
                     "--artifact-dir",
                     str(artifact_dir),
+                    "--sqlite-path",
+                    str(sqlite_path),
                     "--suite",
                     "forensic_and_damage_engineering",
                     "--limit",

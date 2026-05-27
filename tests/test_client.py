@@ -256,6 +256,9 @@ def test_mock_exa_structured_search_response_returns_structured_output() -> None
     assert response["structuredOutput"]["professionals"][0]["name"].startswith("Mock name for query:")
     assert response["output"]["content"] == response["structuredOutput"]
     assert response["output"]["grounding"][0]["url"].startswith("https://www.linkedin.com/")
+    assert "grounding" not in response["output"]["content"]
+    assert "citations" not in response["output"]["content"]
+    assert "confidence" not in response["output"]["content"]
     assert len(response["results"]) == payload["numResults"]
 
 

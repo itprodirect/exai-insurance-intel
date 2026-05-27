@@ -41,6 +41,8 @@ def build_research_artifact(
     estimated_cost_usd: float,
 ) -> Dict[str, Any]:
     report_text = _extract_research_report_text(response_json)
+    output_content = _extract_output_content(response_json)
+    grounding = _extract_output_grounding(response_json)
     citations = _normalize_citations(
         response_json.get("citations")
         if isinstance(response_json.get("citations"), list)
@@ -55,6 +57,11 @@ def build_research_artifact(
         "citation_count": len(citations),
         "citations": citations,
     }
+    if output_content is not None:
+        payload["output_content"] = output_content
+    if grounding:
+        payload["grounding"] = grounding
+        payload["grounding_count"] = len(grounding)
     return {
         **_artifact_base(
             request_payload=request_payload,
@@ -105,12 +112,19 @@ def build_structured_search_artifact(
     estimated_cost_usd: float,
 ) -> Dict[str, Any]:
     structured_output = _extract_structured_output(response_json)
+    output_content = _extract_output_content(response_json)
+    grounding = _extract_output_grounding(response_json)
     payload = {
         "query": query,
         "schema_file": str(schema_path),
         "structured_output": structured_output,
         "structured_output_keys": sorted(structured_output.keys()) if isinstance(structured_output, Mapping) else [],
     }
+    if output_content is not None:
+        payload["output_content"] = output_content
+    if grounding:
+        payload["grounding"] = grounding
+        payload["grounding_count"] = len(grounding)
     return {
         **_artifact_base(
             request_payload=request_payload,
@@ -282,6 +296,76 @@ def _output_content_text(response_json: Mapping[str, Any]) -> str:
     return ""
 
 
+def _extract_output_content(response_json: Mapping[str, Any]) -> Any | None:
+    if not isinstance(response_json, Mapping):
+        return None
+
+    output = response_json.get("output")
+    if not isinstance(output, Mapping) or "content" not in output:
+        return None
+
+    content = output.get("content")
+    if content is None:
+        return None
+    return _jsonable_value(content)
+
+
+def _extract_output_grounding(response_json: Mapping[str, Any]) -> list[Dict[str, Any]]:
+    if not isinstance(response_json, Mapping):
+        return []
+
+    output = response_json.get("output")
+    if not isinstance(output, Mapping):
+        return []
+
+    return _normalize_grounding(output.get("grounding"))
+
+
+def _normalize_grounding(value: Any) -> list[Dict[str, Any]]:
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, Mapping):
+        raw_items = [value]
+    else:
+        return []
+
+    grounding: list[Dict[str, Any]] = []
+    for item in raw_items:
+        normalized = _normalize_grounding_item(item)
+        if normalized:
+            grounding.append(normalized)
+    return grounding
+
+
+def _normalize_grounding_item(value: Any) -> Dict[str, Any]:
+    if isinstance(value, Mapping):
+        item = _jsonable_mapping(value)
+        title = _clean_string(
+            value.get("title") or value.get("name") or value.get("sourceTitle")
+        )
+        url = _clean_string(value.get("url") or value.get("sourceUrl") or value.get("uri"))
+        snippet = _clean_string(
+            value.get("snippet")
+            or value.get("summary")
+            or value.get("text")
+            or value.get("quote")
+            or value.get("passage")
+        )
+        if title:
+            item["title"] = title
+        if url:
+            item["url"] = url
+        if snippet:
+            item["snippet"] = snippet
+        return item
+
+    if isinstance(value, (str, int, float, bool)):
+        text = _clean_string(value)
+        if text:
+            return {"snippet": text}
+    return {}
+
+
 def load_json_schema(schema_path: Path) -> Dict[str, Any]:
     schema_text = schema_path.read_text(encoding="utf-8")
     schema = json.loads(schema_text)
@@ -312,6 +396,10 @@ def _jsonable_mapping(value: Mapping[str, Any]) -> Dict[str, Any]:
     return json.loads(json.dumps(dict(value), ensure_ascii=False, default=str))
 
 
+def _jsonable_value(value: Any) -> Any:
+    return json.loads(json.dumps(value, ensure_ascii=False, default=str))
+
+
 def _request_id(response_json: Mapping[str, Any]) -> str | None:
     if not isinstance(response_json, Mapping):
         return None
@@ -329,3 +417,9 @@ def _coerce_optional_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _clean_string(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()

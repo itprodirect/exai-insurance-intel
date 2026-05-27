@@ -36,6 +36,8 @@ python -m exa_demo answer "What is the Florida appraisal clause dispute process?
 python -m exa_demo research "Summarize the Florida CAT market outlook." --mode smoke --json
 ```
 
+When Exa returns `output.grounding`, `research.json`, `research.md`, and `report.md` keep that source-review metadata separate from the report body.
+
 ## Extraction
 
 `structured-search` is the schema-driven extraction workflow. Use it when you want Exa to return a typed payload that can be normalized into downstream tables, graphs, or datasets.
@@ -43,6 +45,8 @@ python -m exa_demo research "Summarize the Florida CAT market outlook." --mode s
 ```powershell
 python -m exa_demo structured-search "independent adjuster florida catastrophe claims" --schema-file path/to/structured-schema.json --mode smoke --json
 ```
+
+Structured-search artifacts preserve `output.content` and `output.grounding` as separate artifact fields, without adding citation or grounding fields to the requested schema.
 
 ## Comparison
 

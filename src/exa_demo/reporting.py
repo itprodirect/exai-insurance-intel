@@ -268,6 +268,7 @@ def render_research_markdown(
     query: str,
     report_text: str,
     citations: List[Mapping[str, Any]] | None = None,
+    grounding: List[Mapping[str, Any]] | None = None,
 ) -> str:
     lines: List[str] = []
     lines.append("# Research Report")
@@ -292,6 +293,7 @@ def render_research_markdown(
                 lines.append(f"- {title}")
             if snippet:
                 lines.append(f"  - {snippet}")
+    _append_grounding_section(lines, grounding)
     return "\n".join(lines).strip() + "\n"
 
 
@@ -339,6 +341,7 @@ def render_endpoint_report_markdown(
         lines.append("")
         lines.append(str(payload.get("report_text") or "No report text returned.").strip())
         _append_citations_section(lines, payload.get("citations"))
+        _append_grounding_section(lines, payload.get("grounding"))
     elif workflow == "structured-search":
         lines.append("## Structured Output")
         lines.append("")
@@ -353,6 +356,7 @@ def render_endpoint_report_markdown(
         lines.append("```json")
         lines.append(json.dumps(structured_output, indent=2, sort_keys=True, ensure_ascii=False))
         lines.append("```")
+        _append_grounding_section(lines, payload.get("grounding"))
     elif workflow == "find-similar":
         top_result = payload.get("top_result")
         lines.append("## Top Result")
@@ -423,6 +427,41 @@ def _append_citations_section(lines: List[str], citations: Any) -> None:
             lines.append(f"- {title}")
         if snippet:
             lines.append(f"  Snippet: {snippet}")
+
+
+def _append_grounding_section(lines: List[str], grounding: Any) -> None:
+    if not isinstance(grounding, list) or not grounding:
+        return
+
+    items = [item for item in grounding if isinstance(item, Mapping)]
+    if not items:
+        return
+
+    lines.append("")
+    lines.append("## Grounding / Source Review")
+    lines.append("")
+    for index, item in enumerate(items[:5], start=1):
+        title = str(item.get("title") or f"Source {index}").strip()
+        url = str(item.get("url") or item.get("sourceUrl") or "").strip()
+        snippet = _grounding_snippet(item)
+        if url:
+            lines.append(f"{index}. [{title}]({url})")
+        else:
+            lines.append(f"{index}. {title}")
+        if snippet:
+            lines.append(f"   Source note: {snippet}")
+    if len(items) > 5:
+        lines.append(f"{len(items) - 5} additional grounding sources omitted.")
+
+
+def _grounding_snippet(item: Mapping[str, Any]) -> str:
+    for key in ("snippet", "summary", "text", "quote", "passage"):
+        value = item.get(key)
+        if value is not None:
+            text = str(value).strip()
+            if text:
+                return text[:240]
+    return ""
 
 
 def _append_find_similar_result(lines: List[str], result: Mapping[str, Any]) -> None:
