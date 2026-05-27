@@ -583,15 +583,18 @@ def test_research_command_smoke_emits_json_and_artifact(tmp_path, capsys) -> Non
     assert exit_code == 0
     assert output['workflow'] == 'research'
     assert output['run_id'] == 'research-run'
-    assert output['citation_count'] == 3
-    assert 'Mock research report' in output['report']
+    assert output['citation_count'] == 5
+    assert 'Search-backed research report' in output['report']
     assert (artifact_dir / 'research-run' / 'research.json').exists()
     assert (artifact_dir / 'research-run' / 'research.md').exists()
     assert (artifact_dir / 'research-run' / 'report.md').exists()
     assert (artifact_dir / 'research-run' / 'summary.json').exists()
     research_payload = json.loads((artifact_dir / 'research-run' / 'research.json').read_text(encoding='utf-8'))
-    assert research_payload['citation_count'] == 3
+    assert research_payload['citation_count'] == 5
     assert research_payload['citations'][0]['title'] == 'Mock Research Source 1'
+    assert research_payload['request_payload']['type'] == 'deep-reasoning'
+    assert research_payload['request_payload']['contents']['highlights'] == {'maxCharacters': 2666}
+    assert_no_deprecated_request_fields(research_payload['request_payload'])
     assert '# Research Report' in (artifact_dir / 'research-run' / 'research.md').read_text(encoding='utf-8')
     summary_payload = json.loads((artifact_dir / 'research-run' / 'summary.json').read_text(encoding='utf-8'))
     assert summary_payload['extra']['runtime']['execution_mode'] == 'smoke'

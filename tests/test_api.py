@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import exa_demo.api as api_module
 import pytest
 from fastapi.testclient import TestClient
@@ -131,6 +134,13 @@ def test_research_smoke(client):
     assert "citations" in data
     assert isinstance(data["citation_count"], int)
     assert "summary" in data
+    artifact_payload = json.loads(
+        (Path(data["artifact_dir"]) / "research.json").read_text(encoding="utf-8")
+    )
+    assert artifact_payload["request_payload"]["type"] == "deep-reasoning"
+    assert artifact_payload["request_payload"]["contents"]["highlights"] == {
+        "maxCharacters": 2666
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -53,8 +53,15 @@ def build_answer_payload(query: str) -> Dict[str, Any]:
     return {"query": query, "text": True}
 
 
-def build_research_payload(query: str) -> Dict[str, Any]:
-    return {"query": query}
+def build_research_payload(
+    query: str,
+    config: Mapping[str, Any],
+    *,
+    num_results: Optional[int] = None,
+) -> Dict[str, Any]:
+    research_config = dict(config)
+    research_config["search_type"] = "deep-reasoning"
+    return build_exa_payload(query, research_config, num_results=num_results)
 
 
 def build_structured_search_payload(

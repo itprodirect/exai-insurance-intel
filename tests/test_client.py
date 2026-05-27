@@ -265,21 +265,33 @@ def test_mock_exa_answer_response_returns_citations() -> None:
     assert response["citations"][0]["url"].startswith("https://example.com/mock-answer/")
 
 
-def test_build_research_payload_is_query_only() -> None:
-    payload = build_research_payload("Summarize the Florida CAT market outlook.")
+def test_build_research_payload_uses_deep_reasoning_search_shape() -> None:
+    payload = build_research_payload(
+        "Summarize the Florida CAT market outlook.",
+        default_config(),
+    )
 
-    assert payload == {"query": "Summarize the Florida CAT market outlook."}
+    assert payload["query"] == "Summarize the Florida CAT market outlook."
+    assert payload["type"] == "deep-reasoning"
+    assert payload["numResults"] == 5
+    assert payload["contents"]["highlights"] == {"maxCharacters": 2666}
+    assert_no_deprecated_request_fields(payload)
 
 
-def test_mock_exa_research_response_returns_report_and_citations() -> None:
-    payload = build_research_payload("Summarize the Florida CAT market outlook.")
+def test_mock_exa_research_response_returns_search_results() -> None:
+    payload = build_research_payload(
+        "Summarize the Florida CAT market outlook.",
+        default_config(),
+    )
 
     response = mock_exa_research_response(payload)
 
-    assert response["report"].startswith("Mock research report for query:")
-    assert isinstance(response["citations"], list)
-    assert len(response["citations"]) == 3
-    assert response["citations"][0]["url"].startswith("https://example.com/mock-research/")
+    assert response["resolvedSearchType"] == "deep-reasoning"
+    assert isinstance(response["results"], list)
+    assert len(response["results"]) == 5
+    assert response["results"][0]["url"].startswith("https://example.com/mock-research/")
+    assert "report" not in response
+    assert "citations" not in response
 
 
 def test_exa_answer_uses_smoke_cited_answer_shape() -> None:
@@ -320,12 +332,69 @@ def test_exa_research_uses_smoke_report_shape() -> None:
         cache_store=cache_store,
     )
 
-    assert response_json["report"].startswith("Mock research report for query:")
-    assert len(response_json["citations"]) == 3
+    assert response_json["resolvedSearchType"] == "deep-reasoning"
+    assert len(response_json["results"]) == 5
+    assert response_json["results"][0]["title"] == "Mock Research Source 1"
     assert meta.cache_hit is False
-    assert meta.request_payload == {"query": "Summarize the Florida CAT market outlook."}
+    assert meta.request_payload["query"] == "Summarize the Florida CAT market outlook."
+    assert meta.request_payload["type"] == "deep-reasoning"
+    assert meta.request_payload["contents"]["highlights"] == {"maxCharacters": 2666}
+    assert meta.resolved_search_type == "deep-reasoning"
     assert meta.estimated_cost_usd == pricing["search_1_25"]
     assert cache_store.calls[0]["run_id"] == "research-run"
+    assert_no_deprecated_request_fields(meta.request_payload)
+
+
+def test_exa_research_posts_to_search_endpoint_for_live_transport(monkeypatch) -> None:
+    cache_store = FakeCacheStore()
+    config = default_config()
+    pricing = default_pricing()
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return {
+                "requestId": "req-live-research",
+                "resolvedSearchType": "deep-reasoning",
+                "results": [
+                    {
+                        "title": "Florida CAT market source",
+                        "url": "https://example.com/florida-cat-market",
+                        "snippet": "Market conditions remain dynamic.",
+                    }
+                ],
+                "costDollars": {"search": 0.0, "contents": 0.0, "total": 0.0},
+            }
+
+    def fake_post(url, *, headers, json, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr("exa_demo.client.requests.post", fake_post)
+
+    response_json, meta = exa_research(
+        "Summarize the Florida CAT market outlook.",
+        config=config,
+        pricing=pricing,
+        exa_api_key="test-key",
+        smoke_no_network=False,
+        run_id="research-live-run",
+        cache_store=cache_store,
+    )
+
+    assert captured["url"] == "https://api.exa.ai/search"
+    assert not str(captured["url"]).endswith("/research")
+    assert captured["json"]["type"] == "deep-reasoning"
+    assert captured["json"]["contents"]["highlights"] == {"maxCharacters": 2666}
+    assert response_json["requestId"] == "req-live-research"
+    assert meta.request_id == "req-live-research"
+    assert meta.resolved_search_type == "deep-reasoning"
 
 
 def test_exa_structured_search_uses_smoke_structured_output_shape() -> None:
