@@ -9,7 +9,7 @@ async function handler(
 ) {
   const { path } = await context.params;
   const backendPath = `/api/${path.join("/")}`;
-  const url = `${BACKEND_URL}${backendPath}`;
+  const url = `${BACKEND_URL}${backendPath}${request.nextUrl.search}`;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
