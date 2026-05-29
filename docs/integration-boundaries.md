@@ -30,6 +30,20 @@ This repo is designed to stay safe-by-default while still supporting deliberate 
 - Booted the Next.js frontend locally and verified Search, Answer, Research, and My Work against the local backend
 - Did **not** revalidate `live` mode, S3 artifact storage, or Postgres-backed usage/run persistence
 
+## Bounded S3/Postgres Persistence Validation
+
+Issue `#63` adds a narrow real-service validation command for the pilot persistence baseline:
+
+```powershell
+python scripts/run_pilot_persistence_validation.py --output live-validation-artifacts/pilot-s3-postgres-validation.json
+```
+
+This path is deliberately smoke-mode for Exa traffic, but real for persistence. It must run with `PILOT_RUN_STORE=postgres`, `PILOT_POSTGRES_URL`, `PILOT_ARTIFACT_STORE=s3`, `PILOT_S3_BUCKET`, and a validation-scoped `PILOT_S3_PREFIX`. AWS credentials must be available to `boto3` with upload/list access to the selected prefix. If API auth is enabled, `PILOT_VALIDATION_API_KEY` must contain a valid pilot API key.
+
+The command fails closed unless `/health` reports `run_store=postgres` and `artifact_store=s3`, one `/api/search` smoke request completes, the matching run is visible through `/api/me/runs`, the persisted `artifact_location` is the selected `s3://` prefix, and the S3 prefix lists at least the persisted artifact count.
+
+This command does not create infrastructure, deploy the app, redesign migrations, or prove live Exa behavior. Do not claim S3/Postgres validation passed unless this command exits `0` against real external Postgres and S3 services.
+
 ## Bounded Live Grounding Validation (2026-05-27)
 
 After replacing the placeholder Exa API key, a narrow live CLI rerun validated only `research` and `structured-search` grounding behavior:

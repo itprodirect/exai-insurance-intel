@@ -20,9 +20,68 @@ This runbook captures the repo's **current validated local state** as rechecked 
 
 - Live Exa mode (`--mode live`)
 - Real Exa API billing or live result quality
-- S3 artifact storage
-- Postgres-backed usage or run persistence
+- Real S3 artifact storage unless the bounded S3/Postgres command below is run
+- Real Postgres-backed usage or run persistence unless the bounded S3/Postgres command below is run
 - Production deployment, production readiness, or infrastructure rollout
+
+## Bounded S3/Postgres Pilot Persistence Validation
+
+This command is the repeatable issue `#63` path for real pilot persistence validation. It is intentionally not local SQLite evidence and not mock/fake S3 evidence.
+
+It runs one smoke-mode `/api/search` request through the FastAPI app, checks `/health` reports `run_store=postgres` and `artifact_store=s3`, reads the persisted run back through `/api/me/runs`, and lists the persisted S3 prefix with `boto3`. It exits without claiming success if the selected backends, required env vars, credentials, or services are missing.
+
+Required install:
+
+```powershell
+python -m pip install --no-user -e '.[pilot]'
+```
+
+Required services and credentials:
+
+- A reachable Postgres database in `PILOT_POSTGRES_URL`. The existing adapter creates the `runs` and `saved_queries` tables if they do not exist.
+- An existing S3 bucket in `PILOT_S3_BUCKET`.
+- AWS credentials available to `boto3` through the normal AWS chain, with permission to upload and list objects under `PILOT_S3_PREFIX`.
+- Optional API bearer auth. If auth is enabled, set `PILOT_VALIDATION_API_KEY` to a valid pilot user's API key; in single-key mode `PILOT_API_KEY` is also accepted by the script.
+
+Required environment variables:
+
+```powershell
+$env:PILOT_RUN_STORE = "postgres"
+$env:PILOT_POSTGRES_URL = "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+$env:PILOT_ARTIFACT_STORE = "s3"
+$env:PILOT_S3_BUCKET = "your-existing-validation-bucket"
+$env:PILOT_S3_PREFIX = "validation/pilot-persistence/"
+```
+
+Optional auth header source:
+
+```powershell
+$env:PILOT_VALIDATION_API_KEY = "pilot-user-api-key"
+```
+
+Run:
+
+```powershell
+python scripts/run_pilot_persistence_validation.py --output live-validation-artifacts/pilot-s3-postgres-validation.json
+```
+
+Expected success evidence:
+
+- JSON output with `status` set to `passed`
+- `health.run_store` is `postgres`
+- `health.artifact_store` is `s3`
+- `postgres_evidence.source` is `/api/me/runs`
+- `artifact_location` starts with `s3://<PILOT_S3_BUCKET>/<PILOT_S3_PREFIX>`
+- `artifact_count` is at least `1`
+- `s3_object_count` is at least the persisted `artifact_count`
+
+Exit codes:
+
+- `0`: real S3/Postgres validation passed
+- `1`: the command ran but validation failed
+- `2`: required external configuration was missing or still local-only
+
+Do not commit the JSON evidence file or generated runtime artifacts. `live-validation-artifacts/` and `experiments/` are local runtime output paths.
 
 ## Reproduce The Local Smoke Path
 
@@ -124,7 +183,7 @@ Open `http://localhost:3000`.
 - The validated path above is still **local + smoke/mock only**.
 - Do not treat this local UI smoke runbook as evidence that live Exa mode was revalidated.
 - A separate bounded live CLI grounding rerun on 2026-05-27 validated only `research` and `structured-search`; see [2026-05-27-live-grounding-validation.md](sessions/2026-05-27-live-grounding-validation.md).
-- Do not treat the current docs as evidence that S3 or Postgres-backed persistence was exercised end to end.
+- Do not treat the S3/Postgres command above as evidence unless it exits `0` against real external services and its JSON evidence is reviewed.
 - Treat deployment and production hardening as future work, not current state.
 
 ## Troubleshooting
