@@ -131,6 +131,47 @@ def test_auth_disabled_when_no_key(open_client):
     assert resp.status_code == 200
 
 
+def test_required_auth_without_config_fails_closed(_base_patches, monkeypatch):
+    monkeypatch.setenv("PILOT_REQUIRE_AUTH", "1")
+    client = TestClient(api_module.app)
+
+    resp = client.post("/api/search", json={"query": "test", "mode": "smoke"})
+
+    assert resp.status_code == 503
+    assert "authentication is required" in resp.json()["detail"]
+
+
+def test_required_auth_invalid_users_config_fails_closed(
+    _base_patches, monkeypatch
+):
+    monkeypatch.setenv("PILOT_REQUIRE_AUTH", "1")
+    monkeypatch.setenv("PILOT_USERS", "{not-json")
+    client = TestClient(api_module.app)
+
+    resp = client.post("/api/search", json={"query": "test", "mode": "smoke"})
+
+    assert resp.status_code == 503
+    assert "authentication is required" in resp.json()["detail"]
+
+
+def test_required_auth_preserves_configured_single_key_mode(
+    _base_patches, monkeypatch
+):
+    monkeypatch.setenv("PILOT_REQUIRE_AUTH", "1")
+    monkeypatch.setenv("PILOT_API_KEY", "test-secret")
+    client = TestClient(api_module.app)
+
+    missing = client.post("/api/search", json={"query": "test", "mode": "smoke"})
+    assert missing.status_code == 401
+
+    valid = client.post(
+        "/api/search",
+        json={"query": "test", "mode": "smoke"},
+        headers={"Authorization": "Bearer test-secret"},
+    )
+    assert valid.status_code == 200
+
+
 # ---------------------------------------------------------------------------
 # Rate limiting
 # ---------------------------------------------------------------------------

@@ -2,10 +2,14 @@
 
 Configuration via environment variables:
 
-    PILOT_API_KEY              Shared secret for bearer auth. If unset, auth is disabled.
+    PILOT_API_KEY              Shared secret for bearer auth. If unset, auth is disabled
+                               unless PILOT_REQUIRE_AUTH=1.
     PILOT_USERS                JSON mapping of user_id → api_key for multi-user mode.
                                Example: {"alice": "key-alice", "bob": "key-bob"}
                                Takes precedence over PILOT_API_KEY when set.
+    PILOT_REQUIRE_AUTH         Set to "1" for pilot/deployment runtime; API routes
+                               fail closed unless PILOT_API_KEY or valid PILOT_USERS
+                               is configured.
     PILOT_OPS_USERS            Comma-separated user_ids allowed to access ops/admin
                                surfaces like /api/runs and /api/ops/summary.
                                Defaults to "pilot".
@@ -43,6 +47,10 @@ DEFAULT_USER_ID = "pilot"
 
 def _pilot_api_key() -> str:
     return os.environ.get("PILOT_API_KEY", "").strip()
+
+
+def _pilot_require_auth() -> bool:
+    return os.environ.get("PILOT_REQUIRE_AUTH", "0").strip() == "1"
 
 
 def _pilot_users() -> dict[str, str]:
@@ -99,6 +107,11 @@ def require_api_key(request: Request) -> str | None:
     # Single-key mode.
     expected = _pilot_api_key()
     if not expected:
+        if _pilot_require_auth():
+            raise HTTPException(
+                status_code=503,
+                detail="Pilot API authentication is required but not configured.",
+            )
         request.state.user_id = DEFAULT_USER_ID
         return None
 
