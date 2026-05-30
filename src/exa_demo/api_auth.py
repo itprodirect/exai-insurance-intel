@@ -64,7 +64,11 @@ def _pilot_users() -> dict[str, str]:
     try:
         mapping = json.loads(raw)
         if isinstance(mapping, dict):
-            return {str(k): str(v) for k, v in mapping.items()}
+            return {
+                str(k): v.strip()
+                for k, v in mapping.items()
+                if isinstance(v, str) and v.strip()
+            }
     except (json.JSONDecodeError, TypeError):
         logger.warning("PILOT_USERS is set but not valid JSON; ignoring")
     return {}

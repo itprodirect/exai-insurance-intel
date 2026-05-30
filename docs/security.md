@@ -52,6 +52,12 @@ Install with: `pre-commit install`
 - Set `PILOT_REQUIRE_AUTH=1` for pilot/deployment runtime so authenticated
   `/api` routes fail closed if neither `PILOT_API_KEY` nor valid `PILOT_USERS`
   is configured
+- "Valid `PILOT_USERS`" means at least one non-empty string secret. Values such
+  as `null`, empty/whitespace-only strings, objects, arrays, booleans, or
+  numbers are ignored and do not count as configured auth
+- The fail-closed response is `503` (service unavailable), signalling a
+  deployment/server-side auth **misconfiguration** — not a normal per-request
+  user auth failure, which remains `401`
 - Sliding-window rate limiting (default 60 req/min, returns 429). Multi-user mode isolates buckets per authenticated user; single-key and no-auth modes fall back to per-IP limiting.
 - Ops user allowlist for admin endpoints
 - Live mode gated behind `PILOT_ALLOW_LIVE_MODE=1`
