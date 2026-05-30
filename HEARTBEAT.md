@@ -2,12 +2,12 @@
 
 _Generated file. Regenerate with `python scripts/generate_heartbeat.py`._
 
-_Generated: 2026-05-29T23:40:31.112725+00:00_
+_Generated: 2026-05-30T01:26:50.279273+00:00_
 
 ## Current status
 - Purpose: Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contractor, and market/regulatory research workflows.
 - Strategic role: Workflow engine plus controlled pilot web-product base for internal insurance-intelligence validation.
-- Current milestone: Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters, API health self-reporting for selected persistence backends, and a bounded real-service S3/Postgres validation command.
+- Current milestone: Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, pilot auth/request-boundary hardening, and fail-closed pilot deployment-mode guard are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters, API health self-reporting for selected persistence backends, and a bounded real-service S3/Postgres validation command. The pilot hardening queue is GitHub issues `#60`-`#65`: `#60`-`#64` are closed, and `#65` is the final docs cleanup slice.
 
 ## Operating posture
 - Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI app in the same package, and a Next.js frontend in `frontend/`. SQLite cache, budget controls, benchmark fixtures, exported artifacts, and smoke/live execution modes are already in place. Manual live validation is script-backed. The latest bounded live evidence covers only CLI `research` and `structured-search` grounding behavior; the broader local UI path remains smoke/mock.
@@ -21,11 +21,11 @@ _Generated: 2026-05-29T23:40:31.112725+00:00_
 
 ## Top blockers
 - Phase 5 Level 1 is not complete because the persistence baseline still lacks actual external S3/Postgres-backed pilot evidence and deployment posture; local defaults, pilot adapters, backend self-reporting, and a bounded validation command are present.
-- GitHub issue numbering has drifted from the local Phase 5 roadmap IDs, so the tracker still has `TBD` GitHub URLs for those items until dedicated issues are created.
+- Local Phase 5 roadmap IDs `#19`-`#23` remain separate from the actual GitHub pilot hardening queue `#60`-`#65`; use `docs/issue-tracker.md` for the current mapping instead of linking local `#22`/`#23` to unrelated GitHub numbers.
 - Broad live Exa behavior, real S3/Postgres-backed runtime behavior, frontend live mode, and deployed pilot environments remain unvalidated unless the bounded validation command is run against real services. A bounded 2026-05-27 live CLI rerun did validate `research` and `structured-search` grounding behavior only.
 
 ## Docs + setup
-- Docs freshness: Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local, bounded live grounding, and persistence-in-progress posture with a real-service S3/Postgres validation command; older March session notes remain historical and may describe pre-slice state.
+- Docs freshness: Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/agent-execution-defaults.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local, bounded live grounding, persistence-in-progress posture, and ordered pilot hardening queue; older March session notes remain historical and may describe pre-slice state.
 - Setup friction: Moderate. Python setup is straightforward, but full local work spans Python deps, optional `[api]` extras, a separate `frontend/` npm install and env file, and deliberate handling of smoke versus live mode with `EXA_API_KEY` only for bounded manual validation.
 
 ## Validation path
@@ -62,25 +62,23 @@ _Generated: 2026-05-29T23:40:31.112725+00:00_
 - Scope beyond this scaffold into auth redesign, persistence redesign, async jobs, deployment, infra, or broader docs refactors.
 
 ## Last session
-- Date: 2026-05-29
-- Objective: Add a bounded, repeatable validation path for the pilot S3/Postgres persistence baseline without adding infrastructure, deployment setup, migration redesign, or fake evidence.
+- Date: 2026-05-30
+- Objective: Refresh current docs for the new pilot hardening queue after GitHub issues `#60` through `#64` closed, with `#65` as the final docs cleanup slice.
 - Changes made:
-  - Added `scripts/run_pilot_persistence_validation.py` and `src/exa_demo/pilot_persistence_validation.py`.
-  - The command requires `PILOT_RUN_STORE=postgres`, `PILOT_POSTGRES_URL`, `PILOT_ARTIFACT_STORE=s3`, `PILOT_S3_BUCKET`, and a validation-scoped `PILOT_S3_PREFIX`.
-  - The command starts the FastAPI app unless `--base-url` is provided, runs one smoke `/api/search`, verifies `/health` reports `postgres` and `s3`, reads the matching run through `/api/me/runs`, verifies the persisted S3 artifact location/count, and lists the S3 prefix with `boto3`.
-  - Added focused tests for validation guardrails in `tests/test_persistence.py`.
-  - Updated `.env.example`, `docs/local-validation.md`, `docs/integration-boundaries.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, and the session log.
+  - Replaced the stale "immediate next" setup-slice guidance in `docs/agent-execution-defaults.md` with a pointer to the current pilot queue.
+  - Added the ordered GitHub pilot hardening queue `#60` through `#65` to `docs/issue-tracker.md`, keeping local Phase 5 roadmap IDs separate.
+  - Updated `README.md` to point future readers at the current pilot hardening queue and latest documented implementation session.
+  - Updated `MEMORY.md` and regenerated heartbeat sidecars so generated current-state summaries no longer point only at the prior issue `#63` handoff.
+  - Added the current session note without editing historical session logs.
 - Validation:
-  - `python -m ruff check src/exa_demo/pilot_persistence_validation.py scripts/run_pilot_persistence_validation.py tests/test_persistence.py` -> passed during implementation.
-  - `python -m ruff check .` -> passed.
-  - `python -m pytest -q tests/test_persistence.py tests/test_api.py tests/test_api_auth.py` -> passed (`105 passed`).
-  - Real S3/Postgres validation was not run because required external config and credential hints were not present in the environment.
+  - `git diff --check` -> passed.
+  - Targeted `rg` checks over current docs and generated/current-state files -> passed; historical session-log matches were intentionally left unchanged.
 - Open issues:
-  - Real external S3/Postgres validation was not claimed unless the command exits `0` against real services.
-  - The command exits `2` when required external persistence configuration is missing or still local-only.
+  - Real external S3/Postgres validation is still not claimed unless `scripts/run_pilot_persistence_validation.py` exits `0` against real services and credentials.
+  - Deployed pilot environments, frontend live mode, broad live Exa behavior, and production readiness remain unvalidated by this docs-only cleanup.
 - Decisions proposed:
-  - Keep the path smoke-mode for Exa traffic and real for persistence.
-  - Keep the external command out of default CI because it requires Postgres, S3, and AWS credentials.
+  - Treat GitHub issues `#60` through `#65` as the pilot hardening queue and local Phase 5 `#19` through `#23` as separate roadmap IDs.
+  - Continue to keep historical session logs unchanged when correcting current-state guidance.
 
 ## Next thin slice
-- Run the bounded validation command in a credentialed pilot environment and attach/review the JSON evidence.
+- Run the bounded pilot S3/Postgres validation command in a credentialed pilot environment and attach or review the JSON evidence.

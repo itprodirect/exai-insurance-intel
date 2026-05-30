@@ -522,7 +522,8 @@ For a from-scratch architecture critique and refactor roadmap, see `docs/rebuild
 - GitHub issue tracker mapping: [docs/issue-tracker.md](docs/issue-tracker.md)
 - ADR index: [docs/adr/README.md](docs/adr/README.md)
 - Session note template: [docs/sessions/README.md](docs/sessions/README.md)
-- Latest implementation session: [docs/sessions/2026-05-27-live-grounding-validation.md](docs/sessions/2026-05-27-live-grounding-validation.md)
+- Current pilot hardening queue: [docs/issue-tracker.md](docs/issue-tracker.md)
+- Latest documented implementation session: [docs/sessions/2026-05-29-issue-63-s3-postgres-validation.md](docs/sessions/2026-05-29-issue-63-s3-postgres-validation.md)
 
 ## Guardrails
 

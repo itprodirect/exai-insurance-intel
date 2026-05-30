@@ -32,7 +32,7 @@ Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contrac
 Workflow engine plus controlled pilot web-product base for internal insurance-intelligence validation.
 
 ## Current milestone
-Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters, API health self-reporting for selected persistence backends, and a bounded real-service S3/Postgres validation command.
+Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, pilot auth/request-boundary hardening, and fail-closed pilot deployment-mode guard are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters, API health self-reporting for selected persistence backends, and a bounded real-service S3/Postgres validation command. The pilot hardening queue is GitHub issues `#60`-`#65`: `#60`-`#64` are closed, and `#65` is the final docs cleanup slice.
 
 ## Durable decisions
 - Markdown docs under `docs/` remain the canonical backlog, architecture, ADR, and session-history surface for this repo.
@@ -46,11 +46,11 @@ Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI
 
 ## Top blockers
 - Phase 5 Level 1 is not complete because the persistence baseline still lacks actual external S3/Postgres-backed pilot evidence and deployment posture; local defaults, pilot adapters, backend self-reporting, and a bounded validation command are present.
-- GitHub issue numbering has drifted from the local Phase 5 roadmap IDs, so the tracker still has `TBD` GitHub URLs for those items until dedicated issues are created.
+- Local Phase 5 roadmap IDs `#19`-`#23` remain separate from the actual GitHub pilot hardening queue `#60`-`#65`; use `docs/issue-tracker.md` for the current mapping instead of linking local `#22`/`#23` to unrelated GitHub numbers.
 - Broad live Exa behavior, real S3/Postgres-backed runtime behavior, frontend live mode, and deployed pilot environments remain unvalidated unless the bounded validation command is run against real services. A bounded 2026-05-27 live CLI rerun did validate `research` and `structured-search` grounding behavior only.
 
 ## Docs freshness
-Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local, bounded live grounding, and persistence-in-progress posture with a real-service S3/Postgres validation command; older March session notes remain historical and may describe pre-slice state.
+Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/agent-execution-defaults.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local, bounded live grounding, persistence-in-progress posture, and ordered pilot hardening queue; older March session notes remain historical and may describe pre-slice state.
 
 ## Setup friction
 Moderate. Python setup is straightforward, but full local work spans Python deps, optional `[api]` extras, a separate `frontend/` npm install and env file, and deliberate handling of smoke versus live mode with `EXA_API_KEY` only for bounded manual validation.

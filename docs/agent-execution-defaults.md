@@ -48,11 +48,8 @@ When making implementation decisions during a session, use these defaults unless
 | Auth | Internal/private, API key or bearer token | [pilot-architecture-decision.md](./pilot-architecture-decision.md) |
 | Execution modes | smoke / live / auto (smoke is default) | [integration-boundaries.md](./integration-boundaries.md) |
 
-## Next Coding Slices
+## Current Pilot Queue
 
-See [issue-tracker.md](./issue-tracker.md) for the current sequenced backlog. The immediate next slices are:
+See [issue-tracker.md](./issue-tracker.md) for the current sequenced backlog. Do not treat the original Phase 5 Level 1 setup slices as immediate next work: the API wrapper, frontend shell, and pilot auth/request-boundary slices are done, and the persistence baseline has a bounded S3/Postgres validation command but still requires real-service evidence before broader readiness claims.
 
-1. Thin FastAPI wrapper over existing workflows
-2. Frontend app shell (Next.js + Tailwind + shadcn/ui)
-3. Pilot auth + request/budget boundary controls
-4. Persistence/state baseline (S3 + Postgres)
+The current pilot hardening queue is tracked as GitHub issues `#60` through `#65`; `#60` through `#64` are closed, and `#65` is the final docs cleanup slice for refreshing current guidance.
