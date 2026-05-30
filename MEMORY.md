@@ -32,7 +32,7 @@ Exa-powered insurance intelligence toolkit for CAT-loss, claims, expert, contrac
 Workflow engine plus controlled pilot web-product base for internal insurance-intelligence validation.
 
 ## Current milestone
-Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters plus API health self-reporting for selected persistence backends.
+Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell, and pilot auth/request-boundary hardening are shipped, and the persistence baseline is in progress with additive S3/Postgres adapters, API health self-reporting for selected persistence backends, and a bounded real-service S3/Postgres validation command.
 
 ## Durable decisions
 - Markdown docs under `docs/` remain the canonical backlog, architecture, ADR, and session-history surface for this repo.
@@ -45,12 +45,12 @@ Phase 5 Level 1 is partially complete: the thin FastAPI wrapper, frontend shell,
 Active Python workflow repo with package code in `src/exa_demo/`, a thin FastAPI app in the same package, and a Next.js frontend in `frontend/`. SQLite cache, budget controls, benchmark fixtures, exported artifacts, and smoke/live execution modes are already in place. Manual live validation is script-backed. The latest bounded live evidence covers only CLI `research` and `structured-search` grounding behavior; the broader local UI path remains smoke/mock.
 
 ## Top blockers
-- Phase 5 Level 1 is not complete because the persistence baseline still lacks end-to-end S3/Postgres-backed pilot validation and deployment posture; local defaults, pilot adapters, and backend self-reporting are present.
+- Phase 5 Level 1 is not complete because the persistence baseline still lacks actual external S3/Postgres-backed pilot evidence and deployment posture; local defaults, pilot adapters, backend self-reporting, and a bounded validation command are present.
 - GitHub issue numbering has drifted from the local Phase 5 roadmap IDs, so the tracker still has `TBD` GitHub URLs for those items until dedicated issues are created.
-- Broad live Exa behavior, S3/Postgres-backed runtime behavior, frontend live mode, and deployed pilot environments remain unvalidated. A bounded 2026-05-27 live CLI rerun did validate `research` and `structured-search` grounding behavior only.
+- Broad live Exa behavior, real S3/Postgres-backed runtime behavior, frontend live mode, and deployed pilot environments remain unvalidated unless the bounded validation command is run against real services. A bounded 2026-05-27 live CLI rerun did validate `research` and `structured-search` grounding behavior only.
 
 ## Docs freshness
-Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local, bounded live grounding, and persistence-in-progress posture; older March session notes remain historical and may describe pre-slice state.
+Workable. `README.md`, `docs/local-validation.md`, `docs/roadmap.md`, `docs/issue-tracker.md`, `docs/integration-boundaries.md`, and `docs/pilot-architecture-decision.md` reflect the current smoke/local, bounded live grounding, and persistence-in-progress posture with a real-service S3/Postgres validation command; older March session notes remain historical and may describe pre-slice state.
 
 ## Setup friction
 Moderate. Python setup is straightforward, but full local work spans Python deps, optional `[api]` extras, a separate `frontend/` npm install and env file, and deliberate handling of smoke versus live mode with `EXA_API_KEY` only for bounded manual validation.
@@ -59,6 +59,7 @@ Moderate. Python setup is straightforward, but full local work spans Python deps
 - `python -m ruff check .`
 - `python -m pytest -q`
 - `python scripts/run_live_validation.py --mode smoke`
+- `python scripts/run_pilot_persistence_validation.py --output live-validation-artifacts/pilot-s3-postgres-validation.json` only in an environment with real Postgres, S3, and AWS credentials
 - `uvicorn exa_demo.api:app --reload`
 - `cd frontend` then `npm install`, copy `.env.local.example` to `.env.local`, and run `npm run dev`
 
@@ -74,6 +75,7 @@ Moderate. Python setup is straightforward, but full local work spans Python deps
 - `docs/sessions/2026-03-22-api-wrapper.md`
 - `docs/sessions/2026-03-22-frontend-shell.md`
 - `scripts/run_live_validation.py`
+- `scripts/run_pilot_persistence_validation.py`
 - `scripts/run_notebook_smoke.py`
 
 ## Safe automation now

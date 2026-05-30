@@ -52,7 +52,7 @@ Issue `#11` originally used `/research` wording in the planning/demo sense. The 
 | `#20 Thin FastAPI wrapper over existing workflows` | Task | `Phase 5 - Pilot` | `type:task`, `area:api`, `priority:p0`, `status:done` | Done | `#19` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-api-wrapper.md` |
 | `#21 Frontend app shell (Next.js + Tailwind + shadcn/ui)` | Task | `Phase 5 - Pilot` | `type:task`, `area:frontend`, `priority:p0`, `status:done` | Done | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-03-22-frontend-shell.md` |
 | `#22 Pilot auth + request/budget boundary controls` | Task | `Phase 5 - Pilot` | `type:task`, `area:auth`, `priority:p0`, `status:done` | Done | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-04-11-issue-22-run-pagination-bounds.md` |
-| `#23 Persistence/state baseline (S3 artifacts + Postgres usage)` | Task | `Phase 5 - Pilot` | `type:task`, `area:infra`, `priority:p1`, `status:ready` | In progress | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-04-28-issue-23-persistence-health-posture.md` |
+| `#23 Persistence/state baseline (S3 artifacts + Postgres usage)` | Task | `Phase 5 - Pilot` | `type:task`, `area:infra`, `priority:p1`, `status:ready` | In progress | `#19, #20` | Phase 5 Level 1 | TBD | `docs/sessions/2026-05-29-issue-63-s3-postgres-validation.md` |
 
 ### Next Coding Slices (Sequenced)
 
@@ -61,7 +61,7 @@ These are the immediate next implementation tasks, in recommended execution orde
 1. ~~**Slice 1: Thin API wrapper** (`#20`)~~ — Done. FastAPI app at `src/exa_demo/api.py` with 5 POST endpoints + health. 9 smoke-mode tests.
 2. ~~**Slice 2: Frontend app shell** (`#21`)~~ — Done. Next.js app in `frontend/` with search, answer, research panels. Server-side proxy to backend.
 3. ~~**Slice 3: Pilot auth + boundary controls** (`#22`)~~ — Done. Owner-or-ops record access, multi-user rate-limit isolation, saved-query input bounds, and run-pagination bounds are shipped.
-4. **Slice 4: Persistence baseline** (`#23`) - In progress. S3 artifact-location persistence, Postgres repository/factory coverage, backend factory logging, optional pilot dependency extras, and health backend labels are present; remaining work should continue tightening the pilot persistence baseline without widening into deployment or infra rollout.
+4. **Slice 4: Persistence baseline** (`#23`) - In progress. S3 artifact-location persistence, Postgres repository/factory coverage, backend factory logging, optional pilot dependency extras, health backend labels, and a bounded real S3/Postgres validation command/runbook are present; external S3/Postgres execution evidence still requires real services and credentials.
 
 Each slice should be one focused agent session. See [agent-execution-defaults.md](./agent-execution-defaults.md) for session rules.
 

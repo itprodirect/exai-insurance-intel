@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import exa_demo.api as api_module
+import exa_demo.pilot_persistence_validation as validation_module
 import exa_demo.persistence as persist_module
 import pytest
 from fastapi.testclient import TestClient
@@ -1001,6 +1002,153 @@ class TestFactories:
         monkeypatch.delenv("PILOT_POSTGRES_URL", raising=False)
         with pytest.raises(RuntimeError, match="PILOT_POSTGRES_URL"):
             persist_module.create_run_repository()
+
+
+# ---------------------------------------------------------------------------
+# Bounded real S3/Postgres validation guardrails
+# ---------------------------------------------------------------------------
+
+
+class TestPilotPersistenceValidation:
+    def test_required_external_config_errors_rejects_local_defaults(self):
+        errors = validation_module.required_external_config_errors({})
+
+        assert "PILOT_RUN_STORE must be set to postgres." in errors
+        assert "PILOT_ARTIFACT_STORE must be set to s3." in errors
+        assert any("PILOT_POSTGRES_URL" in error for error in errors)
+        assert any("PILOT_S3_BUCKET" in error for error in errors)
+        assert any("PILOT_S3_PREFIX" in error for error in errors)
+
+    def test_required_external_config_errors_accepts_real_selection(self):
+        errors = validation_module.required_external_config_errors(
+            {
+                "PILOT_RUN_STORE": "postgres",
+                "PILOT_POSTGRES_URL": "postgresql://user:pass@db/pilot",
+                "PILOT_ARTIFACT_STORE": "s3",
+                "PILOT_S3_BUCKET": "pilot-validation",
+                "PILOT_S3_PREFIX": "validation/pilot-persistence/",
+            }
+        )
+
+        assert errors == []
+
+    def test_required_external_config_errors_rejects_unsafe_prefix(self):
+        errors = validation_module.required_external_config_errors(
+            {
+                "PILOT_RUN_STORE": "postgres",
+                "PILOT_POSTGRES_URL": "postgresql://user:pass@db/pilot",
+                "PILOT_ARTIFACT_STORE": "s3",
+                "PILOT_S3_BUCKET": "pilot-validation",
+                # Shared/production prefix (create_artifact_store default).
+                "PILOT_S3_PREFIX": "artifacts/",
+            }
+        )
+
+        assert any("PILOT_S3_PREFIX" in error for error in errors)
+        assert any("artifacts/" in error for error in errors)
+
+    def test_is_validation_scoped_prefix(self):
+        assert validation_module.is_validation_scoped_prefix(
+            "validation/pilot-persistence/"
+        )
+        assert validation_module.is_validation_scoped_prefix("validation/")
+        assert validation_module.is_validation_scoped_prefix("/validation/x/")
+        assert not validation_module.is_validation_scoped_prefix("artifacts/")
+        assert not validation_module.is_validation_scoped_prefix("")
+        # Must match the exact path segment, not a prefix string.
+        assert not validation_module.is_validation_scoped_prefix("validations/x/")
+
+    def test_validate_external_health_rejects_local_backends(self):
+        with pytest.raises(
+            validation_module.PersistenceValidationError,
+            match="run_store=postgres",
+        ):
+            validation_module.validate_external_health(
+                {
+                    "status": "ok",
+                    "run_store": "local",
+                    "artifact_store": "s3",
+                }
+            )
+
+        with pytest.raises(
+            validation_module.PersistenceValidationError,
+            match="artifact_store=s3",
+        ):
+            validation_module.validate_external_health(
+                {
+                    "status": "ok",
+                    "run_store": "postgres",
+                    "artifact_store": "local",
+                }
+            )
+
+    def test_find_matching_run_uses_query_marker_and_run_id(self):
+        payload = {
+            "runs": [
+                {
+                    "id": "wrong-query",
+                    "run_id": "run-1",
+                    "query_preview": "other query",
+                },
+                {
+                    "id": "matched",
+                    "run_id": "run-1",
+                    "query_preview": "Pilot validation marker",
+                },
+            ]
+        }
+
+        record = validation_module.find_matching_run(
+            payload,
+            query="Pilot validation marker",
+            api_run_id="run-1",
+        )
+
+        assert record is not None
+        assert record["id"] == "matched"
+
+    def test_validate_persisted_record_requires_s3_location(self):
+        record = {
+            "workflow": "search",
+            "mode": "smoke",
+            "status": "completed",
+            "query_preview": "Pilot validation marker",
+            "artifact_count": 3,
+            "artifact_location": "s3://pilot-validation/validation/pilot-persistence/run-1/",
+        }
+
+        location = validation_module.validate_persisted_record(
+            record,
+            bucket="pilot-validation",
+            prefix="validation/pilot-persistence/",
+            api_run_id="run-1",
+            query="Pilot validation marker",
+        )
+
+        assert location == "s3://pilot-validation/validation/pilot-persistence/run-1/"
+
+    def test_validate_persisted_record_rejects_missing_artifacts(self):
+        record = {
+            "workflow": "search",
+            "mode": "smoke",
+            "status": "completed",
+            "query_preview": "Pilot validation marker",
+            "artifact_count": 0,
+            "artifact_location": None,
+        }
+
+        with pytest.raises(
+            validation_module.PersistenceValidationError,
+            match="uploaded artifacts",
+        ):
+            validation_module.validate_persisted_record(
+                record,
+                bucket="pilot-validation",
+                prefix="validation/pilot-persistence/",
+                api_run_id="run-1",
+                query="Pilot validation marker",
+            )
 
 
 # ---------------------------------------------------------------------------

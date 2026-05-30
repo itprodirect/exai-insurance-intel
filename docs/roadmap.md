@@ -138,14 +138,14 @@ See [pilot-architecture-decision.md](./pilot-architecture-decision.md) for the l
 
 Goal: a working web UI that internal users can use to run existing workflows through a browser instead of the CLI.
 
-Current local validation remains smoke/local only. Live Exa mode and S3/Postgres-backed runtime validation are still future work under the persistence baseline row below.
+Current local validation remains smoke/local only. Live Exa mode and real S3/Postgres-backed runtime validation still require explicit external-service runs; a bounded S3/Postgres validation command now exists for that path.
 
 | Roadmap item | Goal | Why it matters | Current status | Dependencies | Success criteria | GitHub issue |
 | --- | --- | --- | --- | --- | --- | --- |
 | Thin API wrapper | Expose existing workflows as FastAPI endpoints | Decouples frontend from Python CLI; enables web product path | `Done` | Phase 1-4 baseline | FastAPI app serves search, answer, research, find-similar, structured-search over HTTP with JSON responses | TBD |
 | Frontend app shell | Next.js + TypeScript + Tailwind + shadcn/ui scaffold with App Router | Establishes the frontend stack and deploy target | `Done` | Thin API wrapper | App shell renders, routes work, can call API endpoints | TBD |
 | Pilot auth + request boundary | Internal-only auth, request validation, rate limiting, budget guardrails, request logging | Prevents uncontrolled usage before the product is hardened | `Done` | Thin API wrapper | Only authenticated internal users can make requests; spend is bounded and logged | TBD |
-| Persistence baseline | Artifacts in S3, relational state/usage in Postgres, existing SQLite cache kept for local dev | Moves beyond local-only SQLite for pilot durability | `In progress` | Thin API wrapper | Target state: pilot runs persist artifacts to S3 and track usage in Postgres after explicit end-to-end validation; current API health output reports the selected run/artifact backends | TBD |
+| Persistence baseline | Artifacts in S3, relational state/usage in Postgres, existing SQLite cache kept for local dev | Moves beyond local-only SQLite for pilot durability | `In progress` | Thin API wrapper | Target state: pilot runs persist artifacts to S3 and track usage in Postgres after explicit end-to-end validation; current API health output reports selected run/artifact backends, and `scripts/run_pilot_persistence_validation.py` provides a bounded real-service validation command | TBD |
 
 ### Level 2 - Limited External Beta
 
