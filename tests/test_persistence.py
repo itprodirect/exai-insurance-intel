@@ -1032,6 +1032,32 @@ class TestPilotPersistenceValidation:
 
         assert errors == []
 
+    def test_required_external_config_errors_rejects_unsafe_prefix(self):
+        errors = validation_module.required_external_config_errors(
+            {
+                "PILOT_RUN_STORE": "postgres",
+                "PILOT_POSTGRES_URL": "postgresql://user:pass@db/pilot",
+                "PILOT_ARTIFACT_STORE": "s3",
+                "PILOT_S3_BUCKET": "pilot-validation",
+                # Shared/production prefix (create_artifact_store default).
+                "PILOT_S3_PREFIX": "artifacts/",
+            }
+        )
+
+        assert any("PILOT_S3_PREFIX" in error for error in errors)
+        assert any("artifacts/" in error for error in errors)
+
+    def test_is_validation_scoped_prefix(self):
+        assert validation_module.is_validation_scoped_prefix(
+            "validation/pilot-persistence/"
+        )
+        assert validation_module.is_validation_scoped_prefix("validation/")
+        assert validation_module.is_validation_scoped_prefix("/validation/x/")
+        assert not validation_module.is_validation_scoped_prefix("artifacts/")
+        assert not validation_module.is_validation_scoped_prefix("")
+        # Must match the exact path segment, not a prefix string.
+        assert not validation_module.is_validation_scoped_prefix("validations/x/")
+
     def test_validate_external_health_rejects_local_backends(self):
         with pytest.raises(
             validation_module.PersistenceValidationError,

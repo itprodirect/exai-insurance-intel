@@ -6,7 +6,7 @@ import argparse
 import json
 import os
 import socket
-import subprocess
+import subprocess  # nosec B404
 import sys
 import time
 import urllib.error
@@ -24,6 +24,10 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_RESULT_LIMIT = 25
 DEFAULT_VALIDATION_PREFIX = "validation/pilot-persistence/"
+# Validation runs must write under this top-level prefix segment so the bounded
+# smoke run can never land in a shared/production artifact namespace such as
+# the ``artifacts/`` default used by ``create_artifact_store``.
+VALIDATION_PREFIX_ROOT = "validation"
 
 SECRET_ENV_NAMES = (
     "PILOT_POSTGRES_URL",
@@ -149,6 +153,21 @@ def config_from_args(
     )
 
 
+def is_validation_scoped_prefix(prefix: str) -> bool:
+    """Return True only when ``prefix`` is under the validation root segment.
+
+    A validation-scoped prefix has ``validation`` as its first path segment
+    (e.g. ``validation/pilot-persistence/``). Shared persistence prefixes such
+    as ``artifacts/`` — the default used by ``create_artifact_store`` — are
+    rejected so the bounded smoke run cannot pollute a non-validation namespace.
+    """
+
+    normalized = prefix.strip().strip("/")
+    if not normalized:
+        return False
+    return normalized.split("/", 1)[0] == VALIDATION_PREFIX_ROOT
+
+
 def required_external_config_errors(env: Mapping[str, str]) -> list[str]:
     """Return missing/mismatched config that would make validation ambiguous."""
 
@@ -167,10 +186,19 @@ def required_external_config_errors(env: Mapping[str, str]) -> list[str]:
     if not env.get("PILOT_S3_BUCKET", "").strip():
         errors.append("PILOT_S3_BUCKET must name the validation S3 bucket.")
 
-    if not env.get("PILOT_S3_PREFIX", "").strip():
+    s3_prefix = env.get("PILOT_S3_PREFIX", "").strip()
+    if not s3_prefix:
         errors.append(
             "PILOT_S3_PREFIX must be set to a validation-scoped prefix, "
             f"for example {DEFAULT_VALIDATION_PREFIX}."
+        )
+    elif not is_validation_scoped_prefix(s3_prefix):
+        errors.append(
+            "PILOT_S3_PREFIX must be a validation-scoped prefix under "
+            f"'{VALIDATION_PREFIX_ROOT}/' (for example "
+            f"{DEFAULT_VALIDATION_PREFIX}); refusing to run the validation "
+            "smoke write into a shared artifact namespace such as 'artifacts/'. "
+            f"Got {s3_prefix!r}."
         )
 
     return errors
@@ -431,7 +459,9 @@ def _request_json(
         method=method,
     )
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        # base_url is either an internal http://127.0.0.1:<port> address or an
+        # operator-supplied --base-url; only http(s) validation traffic is sent.
+        with urllib.request.urlopen(request, timeout=timeout) as response:  # nosec B310
             raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         raw_error = exc.read().decode("utf-8", errors="replace")
@@ -505,7 +535,9 @@ def _start_api_process(
         "--log-level",
         "warning",
     ]
-    return subprocess.Popen(
+    # argv is a fixed list (python -m uvicorn ...) with no shell and no
+    # untrusted interpolation; host defaults to loopback and port is an int.
+    return subprocess.Popen(  # nosec B603
         argv,
         cwd=config.repo_root,
         env=process_env,
